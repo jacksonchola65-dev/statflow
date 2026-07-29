@@ -1,0 +1,25 @@
+# Immutable semantic dictionary mapping canonical semantic type names to alias tuples.
+# This module contains only immutable data (tuples) and no functions or classes.
+SEMANTIC_DICTIONARY = (
+    ("EMAIL", ("email", "e-mail", "mail")),
+    ("PHONE", ("phone", "telephone", "mobile", "cell")),
+    ("URL", ("url", "website", "link")),
+    ("DATE", ("date", "day")),
+    ("TIME", ("time", "hour", "minute")),
+    ("DATETIME", ("datetime", "timestamp")),
+    ("AGE", ("age",)),
+    ("GENDER", ("gender", "sex")),
+    ("COUNTRY", ("country", "nation")),
+    ("CITY", ("city",)),
+    ("PROVINCE", ("province", "state")),
+    ("DISTRICT", ("district",)),
+    ("ADDRESS", ("address", "addr", "street")),
+    ("POSTAL_CODE", ("postal_code", "postalcode", "postcode", "zip")),
+    ("PERSON", ("person", "name", "full_name")),
+    ("ORGANIZATION", ("organization", "organisation", "company", "org")),
+    ("IDENTIFIER", ("id", "identifier", "uuid")),
+    ("CURRENCY", ("currency",)),
+    ("PERCENTAGE", ("percentage", "percent")),
+    ("QUANTITY", ("quantity", "qty")),
+    ("CATEGORY", ("category", "type", "class")),
+)

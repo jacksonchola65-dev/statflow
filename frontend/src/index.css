@@ -1,0 +1,227 @@
+/* ============================================================
+   Inter — professional variable font from Google Fonts
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ============================================================
+   Tailwind v4
+   ============================================================ */
+@import "tailwindcss";
+
+/* ============================================================
+   Design tokens
+   All custom properties live here so every component can
+   reference them. Tailwind arbitrary-value utilities
+   (e.g. bg-[var(--sf-surface)]) use them at the class level;
+   Recharts / Leaflet style objects reference the hex values
+   directly (those tools can't read CSS vars at runtime).
+   ============================================================ */
+@layer base {
+  :root {
+    /* ----------------------------------------------------------
+       Colour — backgrounds & surfaces
+    ---------------------------------------------------------- */
+    --sf-bg:              #0f172a;   /* slate-950  — page background        */
+    --sf-surface:         #1e293b;   /* slate-800  — card / panel surface    */
+    --sf-surface-raised:  #273549;   /* slate-700ish — hover-elevated card   */
+    --sf-overlay:         #0f172acc; /* page bg at 80 % — topbar backdrop    */
+
+    /* ----------------------------------------------------------
+       Colour — borders
+    ---------------------------------------------------------- */
+    --sf-border:          rgba(255, 255, 255, 0.08);  /* resting card border  */
+    --sf-border-hover:    rgba(255, 255, 255, 0.15);  /* hovered card border  */
+    --sf-border-input:    rgba(255, 255, 255, 0.10);  /* input border         */
+
+    /* ----------------------------------------------------------
+       Colour — text
+    ---------------------------------------------------------- */
+    --sf-text:            #f1f5f9;   /* slate-100 — primary body text        */
+    --sf-text-muted:      #94a3b8;   /* slate-400 — secondary / helper text  */
+    --sf-text-subtle:     #64748b;   /* slate-500 — labels, captions         */
+    --sf-text-disabled:   #475569;   /* slate-600 — disabled state           */
+
+    /* ----------------------------------------------------------
+       Colour — accent (indigo)
+    ---------------------------------------------------------- */
+    --sf-accent:          #6366f1;   /* indigo-500 — primary accent          */
+    --sf-accent-muted:    #818cf8;   /* indigo-400 — muted / secondary       */
+    --sf-accent-subtle:   #6366f11a; /* indigo-500 at ~10 % — tinted bg      */
+    --sf-focus-ring:      #6366f1;   /* focus outline colour                 */
+
+    /* ----------------------------------------------------------
+       Colour — semantic states
+       ---------------------------------------------------------- */
+    /* success (emerald) */
+    --sf-success:         #10b981;
+    --sf-success-muted:   #34d399;
+    --sf-success-subtle:  #10b9811a;
+
+    /* warning (amber) */
+    --sf-warning:         #f59e0b;
+    --sf-warning-muted:   #fbbf24;
+    --sf-warning-subtle:  #f59e0b1a;
+
+    /* danger / error (rose) */
+    --sf-danger:          #f43f5e;
+    --sf-danger-muted:    #fb7185;
+    --sf-danger-subtle:   #f43f5e1a;
+
+    /* info / sky */
+    --sf-info:            #0ea5e9;
+    --sf-info-muted:      #38bdf8;
+    --sf-info-subtle:     #0ea5e91a;
+
+    /* ----------------------------------------------------------
+       Shadows (dark-mode safe)
+    ---------------------------------------------------------- */
+    --sf-shadow-card:
+      0 1px 3px  rgba(0, 0, 0, 0.40),
+      0 1px 2px  rgba(0, 0, 0, 0.30);
+
+    --sf-shadow-card-hover:
+      0 8px 24px rgba(0, 0, 0, 0.50),
+      0 2px 8px  rgba(0, 0, 0, 0.30);
+
+    --sf-shadow-overlay:
+      0 16px 48px rgba(0, 0, 0, 0.60),
+      0 4px  16px rgba(0, 0, 0, 0.40);
+
+    /* ----------------------------------------------------------
+       Border radii
+    ---------------------------------------------------------- */
+    --sf-radius-sm:   6px;    /* small — badges, tags                    */
+    --sf-radius:      8px;    /* default — inputs, buttons, small panels  */
+    --sf-radius-lg:   12px;   /* large — cards, section panels            */
+    --sf-radius-xl:   16px;   /* extra-large — modal, hero panels         */
+    --sf-radius-full: 9999px; /* pill — badges                            */
+
+    /* ----------------------------------------------------------
+       Spacing scale (8 px base)
+    ---------------------------------------------------------- */
+    --sf-space-1:   4px;
+    --sf-space-2:   8px;
+    --sf-space-3:   12px;
+    --sf-space-4:   16px;
+    --sf-space-5:   20px;
+    --sf-space-6:   24px;
+    --sf-space-8:   32px;
+    --sf-space-10:  40px;
+    --sf-space-12:  48px;
+    --sf-space-16:  64px;
+
+    /* ----------------------------------------------------------
+       Typography scale
+    ---------------------------------------------------------- */
+    --sf-font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+    --sf-text-xs:   11px;
+    --sf-text-sm:   13px;
+    --sf-text-base: 14px;
+    --sf-text-lg:   16px;
+    --sf-text-xl:   18px;
+    --sf-text-2xl:  22px;
+    --sf-text-3xl:  28px;
+
+    --sf-leading-tight:  1.2;
+    --sf-leading-normal: 1.5;
+    --sf-leading-relaxed: 1.65;
+
+    --sf-tracking-tighter: -0.02em;
+    --sf-tracking-tight:   -0.01em;
+    --sf-tracking-normal:  0em;
+    --sf-tracking-wide:    0.04em;
+    --sf-tracking-widest:  0.08em;
+  }
+
+  /* --------------------------------------------------------
+     Global base styles
+  -------------------------------------------------------- */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family:      var(--sf-font-family);
+    font-size:        var(--sf-text-base);
+    line-height:      var(--sf-leading-normal);
+    color:            var(--sf-text);
+    background-color: var(--sf-bg);
+    margin: 0;
+    padding: 0;
+  }
+
+  /* --------------------------------------------------------
+     Focus — visible keyboard-only outline using accent colour.
+     :focus-visible ensures mouse clicks do NOT show the ring.
+  -------------------------------------------------------- */
+  :focus-visible {
+    outline: 2px solid var(--sf-focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Suppress the default browser focus ring for elements that
+     handle focus themselves (Leaflet map container). */
+  .leaflet-container:focus {
+    outline: none;
+  }
+
+  /* --------------------------------------------------------
+     Numeric figures — ensure KPI values and table numbers
+     use tabular (fixed-width) digits so columns align.
+  -------------------------------------------------------- */
+  .tabular-nums,
+  [data-tabular-nums] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /* --------------------------------------------------------
+     Scrollbar — subtle dark-mode scrollbar (Webkit)
+  -------------------------------------------------------- */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--sf-bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--sf-border-hover);
+    border-radius: var(--sf-radius-full);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--sf-text-subtle);
+  }
+}
+
+/* ============================================================
+   Leaflet map tooltip — custom dark-glass style
+   Applied via className: 'sf-map-tooltip' in ZambiaProvinceMap
+   ============================================================ */
+.sf-map-tooltip.leaflet-tooltip {
+  background-color: #1e293b;                      /* --sf-surface    */
+  border: 1px solid rgba(255, 255, 255, 0.10);    /* --sf-border     */
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);    /* --sf-shadow-overlay lite */
+  color: #f1f5f9;                                 /* --sf-text       */
+  font-family: 'Inter', ui-sans-serif, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  pointer-events: none;
+}
+
+/* Remove the default white triangle/arrow on the tooltip */
+.sf-map-tooltip.leaflet-tooltip::before {
+  display: none;
+}

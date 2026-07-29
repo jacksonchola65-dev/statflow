@@ -1,0 +1,4 @@
+province_code,indicator_code,value,reference_year,dataset_name,source_name
+CP,POP_TOTAL,2167000,2023,Test Import Dataset,Dev Seeder
+CB,POP_TOTAL,2556000,2023,Test Import Dataset,Dev Seeder
+EA,POP_TOTAL,1973000,2023,Test Import Dataset,Dev Seeder
