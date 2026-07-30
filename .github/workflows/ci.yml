@@ -49,7 +49,19 @@ jobs:
       - name: Run backend tests
         run: |
           cd backend
-          pytest
+          set -o pipefail
+          python -m pytest --tb=long -vv -s \
+            --junitxml=backend-pytest-report.xml \
+            2>&1 | tee backend-pytest.log
+      - name: Upload backend pytest diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-pytest-diagnostics
+          path: |
+            backend/backend-pytest.log
+            backend/backend-pytest-report.xml
+          if-no-files-found: warn
 
   frontend-validation:
     name: Frontend validation
