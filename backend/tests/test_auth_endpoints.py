@@ -14,11 +14,8 @@ from __future__ import annotations
 import uuid as _uuid
 
 import pytest
-import pytest_asyncio
-
 from app.core.config import settings
 from app.models.user import UserRole
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -223,9 +220,7 @@ async def test_me_does_not_rotate_access_token(client, db_session):
 
     # The /me response must not set a new auth cookie
     auth_cookie_header = _get_set_cookie_header(me_resp, settings.AUTH_COOKIE_NAME)
-    assert auth_cookie_header is None, (
-        "GET /me must not set a new auth cookie (no token rotation)"
-    )
+    assert auth_cookie_header is None, "GET /me must not set a new auth cookie (no token rotation)"
 
 
 # ---------------------------------------------------------------------------

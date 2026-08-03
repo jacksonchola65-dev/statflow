@@ -3,12 +3,11 @@ import uuid
 from asyncio import CancelledError
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import get_current_user, validate_csrf
 from app.db.session import get_db
 from app.domain.analytics.contracts import (
+    AnalyticsDimensionDescriptor,
+    AnalyticsMeasureDescriptor,
     AnalyticsQuery,
     AnalyticsResult,
     DatasetColumnDescriptor,
@@ -16,24 +15,24 @@ from app.domain.analytics.contracts import (
     DatasetListResult,
     DatasetPreviewResult,
     DatasetStatistics,
-    AnalyticsDimensionDescriptor,
-    AnalyticsMeasureDescriptor,
 )
 from app.domain.analytics.dependencies import (
     get_analytics_service,
     get_dataset_discovery_service,
 )
 from app.domain.analytics.discovery import DatasetDiscoveryService
-from app.domain.analytics.service import AnalyticsService
 from app.domain.analytics.exceptions import (
     AnalyticsQueryError,
     DatasetNotAnalyticsReadyError,
     IncompleteIngestionJobError,
     UnknownIngestionJobError,
 )
+from app.domain.analytics.service import AnalyticsService
 from app.models.user import User
 from app.schemas.analytics import IndicatorSummaryResponse
 from app.services.analytics_service import AnalyticsService as LegacyAnalyticsService
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,9 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
         "The request body must conform to the AnalyticsQuery contract."
     ),
     responses={
-        status.HTTP_400_BAD_REQUEST: {"description": "Invalid analytics query or incomplete ingestion job."},
+        status.HTTP_400_BAD_REQUEST: {
+            "description": "Invalid analytics query or incomplete ingestion job."
+        },
         status.HTTP_401_UNAUTHORIZED: {"description": "Authentication required."},
         status.HTTP_404_NOT_FOUND: {"description": "Ingestion job not found."},
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Unexpected server error."},
@@ -371,9 +372,7 @@ async def get_analytics_dataset_preview(
     "/datasets/{ingestion_job_id}/statistics",
     response_model=DatasetStatistics,
     summary="Retrieve dataset statistics",
-    description=(
-        "Return affordable persisted statistics for a single analytics-ready dataset."
-    ),
+    description=("Return affordable persisted statistics for a single analytics-ready dataset."),
     responses={
         status.HTTP_401_UNAUTHORIZED: {"description": "Authentication required."},
         status.HTTP_404_NOT_FOUND: {"description": "Dataset not found."},

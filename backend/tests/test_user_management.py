@@ -17,13 +17,10 @@ from __future__ import annotations
 import uuid as _uuid
 
 import pytest
-import pytest_asyncio
-
 from app.core.config import settings
 from app.core.security import create_access_token, verify_password
 from app.models.user import UserRole
 from app.services.auth_service import AuthService
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -279,7 +276,6 @@ async def test_admin_can_update_is_active(client, db_session):
 async def test_admin_can_change_password(client, db_session):
     admin = await _make_user(db_session, role=UserRole.ADMIN)
     target = await _make_user(db_session, role=UserRole.VIEWER)
-    old_hashed = target.hashed_password
     cookies = _admin_cookie(admin.id)
     cookies, headers = _csrf_cookies_and_headers(cookies)
     new_password = "newpasswordreplacement"
@@ -292,6 +288,7 @@ async def test_admin_can_change_password(client, db_session):
     assert resp.status_code == 200
     # Reload and confirm old password no longer verifies
     from app.repositories.user_repository import UserRepository
+
     repo = UserRepository(db_session)
     updated = await repo.get_by_id(target.id)
     assert updated is not None
@@ -328,20 +325,19 @@ async def test_final_admin_cannot_be_disabled(client, db_session):
     We test via the service directly to avoid cross-test DB contamination
     (other tests may have left active ADMINs in the shared DB).
     """
-    from app.services.user_service import UserService, LastActiveAdminError
-    from app.repositories.user_repository import UserRepository
+    from app.services.user_service import LastActiveAdminError, UserService
 
     # Create two ADMINs in this session.
-    admin_a = await _make_user(db_session, role=UserRole.ADMIN)
+    _ = await _make_user(db_session, role=UserRole.ADMIN)
     admin_b = await _make_user(db_session, role=UserRole.ADMIN)
 
     # Deactivate admin_a so admin_b is (potentially) the last active ADMIN
     # visible to count_active_admins.  If other tests left active ADMINs in DB,
     # the HTTP call won't 409.  Test the invariant at service level instead.
-    repo = UserRepository(db_session)
     # Deactivate ALL other admins so admin_b is truly the last one.
-    from sqlalchemy import update
     from app.models.user import User
+    from sqlalchemy import update
+
     await db_session.execute(
         update(User)
         .where(User.role == UserRole.ADMIN, User.id != admin_b.id)
@@ -370,11 +366,11 @@ async def test_final_admin_cannot_be_disabled(client, db_session):
 
 @pytest.mark.asyncio
 async def test_final_admin_cannot_be_demoted(client, db_session):
-    from app.services.user_service import UserService, LastActiveAdminError
     from app.models.user import User
+    from app.services.user_service import LastActiveAdminError, UserService
     from sqlalchemy import update
 
-    admin_a = await _make_user(db_session, role=UserRole.ADMIN)
+    _ = await _make_user(db_session, role=UserRole.ADMIN)
     admin_b = await _make_user(db_session, role=UserRole.ADMIN)
 
     # Make admin_b the sole active ADMIN.
@@ -429,11 +425,11 @@ async def test_non_final_admin_can_be_disabled(client, db_session):
 @pytest.mark.asyncio
 async def test_final_admin_cannot_be_deleted(client, db_session):
     """The sole active ADMIN cannot be soft-deleted — service raises LastActiveAdminError."""
-    from app.services.user_service import UserService, LastActiveAdminError
     from app.models.user import User
+    from app.services.user_service import LastActiveAdminError, UserService
     from sqlalchemy import update
 
-    admin_actor = await _make_user(db_session, role=UserRole.ADMIN)
+    _ = await _make_user(db_session, role=UserRole.ADMIN)
     admin_target = await _make_user(db_session, role=UserRole.ADMIN)
 
     # Deactivate ALL other admins so admin_target is truly the last active ADMIN.

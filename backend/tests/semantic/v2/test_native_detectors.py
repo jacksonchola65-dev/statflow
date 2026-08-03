@@ -1,9 +1,13 @@
-from app.semantic.v2.native_detectors import ValueSamplingDetectorV2, RegexSemanticDetectorV2, DictionarySemanticDetectorV2
-from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
-from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
-from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
 from app.semantic.detectors.base import DetectorInput
+from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
+from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
+from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
+from app.semantic.v2.native_detectors import (
+    DictionarySemanticDetectorV2,
+    RegexSemanticDetectorV2,
+    ValueSamplingDetectorV2,
+)
 
 
 def test_value_sampling_v2_parity():

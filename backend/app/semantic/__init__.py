@@ -1,10 +1,10 @@
-from .semantic_types import DatasetDomain, SemanticType, ColumnRole
 from .semantic_models import (
     SemanticColumn,
     SemanticEntity,
-    SemanticRelationship,
     SemanticProfile,
+    SemanticRelationship,
 )
+from .semantic_types import ColumnRole, DatasetDomain, SemanticType
 
 __all__ = [
     "DatasetDomain",

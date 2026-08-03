@@ -21,14 +21,13 @@ from __future__ import annotations
 import hmac
 from typing import Callable
 
-from fastapi import Cookie, Depends, Header, HTTPException, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import settings
-from app.core.security import decode_access_token, InvalidTokenError
+from app.core.security import InvalidTokenError, decode_access_token
 from app.db.session import get_db
 from app.models.user import User, UserRole
 from app.services.auth_service import AuthService, InvalidCredentialsError, UserNotFoundError
+from fastapi import Cookie, Depends, Header, HTTPException, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Shared 401 response

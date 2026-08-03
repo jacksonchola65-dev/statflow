@@ -16,8 +16,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from app.services.file_inspection_service import TOKEN_TTL
 from app.schemas.ingestion_mapping import MappingConfiguration
+from app.services.file_inspection_service import TOKEN_TTL
 
 
 @dataclass

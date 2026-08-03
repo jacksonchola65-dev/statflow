@@ -36,6 +36,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
+from app.db.base import Base
 from sqlalchemy import (
     DateTime,
     ForeignKey,
@@ -47,8 +48,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -119,8 +118,7 @@ class ImportTemplate(Base):
         JSONB,
         nullable=False,
         comment=(
-            "Original CSV header row (list of column names) "
-            "for reference and audit purposes."
+            "Original CSV header row (list of column names) for reference and audit purposes."
         ),
     )
 
@@ -151,7 +149,4 @@ class ImportTemplate(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<ImportTemplate id={self.id} "
-            f"owner_id={self.owner_id} name={self.name!r}>"
-        )
+        return f"<ImportTemplate id={self.id} owner_id={self.owner_id} name={self.name!r}>"

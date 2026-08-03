@@ -1,9 +1,8 @@
 import uuid
 
+from app.models.indicator import Indicator
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.indicator import Indicator
 
 
 class IndicatorRepository:
@@ -12,14 +11,10 @@ class IndicatorRepository:
 
     async def get_all_indicators(self) -> list[Indicator]:
         """Return all indicators ordered alphabetically by name."""
-        result = await self._session.execute(
-            select(Indicator).order_by(Indicator.name.asc())
-        )
+        result = await self._session.execute(select(Indicator).order_by(Indicator.name.asc()))
         return list(result.scalars().all())
 
-    async def get_indicators_by_category(
-        self, category_id: uuid.UUID
-    ) -> list[Indicator]:
+    async def get_indicators_by_category(self, category_id: uuid.UUID) -> list[Indicator]:
         """Return indicators for a specific category, ordered alphabetically by name."""
         result = await self._session.execute(
             select(Indicator)

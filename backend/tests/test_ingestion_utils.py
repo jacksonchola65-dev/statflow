@@ -21,17 +21,15 @@ from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
-
+from app.models.ingestion import InferredColumnType
 from app.utils.ingestion_parser import (
+    infer_column_type,
     is_missing_value,
     normalize_column_name,
     normalize_column_names,
-    infer_column_type,
     profile_column,
     serialize_sample_value,
 )
-from app.models.ingestion import InferredColumnType
-
 
 # ===========================================================================
 # Column normalisation tests
@@ -304,6 +302,7 @@ def test_serialize_neg_inf():
 
 def test_serialize_unsupported_object():
     """An arbitrary object should return a string, never raise."""
+
     class MyObj:
         def __str__(self):
             return "my_obj_repr"

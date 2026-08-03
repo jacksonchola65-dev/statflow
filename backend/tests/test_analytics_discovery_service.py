@@ -6,9 +6,14 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.domain.analytics.compatibility import supported_aggregations
+from app.domain.analytics.contracts import (
+    AggregationFunction,
+    AnalyticsQuery,
+    DatasetReference,
+    Dimension,
+    Measure,
+)
 from app.domain.analytics.discovery import (
     DatasetDiscoveryRepository,
     DatasetDiscoveryService,
@@ -18,20 +23,14 @@ from app.domain.analytics.exceptions import (
     UnknownIngestionJobError,
 )
 from app.domain.analytics.planner import AnalyticsQueryPlanner
-from app.domain.analytics.contracts import (
-    AggregationFunction,
-    AnalyticsQuery,
-    DatasetReference,
-    Dimension,
-    Measure,
-)
 from app.models.data_source import FileFormat, SourceType
-from app.models.ingestion import IngestionStatus, InferredColumnType
+from app.models.ingestion import InferredColumnType, IngestionJob, IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _create_dataset(
@@ -118,7 +117,8 @@ async def _create_dataset(
         status=status,
         row_count=row_count if status == IngestionStatus.COMPLETED else row_count,
         column_count=len(column_specs),
-        completed_at=completed_at or (datetime.now(timezone.utc) if status == IngestionStatus.COMPLETED else None),
+        completed_at=completed_at
+        or (datetime.now(timezone.utc) if status == IngestionStatus.COMPLETED else None),
     )
     await db_session.flush()
     return job
@@ -194,7 +194,9 @@ async def test_get_dataset_details_and_schema_alignment(db_session: AsyncSession
 
 
 @pytest.mark.asyncio
-async def test_aggregation_compatibility_policy_is_shared_with_planner(db_session: AsyncSession) -> None:
+async def test_aggregation_compatibility_policy_is_shared_with_planner(
+    db_session: AsyncSession,
+) -> None:
     job = await _create_dataset(
         db_session,
         column_specs=[
@@ -232,7 +234,11 @@ async def test_aggregation_compatibility_policy_is_shared_with_planner(db_sessio
         supported = supported_aggregations(column_type)
         for aggregation in supported:
             measures = [
-                Measure(aggregation=aggregation, column_name=normalized_name, alias=f"{normalized_name}_{aggregation.value.lower()}")
+                Measure(
+                    aggregation=aggregation,
+                    column_name=normalized_name,
+                    alias=f"{normalized_name}_{aggregation.value.lower()}",
+                )
             ]
             query = AnalyticsQuery(
                 dataset_reference=DatasetReference(ingestion_job_id=job.id),
@@ -244,7 +250,9 @@ async def test_aggregation_compatibility_policy_is_shared_with_planner(db_sessio
 
 
 @pytest.mark.asyncio
-async def test_dimensions_and_measures_reflect_planner_capabilities(db_session: AsyncSession) -> None:
+async def test_dimensions_and_measures_reflect_planner_capabilities(
+    db_session: AsyncSession,
+) -> None:
     job = await _create_dataset(
         db_session,
         column_specs=[
@@ -285,9 +293,19 @@ async def test_dimensions_and_measures_reflect_planner_capabilities(db_session: 
     assert "text" in dimension_names
     assert "date" in dimension_names
 
-    measure_mapping = {item.identifier: item.supported_aggregations for item in details.available_measures}
-    assert measure_mapping["text"] == [AggregationFunction.COUNT, AggregationFunction.COUNT_DISTINCT]
-    assert measure_mapping["date"] == [AggregationFunction.COUNT, AggregationFunction.COUNT_DISTINCT, AggregationFunction.MINIMUM, AggregationFunction.MAXIMUM]
+    measure_mapping = {
+        item.identifier: item.supported_aggregations for item in details.available_measures
+    }
+    assert measure_mapping["text"] == [
+        AggregationFunction.COUNT,
+        AggregationFunction.COUNT_DISTINCT,
+    ]
+    assert measure_mapping["date"] == [
+        AggregationFunction.COUNT,
+        AggregationFunction.COUNT_DISTINCT,
+        AggregationFunction.MINIMUM,
+        AggregationFunction.MAXIMUM,
+    ]
 
     planner = AnalyticsQueryPlanner(db_session)
     query = AnalyticsQuery(
@@ -341,7 +359,9 @@ async def test_get_preview_limits_default_and_maximum(db_session: AsyncSession) 
 @pytest.mark.asyncio
 async def test_get_statistics_from_persisted_metadata(db_session: AsyncSession) -> None:
     job = await _create_dataset(db_session)
-    stats = await DatasetDiscoveryService(DatasetDiscoveryRepository(db_session)).get_statistics(job.id)
+    stats = await DatasetDiscoveryService(DatasetDiscoveryRepository(db_session)).get_statistics(
+        job.id
+    )
     assert stats.row_count == 2
     assert stats.column_count == 2
     assert stats.nullable_column_count == 0

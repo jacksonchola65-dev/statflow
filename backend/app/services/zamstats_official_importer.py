@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import Mapping
 
 from app.core.config import settings
-from app.services.http_official_data_importer import HttpOfficialDataImporter, HttpOfficialImportConfig
+from app.services.http_official_data_importer import (
+    HttpOfficialDataImporter,
+    HttpOfficialImportConfig,
+)
 from app.services.official_import_service import ImportData, ImportSource
 
 
@@ -28,7 +31,15 @@ class ZamstatsOfficialDataImporter:
         self._source_reference = source_reference or self.DEFAULT_SOURCE_REFERENCE
         self._timeout_seconds = timeout_seconds
         self._maximum_response_bytes = maximum_response_bytes
-        self._allowed_content_types = allowed_content_types or frozenset({"text/csv", "application/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/json"})
+        self._allowed_content_types = allowed_content_types or frozenset(
+            {
+                "text/csv",
+                "application/csv",
+                "application/vnd.ms-excel",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "application/json",
+            }
+        )
         self._headers = headers
 
     async def import_data(self) -> ImportData:

@@ -1,11 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Sequence, Tuple, Iterable, List, Dict
-import math
+from typing import Dict, Iterable, List, Sequence, Tuple
 
+from .entity_models import EntityCandidate
 from .semantic_models import SemanticClassification, SemanticEvidence
 from .semantic_types import SemanticType
-from .entity_models import EntityCandidate
-
 
 ENTITY_TYPES = {
     SemanticType.PERSON,
@@ -134,6 +132,12 @@ class EntityCandidateDetector:
             candidates.append(ec)
 
         # Sort final candidates by descending confidence, then normalized entity name, then first source column
-        candidates.sort(key=lambda e: (-float(e.confidence), e.name.lower(), e.source_columns[0] if e.source_columns else ""))
+        candidates.sort(
+            key=lambda e: (
+                -float(e.confidence),
+                e.name.lower(),
+                e.source_columns[0] if e.source_columns else "",
+            )
+        )
 
         return tuple(candidates)

@@ -1,15 +1,17 @@
-from app.semantic.v2.detector_adapters import RegexDetectorAdapter, DictionaryDetectorAdapter, ValueSamplingDetectorAdapter
-from app.semantic.v2.feature_models import LightValueFeatures
+from app.semantic.detectors.base import DetectorInput
+from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
+from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
+from app.semantic.v2.detector_adapters import (
+    DictionaryDetectorAdapter,
+    RegexDetectorAdapter,
+    ValueSamplingDetectorAdapter,
+)
 from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
 from app.semantic.v2.semantic_context import SemanticContext
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
-from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
-from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
-from app.semantic.detectors.base import DetectorInput
 
 
 def _build_context_from_raw(column_name, raw_values):
-    vals = tuple(LightValueFeatures(raw_value=v if v is not None else "", cleaned_value=(v.strip() if v is not None else ""), lowered_value=(v.strip().lower() if v is not None else ""), is_empty=(v is None or v.strip()==""), is_integer=False, is_decimal=False, parsed_number=None) for v in raw_values if v is not None)
     ctx = FeatureExtractionPipeline.extract(column_name, tuple(raw_values)) if False else None
     # build minimal ColumnFeatureContext via feature extraction
     ctx = FeatureExtractionPipeline.extract(column_name, tuple(raw_values))

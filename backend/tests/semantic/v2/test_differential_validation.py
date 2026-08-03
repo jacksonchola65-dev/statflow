@@ -1,33 +1,39 @@
-import math
 from typing import List
 
 import pytest
-
-from app.semantic.detection_pipeline import SemanticDetectionPipeline
+from app.semantic.analytics_role_service import AnalyticsRoleService
 from app.semantic.consensus_engine import ConsensusEngine
-from app.semantic.v2.native_detection_pipeline import NativeDetectionPipeline
+from app.semantic.detection_pipeline import SemanticDetectionPipeline
 from app.semantic.detectors.base import DetectorInput
-from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
-from app.semantic.v2.feature_models import ColumnFeatureContext, LightValueFeatures
-from app.semantic.v2.semantic_context import SemanticContext
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
+from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
+from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
+from app.semantic.entity_candidate_detector import EntityCandidateDetector, EntityColumnInput
+from app.semantic.entity_key_detector import (
+    EntityKeyColumnInput,
+    EntityKeyDetectionInput,
+    EntityKeyDetector,
+)
+from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
+from app.semantic.relationship_detector import (
+    RelationshipColumnInput,
+    RelationshipDetectionInput,
+    RelationshipDetector,
+)
 from app.semantic.semantic_profile_builder import (
     ColumnClassification,
     DomainDetectionResult,
     SemanticProfileBuilder,
 )
-from app.semantic.entity_candidate_detector import EntityColumnInput, EntityCandidateDetector
-from app.semantic.entity_key_detector import EntityKeyColumnInput, EntityKeyDetectionInput, EntityKeyDetector
-from app.semantic.relationship_detector import RelationshipColumnInput, RelationshipDetectionInput, RelationshipDetector
-from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
-from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
-from app.semantic.analytics_role_service import AnalyticsRoleService
-from app.semantic.semantic_serialization import to_dict as semantic_to_dict, from_dict as semantic_from_dict
+from app.semantic.semantic_serialization import from_dict as semantic_from_dict
+from app.semantic.semantic_serialization import to_dict as semantic_to_dict
 from app.semantic.semantic_types import DatasetDomain
+from app.semantic.v2.feature_models import ColumnFeatureContext, LightValueFeatures
+from app.semantic.v2.native_detection_pipeline import NativeDetectionPipeline
+from app.semantic.v2.semantic_context import SemanticContext
 
 from backend.tests.semantic.v2.differential_cases import all_cases
-
 
 SEED = 12345
 GENERATED_COUNT = 1000
@@ -52,7 +58,15 @@ def _make_light(v: str) -> LightValueFeatures:
     except Exception:
         pn = None
 
-    return LightValueFeatures(raw_value=raw, cleaned_value=cleaned, lowered_value=lowered, is_empty=is_empty, is_integer=is_int, is_decimal=is_dec, parsed_number=(float(pn) if pn is not None else None))
+    return LightValueFeatures(
+        raw_value=raw,
+        cleaned_value=cleaned,
+        lowered_value=lowered,
+        is_empty=is_empty,
+        is_integer=is_int,
+        is_decimal=is_dec,
+        parsed_number=(float(pn) if pn is not None else None),
+    )
 
 
 def _build_inputs(case) -> (DetectorInput, ColumnFeatureContext):
@@ -67,13 +81,17 @@ def _build_inputs(case) -> (DetectorInput, ColumnFeatureContext):
         if len(cleaned) >= 100:
             break
 
-    detector_input = DetectorInput(column_name=case.column_name or "", values=tuple(cleaned), inferred_type=None)
+    detector_input = DetectorInput(
+        column_name=case.column_name or "", values=tuple(cleaned), inferred_type=None
+    )
 
     light_vals = tuple(_make_light(s) for s in cleaned)
     non_null = len(light_vals)
-    null_count = sum(1 for v in case.values if v is None or (isinstance(v, str) and v.strip() == ""))
+    null_count = sum(
+        1 for v in case.values if v is None or (isinstance(v, str) and v.strip() == "")
+    )
     total = len(case.values)
-    unique_count = len(set(l.cleaned_value for l in light_vals))
+    unique_count = len(set(light_val.cleaned_value for light_val in light_vals))
     cardinality_ratio = float(unique_count / non_null) if non_null > 0 else 0.0
     null_ratio = float(null_count / total) if total > 0 else 0.0
 
@@ -97,7 +115,9 @@ def _format_classifications(cls_list) -> List[dict]:
 def test_differential_validation_all_cases():
     cases = all_cases(seed=SEED, generated=GENERATED_COUNT)
 
-    v1_pipeline = SemanticDetectionPipeline([RegexSemanticDetector(), DictionarySemanticDetector(), ValueSamplingDetector()])
+    v1_pipeline = SemanticDetectionPipeline(
+        [RegexSemanticDetector(), DictionarySemanticDetector(), ValueSamplingDetector()]
+    )
     v2_pipeline = NativeDetectionPipeline()
 
     total_det_comparisons = 0
@@ -124,7 +144,9 @@ def test_differential_validation_all_cases():
             else:
                 for i, (a, b) in enumerate(zip(v1_out, v2_merged)):
                     if a.semantic_type != b.semantic_type:
-                        first_diff = f"semantic_type at index {i}: v1={a.semantic_type} v2={b.semantic_type}"
+                        first_diff = (
+                            f"semantic_type at index {i}: v1={a.semantic_type} v2={b.semantic_type}"
+                        )
                         break
                     if float(a.confidence) != float(b.confidence):
                         first_diff = f"confidence at index {i}: v1={a.confidence} v2={b.confidence}"
@@ -132,7 +154,9 @@ def test_differential_validation_all_cases():
                     if a.detector != b.detector:
                         first_diff = f"detector at index {i}: v1={a.detector} v2={b.detector}"
                         break
-                    if tuple((e.source, float(e.score), e.description) for e in a.evidence) != tuple((e.source, float(e.score), e.description) for e in b.evidence):
+                    if tuple(
+                        (e.source, float(e.score), e.description) for e in a.evidence
+                    ) != tuple((e.source, float(e.score), e.description) for e in b.evidence):
                         first_diff = f"evidence at index {i}: v1={a.evidence} v2={b.evidence}"
                         break
             msg = (
@@ -148,47 +172,168 @@ def test_differential_validation_all_cases():
         if not (case.column_name and case.column_name.strip()):
             continue
 
-        col_class_v1 = ColumnClassification(column_name=case.column_name, classifications=tuple(v1_out))
-        col_class_v2 = ColumnClassification(column_name=case.column_name, classifications=tuple(v2_merged))
+        col_class_v1 = ColumnClassification(
+            column_name=case.column_name, classifications=tuple(v1_out)
+        )
+        col_class_v2 = ColumnClassification(
+            column_name=case.column_name, classifications=tuple(v2_merged)
+        )
 
-        entities_v1 = EntityCandidateDetector.discover((EntityColumnInput(column_name=col_class_v1.column_name, classifications=col_class_v1.classifications),))
-        entities_v2 = EntityCandidateDetector.discover((EntityColumnInput(column_name=col_class_v2.column_name, classifications=col_class_v2.classifications),))
+        entities_v1 = EntityCandidateDetector.discover(
+            (
+                EntityColumnInput(
+                    column_name=col_class_v1.column_name,
+                    classifications=col_class_v1.classifications,
+                ),
+            )
+        )
+        entities_v2 = EntityCandidateDetector.discover(
+            (
+                EntityColumnInput(
+                    column_name=col_class_v2.column_name,
+                    classifications=col_class_v2.classifications,
+                ),
+            )
+        )
 
-        sample_size = len([v for v in case.values if v is not None and (not isinstance(v, str) or v.strip() != "")])
-        unique_ratio = (len(set([v for v in case.values if v is not None and (not isinstance(v, str) or v.strip() != "")])) / sample_size) if sample_size > 0 else 0.0
-        null_ratio = 1.0 if all((v is None or (isinstance(v, str) and v.strip() == "")) for v in case.values) else 0.0
+        sample_size = len(
+            [
+                v
+                for v in case.values
+                if v is not None and (not isinstance(v, str) or v.strip() != "")
+            ]
+        )
+        unique_ratio = (
+            (
+                len(
+                    set(
+                        [
+                            v
+                            for v in case.values
+                            if v is not None and (not isinstance(v, str) or v.strip() != "")
+                        ]
+                    )
+                )
+                / sample_size
+            )
+            if sample_size > 0
+            else 0.0
+        )
+        null_ratio = (
+            1.0
+            if all((v is None or (isinstance(v, str) and v.strip() == "")) for v in case.values)
+            else 0.0
+        )
 
-        ek_inputs_v1 = (EntityKeyColumnInput(column_name=col_class_v1.column_name, classifications=col_class_v1.classifications, uniqueness_ratio=unique_ratio, null_ratio=null_ratio),)
-        ek_inputs_v2 = (EntityKeyColumnInput(column_name=col_class_v2.column_name, classifications=col_class_v2.classifications, uniqueness_ratio=unique_ratio, null_ratio=null_ratio),)
+        ek_inputs_v1 = (
+            EntityKeyColumnInput(
+                column_name=col_class_v1.column_name,
+                classifications=col_class_v1.classifications,
+                uniqueness_ratio=unique_ratio,
+                null_ratio=null_ratio,
+            ),
+        )
+        ek_inputs_v2 = (
+            EntityKeyColumnInput(
+                column_name=col_class_v2.column_name,
+                classifications=col_class_v2.classifications,
+                uniqueness_ratio=unique_ratio,
+                null_ratio=null_ratio,
+            ),
+        )
 
-        keys_v1 = EntityKeyDetector.discover(EntityKeyDetectionInput(entities=entities_v1, columns=ek_inputs_v1))
-        keys_v2 = EntityKeyDetector.discover(EntityKeyDetectionInput(entities=entities_v2, columns=ek_inputs_v2))
+        keys_v1 = EntityKeyDetector.discover(
+            EntityKeyDetectionInput(entities=entities_v1, columns=ek_inputs_v1)
+        )
+        keys_v2 = EntityKeyDetector.discover(
+            EntityKeyDetectionInput(entities=entities_v2, columns=ek_inputs_v2)
+        )
 
-        rel_inputs_v1 = (RelationshipColumnInput(column_name=col_class_v1.column_name, classifications=col_class_v1.classifications, uniqueness_ratio=unique_ratio, null_ratio=null_ratio),)
-        rel_inputs_v2 = (RelationshipColumnInput(column_name=col_class_v2.column_name, classifications=col_class_v2.classifications, uniqueness_ratio=unique_ratio, null_ratio=null_ratio),)
+        rel_inputs_v1 = (
+            RelationshipColumnInput(
+                column_name=col_class_v1.column_name,
+                classifications=col_class_v1.classifications,
+                uniqueness_ratio=unique_ratio,
+                null_ratio=null_ratio,
+            ),
+        )
+        rel_inputs_v2 = (
+            RelationshipColumnInput(
+                column_name=col_class_v2.column_name,
+                classifications=col_class_v2.classifications,
+                uniqueness_ratio=unique_ratio,
+                null_ratio=null_ratio,
+            ),
+        )
 
-        rels_v1 = RelationshipDetector.discover(RelationshipDetectionInput(entities=entities_v1, keys=keys_v1, columns=rel_inputs_v1))
-        rels_v2 = RelationshipDetector.discover(RelationshipDetectionInput(entities=entities_v2, keys=keys_v2, columns=rel_inputs_v2))
+        rels_v1 = RelationshipDetector.discover(
+            RelationshipDetectionInput(entities=entities_v1, keys=keys_v1, columns=rel_inputs_v1)
+        )
+        rels_v2 = RelationshipDetector.discover(
+            RelationshipDetectionInput(entities=entities_v2, keys=keys_v2, columns=rel_inputs_v2)
+        )
 
-        measures_v1 = MeasureDetector.discover((
-            MeasureColumnInput(column_name=col_class_v1.column_name, classifications=col_class_v1.classifications, cardinality_ratio=unique_ratio, null_ratio=null_ratio),
-        ))
-        measures_v2 = MeasureDetector.discover((
-            MeasureColumnInput(column_name=col_class_v2.column_name, classifications=col_class_v2.classifications, cardinality_ratio=unique_ratio, null_ratio=null_ratio),
-        ))
+        measures_v1 = MeasureDetector.discover(
+            (
+                MeasureColumnInput(
+                    column_name=col_class_v1.column_name,
+                    classifications=col_class_v1.classifications,
+                    cardinality_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                ),
+            )
+        )
+        measures_v2 = MeasureDetector.discover(
+            (
+                MeasureColumnInput(
+                    column_name=col_class_v2.column_name,
+                    classifications=col_class_v2.classifications,
+                    cardinality_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                ),
+            )
+        )
 
-        dims_v1 = DimensionDetector.discover((
-            DimensionColumnInput(column_name=col_class_v1.column_name, classifications=col_class_v1.classifications, cardinality_ratio=unique_ratio, null_ratio=null_ratio),
-        ))
-        dims_v2 = DimensionDetector.discover((
-            DimensionColumnInput(column_name=col_class_v2.column_name, classifications=col_class_v2.classifications, cardinality_ratio=unique_ratio, null_ratio=null_ratio),
-        ))
+        dims_v1 = DimensionDetector.discover(
+            (
+                DimensionColumnInput(
+                    column_name=col_class_v1.column_name,
+                    classifications=col_class_v1.classifications,
+                    cardinality_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                ),
+            )
+        )
+        dims_v2 = DimensionDetector.discover(
+            (
+                DimensionColumnInput(
+                    column_name=col_class_v2.column_name,
+                    classifications=col_class_v2.classifications,
+                    cardinality_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                ),
+            )
+        )
 
         analytics_v1 = AnalyticsRoleService.compose(measures_v1, dims_v1)
         analytics_v2 = AnalyticsRoleService.compose(measures_v2, dims_v2)
 
-        profile_v1 = SemanticProfileBuilder.compose(DomainDetectionResult(domain=DatasetDomain.GENERAL), entities_v1, rels_v1, keys_v1, analytics_v1, (col_class_v1,))
-        profile_v2 = SemanticProfileBuilder.compose(DomainDetectionResult(domain=DatasetDomain.GENERAL), entities_v2, rels_v2, keys_v2, analytics_v2, (col_class_v2,))
+        profile_v1 = SemanticProfileBuilder.compose(
+            DomainDetectionResult(domain=DatasetDomain.GENERAL),
+            entities_v1,
+            rels_v1,
+            keys_v1,
+            analytics_v1,
+            (col_class_v1,),
+        )
+        profile_v2 = SemanticProfileBuilder.compose(
+            DomainDetectionResult(domain=DatasetDomain.GENERAL),
+            entities_v2,
+            rels_v2,
+            keys_v2,
+            analytics_v2,
+            (col_class_v2,),
+        )
 
         dict_v1 = semantic_to_dict(profile_v1)
         dict_v2 = semantic_to_dict(profile_v2)

@@ -21,12 +21,10 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User, UserRole
 from app.repositories.user_repository import UserRepository
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Domain exceptions
@@ -58,8 +56,8 @@ class UserNotFoundError(Exception):
 class AuthenticatedUser:
     """Returned by AuthService.authenticate() on success."""
 
-    user: User          # the full User ORM object
-    access_token: str   # signed JWT string
+    user: User  # the full User ORM object
+    access_token: str  # signed JWT string
 
 
 # ---------------------------------------------------------------------------
@@ -79,17 +77,11 @@ def _validate_password_policy(password: str) -> None:
     A valid 12+ character passphrase of any printable characters is accepted.
     """
     if not password or not password.strip():
-        raise PasswordPolicyError(
-            "Password must not be blank or consist entirely of whitespace."
-        )
+        raise PasswordPolicyError("Password must not be blank or consist entirely of whitespace.")
     if len(password) < 12:
-        raise PasswordPolicyError(
-            "Password must be at least 12 characters long."
-        )
+        raise PasswordPolicyError("Password must be at least 12 characters long.")
     if len(password) > 128:
-        raise PasswordPolicyError(
-            "Password must not exceed 128 characters."
-        )
+        raise PasswordPolicyError("Password must not exceed 128 characters.")
 
 
 # ---------------------------------------------------------------------------

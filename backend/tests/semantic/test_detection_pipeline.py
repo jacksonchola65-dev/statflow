@@ -1,6 +1,6 @@
 import time
-import pytest
 
+import pytest
 from app.semantic.detection_pipeline import SemanticDetectionPipeline
 from app.semantic.detectors.base import DetectorInput, DetectorResult
 from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
@@ -16,11 +16,18 @@ class DummyDetector:
     def detect(self, input: DetectorInput):
         if self._raise:
             raise RuntimeError("detector error")
-        return DetectorResult(detector_name=self._name, classifications=tuple(self._classifications))
+        return DetectorResult(
+            detector_name=self._name, classifications=tuple(self._classifications)
+        )
 
 
 def make_sc(st, conf, det):
-    return SemanticClassification(semantic_type=st, confidence=conf, evidence=(SemanticEvidence(source=det, score=conf, description="e"),), detector=det)
+    return SemanticClassification(
+        semantic_type=st,
+        confidence=conf,
+        evidence=(SemanticEvidence(source=det, score=conf, description="e"),),
+        detector=det,
+    )
 
 
 def test_empty_pipeline():
@@ -63,7 +70,10 @@ def test_exception_propagation():
 
 def test_deterministic_and_performance():
     # three dummy detectors
-    dets = [DummyDetector(f"d{i}", classifications=(make_sc(SemanticType.TEXT, 0.5, f"d{i}"),)) for i in range(3)]
+    dets = [
+        DummyDetector(f"d{i}", classifications=(make_sc(SemanticType.TEXT, 0.5, f"d{i}"),))
+        for i in range(3)
+    ]
     p = SemanticDetectionPipeline(dets)
     vals = tuple(str(i) for i in range(100))
     inp = DetectorInput(column_name="c", values=vals)

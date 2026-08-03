@@ -1,7 +1,6 @@
-from typing import Sequence, Tuple, List
-from collections import namedtuple
+from typing import Sequence
 
-from .domain_models import DomainScore, DomainPrediction
+from .domain_models import DomainPrediction, DomainScore
 from .semantic_types import DatasetDomain
 
 
@@ -16,13 +15,17 @@ class DatasetDomainDetector:
                 raise TypeError("all items must be DomainScore instances")
 
         if len(scores) == 0:
-            return DomainPrediction(primary_domain=DatasetDomain.CUSTOM, confidence=0.0, alternatives=(), evidence=())
+            return DomainPrediction(
+                primary_domain=DatasetDomain.CUSTOM, confidence=0.0, alternatives=(), evidence=()
+            )
 
         # Ignore non-positive scores
         positive = [s for s in scores if float(s.score) > 0.0]
 
         if not positive:
-            return DomainPrediction(primary_domain=DatasetDomain.CUSTOM, confidence=0.0, alternatives=(), evidence=())
+            return DomainPrediction(
+                primary_domain=DatasetDomain.CUSTOM, confidence=0.0, alternatives=(), evidence=()
+            )
 
         # Sort deterministically by descending score then domain value
         positive_sorted = sorted(positive, key=lambda d: (-float(d.score), d.domain.value))
@@ -45,7 +48,17 @@ class DatasetDomainDetector:
         if ambiguous or low_confidence:
             # Return CUSTOM with highest score as confidence, alternatives include top positives limited to 3
             alts = tuple(positive_sorted[:3])
-            return DomainPrediction(primary_domain=DatasetDomain.CUSTOM, confidence=float(top.score), alternatives=alts, evidence=tuple(top.evidence))
+            return DomainPrediction(
+                primary_domain=DatasetDomain.CUSTOM,
+                confidence=float(top.score),
+                alternatives=alts,
+                evidence=tuple(top.evidence),
+            )
 
         # Normal case: primary is top domain
-        return DomainPrediction(primary_domain=top.domain, confidence=float(top.score), alternatives=alternatives_limited, evidence=tuple(top.evidence))
+        return DomainPrediction(
+            primary_domain=top.domain,
+            confidence=float(top.score),
+            alternatives=alternatives_limited,
+            evidence=tuple(top.evidence),
+        )

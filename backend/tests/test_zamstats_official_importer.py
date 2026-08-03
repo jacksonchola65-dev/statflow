@@ -2,32 +2,25 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from dataclasses import dataclass
 from typing import Optional
 
-import httpx
 import pytest
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
 from app.models.ingestion import IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
 from app.services.http_official_data_importer import (
     HttpImportError,
-    HttpOfficialDataImporter,
     HttpOfficialImportConfig,
 )
+from app.services.ingestion_persistence_service import IngestionPersistenceResult
+from app.services.ingestion_profiling_service import IngestionProfileResult
 from app.services.official_import_service import (
     ImportData,
-    ImportResult,
     ImportSource,
-    OfficialDataImporter,
     OfficialImportService,
 )
 from app.services.zamstats_official_importer import ZamstatsOfficialDataImporter
-from app.services.ingestion_persistence_service import IngestionPersistenceResult
-from app.services.ingestion_profiling_service import IngestionProfileResult
-
 
 if sys.platform == "win32":
     import asyncio as _asyncio
@@ -118,7 +111,9 @@ async def test_zamstats_importer_uses_http_adapter_configuration(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_missing_url_configuration_fails_clearly(monkeypatch):
-    monkeypatch.setattr("app.services.zamstats_official_importer.settings.ZAMSTATS_DATASET_URL", None)
+    monkeypatch.setattr(
+        "app.services.zamstats_official_importer.settings.ZAMSTATS_DATASET_URL", None
+    )
     importer = ZamstatsOfficialDataImporter()
 
     with pytest.raises(ValueError, match="must be configured"):

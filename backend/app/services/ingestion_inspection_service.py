@@ -15,21 +15,18 @@ from __future__ import annotations
 
 import math
 import uuid
-from typing import Optional
-
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
 from app.schemas.ingestion import (
+    DatasetColumnResponse,
     DatasetInspectionResponse,
     DatasetRowResponse,
-    DatasetColumnResponse,
     IngestionJobSummaryResponse,
     PaginationResponse,
 )
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -91,9 +88,7 @@ class IngestionInspectionService:
             When no ingestion job exists for the provided ID.
         """
         if page < 1:
-            raise InvalidInspectionPaginationError(
-                "Pagination parameter 'page' must be >= 1."
-            )
+            raise InvalidInspectionPaginationError("Pagination parameter 'page' must be >= 1.")
         if page_size < 1 or page_size > 10_000:
             raise InvalidInspectionPaginationError(
                 "Pagination parameter 'page_size' must be between 1 and 10_000."
@@ -101,9 +96,7 @@ class IngestionInspectionService:
 
         job = await self._job_repo.get_by_id(ingestion_job_id)
         if job is None:
-            raise IngestionJobNotFoundError(
-                f"Ingestion job not found: {ingestion_job_id}"
-            )
+            raise IngestionJobNotFoundError(f"Ingestion job not found: {ingestion_job_id}")
 
         columns = await self._column_repo.list_by_ingestion_job(ingestion_job_id)
         total_items = await self._row_repo.count_for_job(ingestion_job_id)

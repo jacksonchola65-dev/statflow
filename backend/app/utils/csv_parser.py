@@ -35,7 +35,6 @@ import io
 import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
-from typing import TYPE_CHECKING
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -106,12 +105,12 @@ class RowLimitExceeded(CsvParserError):
 class ParsedRow:
     """A single data row that passed all validation checks."""
 
-    row_number: int          # 1-based index in the CSV (header = 0)
+    row_number: int  # 1-based index in the CSV (header = 0)
     province_id: uuid.UUID
     indicator_id: uuid.UUID
     value: Decimal
     reference_year: int
-    dataset_name: str        # always present (required column)
+    dataset_name: str  # always present (required column)
     source_name: str | None  # None when dataset already exists in DB
     source_url: str | None
 
@@ -124,10 +123,10 @@ class ParsedRow:
 class RowError:
     """A validation failure on a single cell within a data row."""
 
-    row_number: int   # 1-based
-    column: str       # CSV column name that failed
-    raw_value: str    # exact cell content (stripped of surrounding whitespace)
-    message: str      # human-readable description
+    row_number: int  # 1-based
+    column: str  # CSV column name that failed
+    raw_value: str  # exact cell content (stripped of surrounding whitespace)
+    message: str  # human-readable description
 
 
 @dataclass
@@ -160,9 +159,7 @@ def _decode_bytes(raw_bytes: bytes) -> str:
     try:
         return raw_bytes.decode("utf-8")
     except (UnicodeDecodeError, ValueError) as exc:
-        raise MalformedCsvError(
-            f"File could not be decoded as UTF-8: {exc}"
-        ) from exc
+        raise MalformedCsvError(f"File could not be decoded as UTF-8: {exc}") from exc
 
 
 def _detect_dialect(text: str) -> csv.Dialect:
@@ -218,64 +215,100 @@ def _validate_row(
     raw_province = row.get("province_code", "")
     province_id: uuid.UUID | None = province_map.get(raw_province.upper())
     if not raw_province:
-        errors.append(RowError(row_number, "province_code", raw_province,
-                               "province_code is required."))
+        errors.append(
+            RowError(row_number, "province_code", raw_province, "province_code is required.")
+        )
     elif province_id is None:
-        errors.append(RowError(row_number, "province_code", raw_province,
-                               f"Unknown province_code: '{raw_province}'."))
+        errors.append(
+            RowError(
+                row_number,
+                "province_code",
+                raw_province,
+                f"Unknown province_code: '{raw_province}'.",
+            )
+        )
 
     # -- indicator_code ------------------------------------------------------
     raw_indicator = row.get("indicator_code", "")
     indicator_id: uuid.UUID | None = indicator_map.get(raw_indicator.upper())
     if not raw_indicator:
-        errors.append(RowError(row_number, "indicator_code", raw_indicator,
-                               "indicator_code is required."))
+        errors.append(
+            RowError(row_number, "indicator_code", raw_indicator, "indicator_code is required.")
+        )
     elif indicator_id is None:
-        errors.append(RowError(row_number, "indicator_code", raw_indicator,
-                               f"Unknown indicator_code: '{raw_indicator}'."))
+        errors.append(
+            RowError(
+                row_number,
+                "indicator_code",
+                raw_indicator,
+                f"Unknown indicator_code: '{raw_indicator}'.",
+            )
+        )
 
     # -- value ---------------------------------------------------------------
     raw_value = row.get("value", "")
     parsed_value: Decimal | None = None
     if not raw_value:
-        errors.append(RowError(row_number, "value", raw_value,
-                               "value is required."))
+        errors.append(RowError(row_number, "value", raw_value, "value is required."))
     else:
         try:
             parsed_value = Decimal(raw_value)
             if not parsed_value.is_finite():
                 raise InvalidOperation
         except InvalidOperation:
-            errors.append(RowError(row_number, "value", raw_value,
-                                   f"value must be a finite number; got '{raw_value}'."))
+            errors.append(
+                RowError(
+                    row_number,
+                    "value",
+                    raw_value,
+                    f"value must be a finite number; got '{raw_value}'.",
+                )
+            )
             parsed_value = None
 
     # -- reference_year ------------------------------------------------------
     raw_year = row.get("reference_year", "")
     parsed_year: int | None = None
     if not raw_year:
-        errors.append(RowError(row_number, "reference_year", raw_year,
-                               "reference_year is required."))
+        errors.append(
+            RowError(row_number, "reference_year", raw_year, "reference_year is required.")
+        )
     else:
         try:
             parsed_year = int(raw_year)
             if parsed_year < REFERENCE_YEAR_MIN or parsed_year > REFERENCE_YEAR_MAX:
-                errors.append(RowError(
-                    row_number, "reference_year", raw_year,
-                    f"reference_year must be between {REFERENCE_YEAR_MIN} "
-                    f"and {REFERENCE_YEAR_MAX}; got {parsed_year}.",
-                ))
+                errors.append(
+                    RowError(
+                        row_number,
+                        "reference_year",
+                        raw_year,
+                        f"reference_year must be between {REFERENCE_YEAR_MIN} "
+                        f"and {REFERENCE_YEAR_MAX}; got {parsed_year}.",
+                    )
+                )
                 parsed_year = None
         except ValueError:
-            errors.append(RowError(row_number, "reference_year", raw_year,
-                                   f"reference_year must be an integer; got '{raw_year}'."))
+            errors.append(
+                RowError(
+                    row_number,
+                    "reference_year",
+                    raw_year,
+                    f"reference_year must be an integer; got '{raw_year}'.",
+                )
+            )
             parsed_year = None
 
     # -- dataset_name --------------------------------------------------------
     raw_dataset = row.get("dataset_name", "")
     if not raw_dataset:
-        errors.append(RowError(row_number, "dataset_name", raw_dataset,
-                               "dataset_name is required and must not be blank."))
+        errors.append(
+            RowError(
+                row_number,
+                "dataset_name",
+                raw_dataset,
+                "dataset_name is required and must not be blank.",
+            )
+        )
 
     # -- source_name (conditional) -------------------------------------------
     # Required only when dataset_name is non-empty AND not in existing_dataset_names
@@ -285,11 +318,15 @@ def _validate_row(
         and raw_dataset not in existing_dataset_names
         and not raw_source_name
     ):
-        errors.append(RowError(
-            row_number, "source_name", raw_source_name,
-            f"source_name is required when dataset_name '{raw_dataset}' "
-            "does not match an existing dataset.",
-        ))
+        errors.append(
+            RowError(
+                row_number,
+                "source_name",
+                raw_source_name,
+                f"source_name is required when dataset_name '{raw_dataset}' "
+                "does not match an existing dataset.",
+            )
+        )
 
     # -- source_url (always optional) ----------------------------------------
     raw_source_url = row.get("source_url", "") or None  # treat blank as None
@@ -301,10 +338,10 @@ def _validate_row(
     # All fields valid — build the ParsedRow
     parsed_row = ParsedRow(
         row_number=row_number,
-        province_id=province_id,           # type: ignore[arg-type]  (not None here)
-        indicator_id=indicator_id,         # type: ignore[arg-type]
-        value=parsed_value,                # type: ignore[arg-type]
-        reference_year=parsed_year,        # type: ignore[arg-type]
+        province_id=province_id,  # type: ignore[arg-type]  (not None here)
+        indicator_id=indicator_id,  # type: ignore[arg-type]
+        value=parsed_value,  # type: ignore[arg-type]
+        reference_year=parsed_year,  # type: ignore[arg-type]
         dataset_name=raw_dataset,
         source_name=raw_source_name or None,
         source_url=raw_source_url,
@@ -443,6 +480,3 @@ def parse_and_validate(
                 result.valid_rows.append(parsed_row)
 
     return result
-
-
-

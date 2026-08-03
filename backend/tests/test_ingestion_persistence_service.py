@@ -15,20 +15,16 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
-from datetime import date, datetime, timezone
 
 import pytest
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
 from app.models.ingestion import (
-    DatasetColumn,
-    DatasetRow,
-    IngestionJob,
-    IngestionStatus,
     InferredColumnType,
+    IngestionStatus,
 )
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_column_repository import DatasetColumnRepository
@@ -37,8 +33,8 @@ from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
 from app.services.ingestion_persistence_service import (
     IngestionPersistenceError,
-    IngestionPersistenceService,
     IngestionPersistenceResult,
+    IngestionPersistenceService,
     persist_profile,
 )
 from app.services.ingestion_profiling_service import (
@@ -46,7 +42,6 @@ from app.services.ingestion_profiling_service import (
     ProfiledColumn,
     ProfiledRow,
 )
-
 
 # ---------------------------------------------------------------------------
 # Shared test helpers
@@ -219,9 +214,7 @@ async def test_persist_profile_persists_all_rows(db_session):
     assert result.rows_inserted == 3
 
     row_repo = DatasetRowRepository(db_session)
-    persisted_rows = await row_repo.list_by_ingestion_job(
-        result.ingestion_job_id, limit=10
-    )
+    persisted_rows = await row_repo.list_by_ingestion_job(result.ingestion_job_id, limit=10)
     assert len(persisted_rows) == 3
 
     # Verify row numbers and values are preserved exactly
@@ -262,9 +255,7 @@ async def test_persist_profile_preserves_decimal_strings(db_session):
     )
 
     row_repo = DatasetRowRepository(db_session)
-    persisted_rows = await row_repo.list_by_ingestion_job(
-        result.ingestion_job_id, limit=10
-    )
+    persisted_rows = await row_repo.list_by_ingestion_job(result.ingestion_job_id, limit=10)
 
     # Verify Decimal string representation is unchanged
     assert persisted_rows[0].values["amount"] == "0.0000000001"
@@ -331,10 +322,10 @@ async def test_persist_profile_sets_job_row_and_column_counts(db_session):
 async def test_persist_profile_accepts_optional_creator(db_session):
     """persist_profile() accepts and stores created_by_user_id."""
     from app.models.user import User, UserRole
-    
+
     registry = await _make_registry(db_session)
     profile = _make_profile()
-    
+
     # Create a test user first
     user = User(
         id=uuid.uuid4(),
@@ -386,7 +377,6 @@ async def test_persist_profile_rollback_on_invalid_registry(db_session):
 
     # Verify no job was created (even though it was added before the error)
     # by checking the job count is still 0
-    repo = IngestionJobRepository(db_session)
 
     # Due to FK constraints, the job creation would have failed
     # Let's just verify that the error was raised
@@ -466,13 +456,13 @@ async def test_persist_profile_does_not_reparse(db_session):
     profile = _make_profile()
 
     service = IngestionPersistenceService(db_session)
-    result = await service.persist_profile(
+    _ = await service.persist_profile(
         profile=profile,
         dataset_registry=registry,
         source_type="test",
     )
 
-    # If parsing happened, there would be multiple jobs created.
+    # If parsing happened, there would be multiple jobs created,
     # Verify only one job was created.
     job_repo = IngestionJobRepository(db_session)
     jobs = await job_repo.list_by_dataset_registry(registry.id)
@@ -518,9 +508,7 @@ async def test_persist_profile_does_not_reserialization(db_session):
 
     # Verify values are stored exactly as provided (not re-serialized)
     row_repo = DatasetRowRepository(db_session)
-    rows_persisted = await row_repo.list_by_ingestion_job(
-        result.ingestion_job_id, limit=10
-    )
+    rows_persisted = await row_repo.list_by_ingestion_job(result.ingestion_job_id, limit=10)
     assert rows_persisted[0].values["col_a"] is None
     assert rows_persisted[0].values["col_b"] is True
     assert rows_persisted[0].values["col_c"] == 42

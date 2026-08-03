@@ -1,7 +1,6 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.province import Province
 from app.repositories.province_repository import ProvinceRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ProvinceService:

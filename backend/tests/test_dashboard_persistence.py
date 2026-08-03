@@ -2,17 +2,18 @@ import uuid
 from typing import AsyncGenerator
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import get_current_user, validate_csrf
 from app.db.session import get_db
 from app.main import create_app
 from app.models.user import UserRole
 from app.services.auth_service import AuthService
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-def build_dashboard_payload(title: str = "Revenue Overview", description: str = "Saved dashboard", cards=None):
+def build_dashboard_payload(
+    title: str = "Revenue Overview", description: str = "Saved dashboard", cards=None
+):
     if cards is None:
         cards = [
             {
@@ -108,7 +109,9 @@ async def test_dashboard_authentication_required_for_crud(client):
     create_resp = await client.post("/api/v1/dashboards", json=payload)
     list_resp = await client.get("/api/v1/dashboards")
     retrieve_resp = await client.get("/api/v1/dashboards/00000000-0000-0000-0000-000000000000")
-    update_resp = await client.put("/api/v1/dashboards/00000000-0000-0000-0000-000000000000", json={"title": "Nope"})
+    update_resp = await client.put(
+        "/api/v1/dashboards/00000000-0000-0000-0000-000000000000", json={"title": "Nope"}
+    )
     delete_resp = await client.delete("/api/v1/dashboards/00000000-0000-0000-0000-000000000000")
 
     assert create_resp.status_code == 401
@@ -133,8 +136,24 @@ async def test_dashboard_create_without_cards_and_with_authenticated_owner(authe
 async def test_dashboard_create_with_multiple_cards_and_deterministic_order(authed_client):
     payload = build_dashboard_payload(
         cards=[
-            {"id": "card-2", "title": "Revenue", "subtitle": "Snapshot", "visualization_type": "bar", "size": "small", "order": 2, "visualization_snapshot": {"chartType": "bar", "rows": []}},
-            {"id": "card-1", "title": "Revenue", "subtitle": "Snapshot", "visualization_type": "line", "size": "medium", "order": 1, "visualization_snapshot": {"chartType": "line", "rows": []}},
+            {
+                "id": "card-2",
+                "title": "Revenue",
+                "subtitle": "Snapshot",
+                "visualization_type": "bar",
+                "size": "small",
+                "order": 2,
+                "visualization_snapshot": {"chartType": "bar", "rows": []},
+            },
+            {
+                "id": "card-1",
+                "title": "Revenue",
+                "subtitle": "Snapshot",
+                "visualization_type": "line",
+                "size": "medium",
+                "order": 1,
+                "visualization_snapshot": {"chartType": "line", "rows": []},
+            },
         ]
     )
     create_resp = await authed_client.post("/api/v1/dashboards", json=payload)
@@ -150,12 +169,79 @@ async def test_dashboard_validation_rejects_invalid_payloads(authed_client):
         ({"title": "   ", "description": "Saved dashboard", "cards": []}, 422),
         ({"title": "x" * 121, "description": "Saved dashboard", "cards": []}, 422),
         ({"title": "Revenue", "description": "x" * 501, "cards": []}, 422),
-        ({"title": "Revenue", "cards": [{"id": "card-1", "title": "Revenue", "size": "tiny", "order": 0, "visualization_snapshot": {}}]}, 422),
-        ({"title": "Revenue", "cards": [{"id": "card-1", "title": "Revenue", "visualization_type": "radar", "order": 0, "visualization_snapshot": {}}]}, 422),
-        ({"title": "Revenue", "cards": [{"id": "card-1", "title": "Revenue", "order": 0, "visualization_snapshot": "not-an-object"}]}, 422),
-        ({"title": "Revenue", "cards": [{"id": "card-1", "title": "Revenue", "order": 0, "visualization_snapshot": {}}, {"id": "card-1", "title": "Revenue", "order": 1, "visualization_snapshot": {}}]}, 422),
-        ({"title": "Revenue", "cards": [{"id": "card-1", "title": "Revenue", "order": 0, "visualization_snapshot": {}}, {"id": "card-2", "title": "Revenue", "order": 0, "visualization_snapshot": {}}]}, 422),
-        ({"title": "Revenue", "cards": [{"id": "card-1", "title": "Revenue", "order": -1, "visualization_snapshot": {}}]}, 422),
+        (
+            {
+                "title": "Revenue",
+                "cards": [
+                    {
+                        "id": "card-1",
+                        "title": "Revenue",
+                        "size": "tiny",
+                        "order": 0,
+                        "visualization_snapshot": {},
+                    }
+                ],
+            },
+            422,
+        ),
+        (
+            {
+                "title": "Revenue",
+                "cards": [
+                    {
+                        "id": "card-1",
+                        "title": "Revenue",
+                        "visualization_type": "radar",
+                        "order": 0,
+                        "visualization_snapshot": {},
+                    }
+                ],
+            },
+            422,
+        ),
+        (
+            {
+                "title": "Revenue",
+                "cards": [
+                    {
+                        "id": "card-1",
+                        "title": "Revenue",
+                        "order": 0,
+                        "visualization_snapshot": "not-an-object",
+                    }
+                ],
+            },
+            422,
+        ),
+        (
+            {
+                "title": "Revenue",
+                "cards": [
+                    {"id": "card-1", "title": "Revenue", "order": 0, "visualization_snapshot": {}},
+                    {"id": "card-1", "title": "Revenue", "order": 1, "visualization_snapshot": {}},
+                ],
+            },
+            422,
+        ),
+        (
+            {
+                "title": "Revenue",
+                "cards": [
+                    {"id": "card-1", "title": "Revenue", "order": 0, "visualization_snapshot": {}},
+                    {"id": "card-2", "title": "Revenue", "order": 0, "visualization_snapshot": {}},
+                ],
+            },
+            422,
+        ),
+        (
+            {
+                "title": "Revenue",
+                "cards": [
+                    {"id": "card-1", "title": "Revenue", "order": -1, "visualization_snapshot": {}}
+                ],
+            },
+            422,
+        ),
     ]
 
     for payload, expected_status in invalid_cases:
@@ -165,7 +251,18 @@ async def test_dashboard_validation_rejects_invalid_payloads(authed_client):
 
 @pytest.mark.asyncio
 async def test_dashboard_read_and_list_are_owner_scoped(authed_client, db_session):
-    payload = build_dashboard_payload(cards=[{"id": "card-1", "title": "Revenue", "order": 0, "visualization_type": "bar", "size": "large", "visualization_snapshot": {"chartType": "bar", "rows": []}}])
+    payload = build_dashboard_payload(
+        cards=[
+            {
+                "id": "card-1",
+                "title": "Revenue",
+                "order": 0,
+                "visualization_type": "bar",
+                "size": "large",
+                "visualization_snapshot": {"chartType": "bar", "rows": []},
+            }
+        ]
+    )
     create_resp = await authed_client.post("/api/v1/dashboards", json=payload)
     dashboard_id = create_resp.json()["id"]
 
@@ -193,7 +290,18 @@ async def test_dashboard_read_and_list_are_owner_scoped(authed_client, db_sessio
 
 @pytest.mark.asyncio
 async def test_dashboard_invalid_update_does_not_persist_changes(authed_client, db_session):
-    payload = build_dashboard_payload(cards=[{"id": "card-1", "title": "Revenue", "order": 0, "visualization_type": "bar", "size": "large", "visualization_snapshot": {"chartType": "bar", "rows": []}}])
+    payload = build_dashboard_payload(
+        cards=[
+            {
+                "id": "card-1",
+                "title": "Revenue",
+                "order": 0,
+                "visualization_type": "bar",
+                "size": "large",
+                "visualization_snapshot": {"chartType": "bar", "rows": []},
+            }
+        ]
+    )
     create_resp = await authed_client.post("/api/v1/dashboards", json=payload)
     assert create_resp.status_code == 201, create_resp.text
     dashboard_id = create_resp.json()["id"]
@@ -201,17 +309,36 @@ async def test_dashboard_invalid_update_does_not_persist_changes(authed_client, 
     invalid_update_payload = {
         "title": "Updated Revenue Overview",
         "cards": [
-            {"id": "card-1", "title": "Revenue", "order": 0, "visualization_type": "bar", "size": "large", "visualization_snapshot": {"chartType": "bar", "rows": []}},
-            {"id": "card-1", "title": "Revenue Duplicate", "order": 1, "visualization_type": "line", "size": "medium", "visualization_snapshot": {"chartType": "line", "rows": []}},
+            {
+                "id": "card-1",
+                "title": "Revenue",
+                "order": 0,
+                "visualization_type": "bar",
+                "size": "large",
+                "visualization_snapshot": {"chartType": "bar", "rows": []},
+            },
+            {
+                "id": "card-1",
+                "title": "Revenue Duplicate",
+                "order": 1,
+                "visualization_type": "line",
+                "size": "medium",
+                "visualization_snapshot": {"chartType": "line", "rows": []},
+            },
         ],
     }
 
-    update_resp = await authed_client.put(f"/api/v1/dashboards/{dashboard_id}", json=invalid_update_payload)
+    update_resp = await authed_client.put(
+        f"/api/v1/dashboards/{dashboard_id}", json=invalid_update_payload
+    )
     assert update_resp.status_code == 422, update_resp.text
 
     from app.models.dashboard import Dashboard
+
     dashboard_row = await db_session.get(Dashboard, dashboard_id)
-    assert dashboard_row is not None, "Dashboard row should still exist in the session after invalid update"
+    assert dashboard_row is not None, (
+        "Dashboard row should still exist in the session after invalid update"
+    )
 
     get_after_invalid = await authed_client.get(f"/api/v1/dashboards/{dashboard_id}")
     assert get_after_invalid.status_code == 200, get_after_invalid.text
@@ -223,7 +350,18 @@ async def test_dashboard_invalid_update_does_not_persist_changes(authed_client, 
 
 @pytest.mark.asyncio
 async def test_dashboard_update_replaces_cards_and_delete_cascades(authed_client, db_session):
-    payload = build_dashboard_payload(cards=[{"id": "card-1", "title": "Revenue", "order": 0, "visualization_type": "bar", "size": "medium", "visualization_snapshot": {"chartType": "bar", "rows": []}}])
+    payload = build_dashboard_payload(
+        cards=[
+            {
+                "id": "card-1",
+                "title": "Revenue",
+                "order": 0,
+                "visualization_type": "bar",
+                "size": "medium",
+                "visualization_snapshot": {"chartType": "bar", "rows": []},
+            }
+        ]
+    )
     create_resp = await authed_client.post("/api/v1/dashboards", json=payload)
     dashboard_id = create_resp.json()["id"]
 
@@ -231,7 +369,14 @@ async def test_dashboard_update_replaces_cards_and_delete_cascades(authed_client
         "title": "Updated Revenue Overview",
         "description": "Refreshed",
         "cards": [
-            {"id": "card-2", "title": "Updated Card", "order": 0, "visualization_type": "area", "size": "large", "visualization_snapshot": {"chartType": "area", "rows": []}},
+            {
+                "id": "card-2",
+                "title": "Updated Card",
+                "order": 0,
+                "visualization_type": "area",
+                "size": "large",
+                "visualization_snapshot": {"chartType": "area", "rows": []},
+            },
         ],
     }
     update_resp = await authed_client.put(f"/api/v1/dashboards/{dashboard_id}", json=update_payload)

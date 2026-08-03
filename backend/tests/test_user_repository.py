@@ -16,14 +16,10 @@ issuing queries that must see the written data.
 from __future__ import annotations
 
 import uuid as _uuid
-from datetime import datetime, timezone
-
-import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User, UserRole
 from app.repositories.user_repository import UserRepository
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helper utilities
@@ -234,7 +230,8 @@ async def test_update_hashed_password(db_session: AsyncSession) -> None:
 async def test_update_only_supplied_fields(db_session: AsyncSession) -> None:
     repo = UserRepository(db_session)
     user = await _make_user(
-        repo, db_session,
+        repo,
+        db_session,
         full_name="Original Name",
         role=UserRole.VIEWER,
     )

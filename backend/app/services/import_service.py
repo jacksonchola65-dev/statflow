@@ -44,26 +44,22 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.repositories.import_repository import ConflictKey, DatasetResolution, ImportRepository
 from app.utils.csv_parser import (
-    MalformedCsvError,
-    MissingColumnsError,
     ParsedRow,
     RowError,
-    RowLimitExceeded,
     parse_and_validate,
 )
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 TOKEN_TTL = timedelta(minutes=15)
-MAX_ERROR_RESPONSE = 100   # errors returned to caller; parser collects all
-MAX_SAMPLE_RECORDS = 10    # sample records in preview response
+MAX_ERROR_RESPONSE = 100  # errors returned to caller; parser collects all
+MAX_SAMPLE_RECORDS = 10  # sample records in preview response
 
 # ---------------------------------------------------------------------------
 # Token store — module-level in-process dict (single-worker MVP)
@@ -127,7 +123,7 @@ class SampleRecord:
     row_number: int
     province_code: str
     indicator_code: str
-    value: Any          # Decimal — kept as-is; serialised by endpoint layer
+    value: Any  # Decimal — kept as-is; serialised by endpoint layer
     reference_year: int
     dataset_name: str
 
@@ -151,10 +147,10 @@ class CachedPreview:
     """
 
     valid_rows: list[ParsedRow]
-    all_errors: list[RowError]          # ALL row errors (not capped)
+    all_errors: list[RowError]  # ALL row errors (not capped)
     duplicate_row_numbers: list[int]
     conflict_keys: list[ConflictKey]
-    metadata_errors: list[RowError]     # metadata consistency errors
+    metadata_errors: list[RowError]  # metadata consistency errors
     total_rows: int
 
 
@@ -172,7 +168,7 @@ class PreviewData:
     duplicate_rows: int
     conflict_rows: int
     can_confirm: bool
-    errors: list[RowError]              # capped at MAX_ERROR_RESPONSE
+    errors: list[RowError]  # capped at MAX_ERROR_RESPONSE
     total_error_count: int
     errors_truncated: bool
     sample_records: list[SampleRecord]
@@ -222,7 +218,7 @@ def _check_metadata_consistency(
     for row in valid_rows:
         key = row.dataset_name.strip().lower()
         row_source_name = (row.source_name or "").strip()
-        row_source_url  = (row.source_url  or "").strip() or None
+        row_source_url = (row.source_url or "").strip() or None
 
         if key not in canonical_meta:
             canonical_meta[key] = (
@@ -237,31 +233,35 @@ def _check_metadata_consistency(
         # Compare source_name (case-insensitive)
         this_sname_lower = row_source_name.lower() if row_source_name else None
         if this_sname_lower != canon_sname_lower:
-            errors.append(RowError(
-                row_number=row.row_number,
-                column="source_name",
-                raw_value=row.source_name or "",
-                message=(
-                    f"source_name '{row.source_name}' is inconsistent with "
-                    f"the value set by row {first_row_num} for dataset "
-                    f"'{row.dataset_name}'. All rows for the same dataset must "
-                    "use the same source_name."
-                ),
-            ))
+            errors.append(
+                RowError(
+                    row_number=row.row_number,
+                    column="source_name",
+                    raw_value=row.source_name or "",
+                    message=(
+                        f"source_name '{row.source_name}' is inconsistent with "
+                        f"the value set by row {first_row_num} for dataset "
+                        f"'{row.dataset_name}'. All rows for the same dataset must "
+                        "use the same source_name."
+                    ),
+                )
+            )
 
         # Compare source_url (exact after strip)
         if row_source_url != canon_url:
-            errors.append(RowError(
-                row_number=row.row_number,
-                column="source_url",
-                raw_value=row.source_url or "",
-                message=(
-                    f"source_url '{row.source_url}' is inconsistent with "
-                    f"the value set by row {first_row_num} for dataset "
-                    f"'{row.dataset_name}'. All rows for the same dataset must "
-                    "use the same source_url."
-                ),
-            ))
+            errors.append(
+                RowError(
+                    row_number=row.row_number,
+                    column="source_url",
+                    raw_value=row.source_url or "",
+                    message=(
+                        f"source_url '{row.source_url}' is inconsistent with "
+                        f"the value set by row {first_row_num} for dataset "
+                        f"'{row.dataset_name}'. All rows for the same dataset must "
+                        "use the same source_url."
+                    ),
+                )
+            )
 
     return errors
 
@@ -308,14 +308,12 @@ class ImportService:
         the endpoint layer maps them to HTTP status codes.
         """
         # Step 1: load reference data
-        province_map    = await self._repo.load_province_map()
-        indicator_map   = await self._repo.load_indicator_map()
-        dataset_names   = await self._repo.load_dataset_names()
+        province_map = await self._repo.load_province_map()
+        indicator_map = await self._repo.load_indicator_map()
+        dataset_names = await self._repo.load_dataset_names()
 
         # Step 2: parse + row-level validate (pure, no I/O)
-        parse_result = parse_and_validate(
-            raw_bytes, province_map, indicator_map, dataset_names
-        )
+        parse_result = parse_and_validate(raw_bytes, province_map, indicator_map, dataset_names)
 
         # Step 3: metadata consistency check across valid rows
         metadata_errors = _check_metadata_consistency(parse_result.valid_rows)
@@ -367,24 +365,16 @@ class ImportService:
             conflict_keys=conflict_keys,
             metadata_errors=metadata_errors,
             total_rows=len(parse_result.valid_rows)
-                       + len(all_errors)
-                       + len(parse_result.duplicate_row_numbers),
+            + len(all_errors)
+            + len(parse_result.duplicate_row_numbers),
         )
 
-        # total_rows = non-empty data rows seen by the parser
-        # = valid + invalid + duplicates
-        total_rows = (
-            len(parse_result.valid_rows)
-            + len(parse_result.errors)        # raw row errors
-            + len(parse_result.duplicate_row_numbers)
-        )
         # Add metadata error rows to invalid count
         # (metadata errors apply to rows that were otherwise valid)
         # Re-count properly:
         meta_error_row_numbers = {e.row_number for e in metadata_errors}
         valid_rows_clean = [
-            r for r in parse_result.valid_rows
-            if r.row_number not in meta_error_row_numbers
+            r for r in parse_result.valid_rows if r.row_number not in meta_error_row_numbers
         ]
 
         invalid_rows = len(parse_result.errors) + len(meta_error_row_numbers)
@@ -395,11 +385,7 @@ class ImportService:
         # Recompute total_rows as the sum of all categories
         total_rows_computed = valid_rows_count + invalid_rows + duplicate_rows
 
-        can_confirm = (
-            invalid_rows == 0
-            and duplicate_rows == 0
-            and conflict_rows == 0
-        )
+        can_confirm = invalid_rows == 0 and duplicate_rows == 0 and conflict_rows == 0
 
         total_error_count = len(all_errors)
         errors_capped = all_errors[:MAX_ERROR_RESPONSE]
@@ -495,9 +481,9 @@ class ImportService:
                     ),
                     "conflicts": [
                         {
-                            "dataset_id":    str(ck.dataset_id),
-                            "indicator_id":  str(ck.indicator_id),
-                            "province_id":   str(ck.province_id),
+                            "dataset_id": str(ck.dataset_id),
+                            "indicator_id": str(ck.indicator_id),
+                            "province_id": str(ck.province_id),
                             "reference_year": ck.reference_year,
                         }
                         for ck in cached.conflict_keys
@@ -535,9 +521,7 @@ class ImportService:
             for norm_name, rows in dataset_groups.items():
                 existing = await self._repo.find_dataset_by_name(norm_name)
                 if existing is not None:
-                    fresh_conflicts = await self._repo.check_conflicts(
-                        existing.id, rows
-                    )
+                    fresh_conflicts = await self._repo.check_conflicts(existing.id, rows)
                     if fresh_conflicts:
                         # Abort with 409; transaction rolls back automatically
                         raise HTTPException(
@@ -550,9 +534,9 @@ class ImportService:
                                 ),
                                 "conflicts": [
                                     {
-                                        "dataset_id":    str(ck.dataset_id),
-                                        "indicator_id":  str(ck.indicator_id),
-                                        "province_id":   str(ck.province_id),
+                                        "dataset_id": str(ck.dataset_id),
+                                        "indicator_id": str(ck.indicator_id),
+                                        "province_id": str(ck.province_id),
                                         "reference_year": ck.reference_year,
                                     }
                                     for ck in fresh_conflicts

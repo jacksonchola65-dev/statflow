@@ -1,13 +1,12 @@
 import time
 
 import pytest
-
 from app.semantic.analytics_role_models import (
+    Aggregation,
     AnalyticsRoleProfile,
     DimensionCandidate,
     DimensionType,
     MeasureCandidate,
-    Aggregation,
 )
 from app.semantic.analytics_role_service import AnalyticsRoleService
 from app.semantic.semantic_models import SemanticEvidence
@@ -66,12 +65,8 @@ def test_dimension_only_profile_preserved():
 
 
 def test_mixed_profile_preserves_both_candidate_sets():
-    measures = (
-        make_measure("sales", SemanticType.CURRENCY, Aggregation.SUM),
-    )
-    dimensions = (
-        make_dimension("category", SemanticType.CATEGORY, DimensionType.CATEGORICAL),
-    )
+    measures = (make_measure("sales", SemanticType.CURRENCY, Aggregation.SUM),)
+    dimensions = (make_dimension("category", SemanticType.CATEGORY, DimensionType.CATEGORICAL),)
     profile = AnalyticsRoleService.compose(measures, dimensions)
     assert profile.measure_candidates == measures
     assert profile.dimension_candidates == dimensions

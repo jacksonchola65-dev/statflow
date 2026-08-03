@@ -1,5 +1,3 @@
-from fastapi import APIRouter
-
 from app.api.v1.endpoints import (
     analytics,
     auth,
@@ -12,11 +10,12 @@ from app.api.v1.endpoints import (
     districts,
     health,
     imports,
-    ingestions,
     indicators,
+    ingestions,
     provinces,
     users,
 )
+from fastapi import APIRouter
 
 api_router = APIRouter()
 

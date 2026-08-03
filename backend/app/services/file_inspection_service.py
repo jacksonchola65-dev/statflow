@@ -17,7 +17,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
-from enum import Enum
 from typing import Any
 
 from app.schemas.ingestion_mapping import (
@@ -28,22 +27,36 @@ from app.schemas.ingestion_mapping import (
     SourceColumnType,
     TargetField,
 )
-from app.semantic.detection_pipeline import SemanticDetectionPipeline
-from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
-from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
-from app.semantic.detectors.base import DetectorInput
-from app.semantic.v2.integration import compose_semantic_profile_from_columns, get_semantic_engine_version
-from app.semantic.entity_candidate_detector import EntityColumnInput, EntityCandidateDetector
-from app.semantic.entity_key_detector import EntityKeyColumnInput, EntityKeyDetectionInput, EntityKeyDetector
-from app.semantic.relationship_detector import RelationshipColumnInput, RelationshipDetectionInput, RelationshipDetector
-from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
-from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
 from app.semantic.analytics_role_service import AnalyticsRoleService
-from app.semantic.semantic_profile_builder import ColumnClassification, DomainDetectionResult, SemanticProfileBuilder
-from app.semantic.semantic_profile_models import SemanticProfile as SemanticProfileModel
+from app.semantic.detection_pipeline import SemanticDetectionPipeline
+from app.semantic.detectors.base import DetectorInput
+from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
+from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
+from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
+from app.semantic.entity_candidate_detector import EntityCandidateDetector, EntityColumnInput
+from app.semantic.entity_key_detector import (
+    EntityKeyColumnInput,
+    EntityKeyDetectionInput,
+    EntityKeyDetector,
+)
+from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
+from app.semantic.relationship_detector import (
+    RelationshipColumnInput,
+    RelationshipDetectionInput,
+    RelationshipDetector,
+)
+from app.semantic.semantic_profile_builder import (
+    ColumnClassification,
+    DomainDetectionResult,
+    SemanticProfileBuilder,
+)
 from app.semantic.semantic_serialization import to_dict as semantic_to_dict
 from app.semantic.semantic_types import DatasetDomain
+from app.semantic.v2.integration import (
+    compose_semantic_profile_from_columns,
+    get_semantic_engine_version,
+)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -211,11 +224,9 @@ def _decode_bytes(raw_bytes: bytes) -> str:
     try:
         text = raw_bytes.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise InvalidEncodingError(
-            f"File could not be decoded as UTF-8: {exc}"
-        ) from exc
+        raise InvalidEncodingError(f"File could not be decoded as UTF-8: {exc}") from exc
     if text.startswith("\ufeff"):
-        text = text[len("\ufeff"):]
+        text = text[len("\ufeff") :]
     return text
 
 
@@ -236,10 +247,7 @@ def _build_suggested_mappings(
     normalized_headers: list[str],
 ) -> list[ColumnMapping]:
     suggestions: list[ColumnMapping] = []
-    normalized_to_header = {
-        _normalize_header(header): header.strip()
-        for header in headers
-    }
+    normalized_to_header = {_normalize_header(header): header.strip() for header in headers}
     mapping_targets = [
         TargetField.PROVINCE_CODE,
         TargetField.INDICATOR_CODE,
@@ -250,13 +258,15 @@ def _build_suggested_mappings(
     for target in mapping_targets:
         normalized_target = target.value
         if normalized_target in normalized_to_header:
-            suggestions.append(ColumnMapping(
-                target_field=target,
-                source_type=MappingSourceType.COLUMN,
-                source_column=normalized_to_header[normalized_target],
-                transformations=[],
-                required=True,
-            ))
+            suggestions.append(
+                ColumnMapping(
+                    target_field=target,
+                    source_type=MappingSourceType.COLUMN,
+                    source_column=normalized_to_header[normalized_target],
+                    transformations=[],
+                    required=True,
+                )
+            )
     return suggestions
 
 
@@ -418,13 +428,15 @@ class FileInspectionService:
         for idx, header in enumerate(headers):
             sample_values = _collect_samples(column_samples[idx], MAX_SAMPLE_VALUES)
             inferred_type = _infer_column_type([v for v in column_samples[idx]])
-            columns.append(SourceColumn(
-                name=header.strip(),
-                inferred_type=inferred_type,
-                sample_values=sample_values,
-                nullable=nullable_flags[idx],
-                position=idx + 1,
-            ))
+            columns.append(
+                SourceColumn(
+                    name=header.strip(),
+                    inferred_type=inferred_type,
+                    sample_values=sample_values,
+                    nullable=nullable_flags[idx],
+                    position=idx + 1,
+                )
+            )
 
         headers_list = [header.strip() for header in headers]
         direct_schema_match = CANONICAL_REQUIRED_HEADERS.issubset(
@@ -472,7 +484,11 @@ class FileInspectionService:
         if engine != "v2":
             # v1 default path (unchanged behavior)
             try:
-                detectors = [ValueSamplingDetector(), RegexSemanticDetector(), DictionarySemanticDetector()]
+                detectors = [
+                    ValueSamplingDetector(),
+                    RegexSemanticDetector(),
+                    DictionarySemanticDetector(),
+                ]
                 pipeline = SemanticDetectionPipeline(detectors)
 
                 # build cleaned DetectorInput objects once for the whole batch
@@ -489,17 +505,31 @@ class FileInspectionService:
                         if len(cleaned) >= 100:
                             break
 
-                    detector_inputs.append(DetectorInput(
-                        column_name=col.name,
-                        values=tuple(cleaned),
-                        inferred_type=(col.inferred_type.value if hasattr(col.inferred_type, 'value') else str(col.inferred_type)),
-                    ))
+                    detector_inputs.append(
+                        DetectorInput(
+                            column_name=col.name,
+                            values=tuple(cleaned),
+                            inferred_type=(
+                                col.inferred_type.value
+                                if hasattr(col.inferred_type, "value")
+                                else str(col.inferred_type)
+                            ),
+                        )
+                    )
 
                 batch_classifications = pipeline.run_batch(detector_inputs)
-                col_classifications = [ColumnClassification(column_name=col.name, classifications=tuple(classifications)) for col, classifications in zip(columns, batch_classifications)]
+                col_classifications = [
+                    ColumnClassification(
+                        column_name=col.name, classifications=tuple(classifications)
+                    )
+                    for col, classifications in zip(columns, batch_classifications)
+                ]
 
                 # build entity candidate inputs
-                entity_inputs = tuple(EntityColumnInput(column_name=c.column_name, classifications=c.classifications) for c in col_classifications)
+                entity_inputs = tuple(
+                    EntityColumnInput(column_name=c.column_name, classifications=c.classifications)
+                    for c in col_classifications
+                )
                 entities = EntityCandidateDetector.discover(entity_inputs)
 
                 # build key, relationship, and analytics role inputs using cached classifications
@@ -512,21 +542,66 @@ class FileInspectionService:
                     sample_size = len(samples)
                     unique_ratio = (len(set(samples)) / sample_size) if sample_size > 0 else 0.0
                     null_ratio = 1.0 if sc.nullable else 0.0
-                    cls = tuple(next((cc.classifications for cc in col_classifications if cc.column_name == sc.name), ()))
-                    ek_inputs.append(EntityKeyColumnInput(column_name=sc.name, classifications=cls, uniqueness_ratio=unique_ratio, null_ratio=null_ratio))
-                    rel_inputs.append(RelationshipColumnInput(column_name=sc.name, classifications=cls, uniqueness_ratio=unique_ratio, null_ratio=null_ratio))
-                    measure_inputs.append(MeasureColumnInput(column_name=sc.name, classifications=cls, cardinality_ratio=unique_ratio, null_ratio=null_ratio))
-                    dimension_inputs.append(DimensionColumnInput(column_name=sc.name, classifications=cls, cardinality_ratio=unique_ratio, null_ratio=null_ratio))
+                    cls = tuple(
+                        next(
+                            (
+                                cc.classifications
+                                for cc in col_classifications
+                                if cc.column_name == sc.name
+                            ),
+                            (),
+                        )
+                    )
+                    ek_inputs.append(
+                        EntityKeyColumnInput(
+                            column_name=sc.name,
+                            classifications=cls,
+                            uniqueness_ratio=unique_ratio,
+                            null_ratio=null_ratio,
+                        )
+                    )
+                    rel_inputs.append(
+                        RelationshipColumnInput(
+                            column_name=sc.name,
+                            classifications=cls,
+                            uniqueness_ratio=unique_ratio,
+                            null_ratio=null_ratio,
+                        )
+                    )
+                    measure_inputs.append(
+                        MeasureColumnInput(
+                            column_name=sc.name,
+                            classifications=cls,
+                            cardinality_ratio=unique_ratio,
+                            null_ratio=null_ratio,
+                        )
+                    )
+                    dimension_inputs.append(
+                        DimensionColumnInput(
+                            column_name=sc.name,
+                            classifications=cls,
+                            cardinality_ratio=unique_ratio,
+                            null_ratio=null_ratio,
+                        )
+                    )
 
-                keys = EntityKeyDetector.discover(EntityKeyDetectionInput(entities=entities, columns=tuple(ek_inputs)))
-                rels = RelationshipDetector.discover(RelationshipDetectionInput(entities=entities, keys=keys, columns=tuple(rel_inputs)))
+                keys = EntityKeyDetector.discover(
+                    EntityKeyDetectionInput(entities=entities, columns=tuple(ek_inputs))
+                )
+                rels = RelationshipDetector.discover(
+                    RelationshipDetectionInput(
+                        entities=entities, keys=keys, columns=tuple(rel_inputs)
+                    )
+                )
                 measures = MeasureDetector.discover(tuple(measure_inputs))
                 dimensions = DimensionDetector.discover(tuple(dimension_inputs))
                 analytics_roles = AnalyticsRoleService.compose(measures, dimensions)
 
                 # Compose semantic profile
                 domain_result = DomainDetectionResult(domain=DatasetDomain.GENERAL)
-                profile = SemanticProfileBuilder.compose(domain_result, entities, rels, keys, analytics_roles, tuple(col_classifications))
+                profile = SemanticProfileBuilder.compose(
+                    domain_result, entities, rels, keys, analytics_roles, tuple(col_classifications)
+                )
                 # serialize the composed profile directly
                 semantic_profile_dict = semantic_to_dict(profile)
             except Exception:

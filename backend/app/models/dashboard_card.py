@@ -5,11 +5,19 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, Text, UniqueConstraint, text
+from app.db.base import Base
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.dashboard import Dashboard
@@ -81,7 +89,9 @@ class DashboardCard(Base):
 
     __table_args__ = (
         CheckConstraint("display_order >= 0", name="ck_dashboard_cards_display_order_non_negative"),
-        UniqueConstraint("dashboard_id", "display_order", name="uq_dashboard_cards_dashboard_display_order"),
+        UniqueConstraint(
+            "dashboard_id", "display_order", name="uq_dashboard_cards_dashboard_display_order"
+        ),
         Index("ix_dashboard_cards_dashboard_id_display_order", "dashboard_id", "display_order"),
     )
 
@@ -98,7 +108,11 @@ class DashboardCard(Base):
 
     @property
     def visualization_type_value(self) -> str:
-        return self.visualization_type.value if isinstance(self.visualization_type, DashboardVisualizationType) else str(self.visualization_type)
+        return (
+            self.visualization_type.value
+            if isinstance(self.visualization_type, DashboardVisualizationType)
+            else str(self.visualization_type)
+        )
 
     def __repr__(self) -> str:
         return f"<DashboardCard id={self.id} dashboard_id={self.dashboard_id} title={self.title!r}>"

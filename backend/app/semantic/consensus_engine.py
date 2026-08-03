@@ -1,10 +1,7 @@
-from typing import List, Dict
-from collections import defaultdict
-from functools import reduce
-import operator
+from typing import Dict, List
 
 from app.semantic.detectors.base import DetectorResult
-from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
+from app.semantic.semantic_models import SemanticClassification
 from app.semantic.semantic_types import SemanticType
 
 
@@ -39,7 +36,7 @@ class ConsensusEngine:
             else:
                 prod = 1.0
                 for c in confs:
-                    prod *= (1.0 - float(c))
+                    prod *= 1.0 - float(c)
                 combined = 1.0 - prod
             # cap at 0.99
             if combined > 0.99:
@@ -47,7 +44,14 @@ class ConsensusEngine:
 
             evidence_tuple = tuple(info["evidence"])
             detectors_concat = ",".join(info["detectors"])
-            final.append(SemanticClassification(semantic_type=st, confidence=combined, evidence=evidence_tuple, detector=detectors_concat))
+            final.append(
+                SemanticClassification(
+                    semantic_type=st,
+                    confidence=combined,
+                    evidence=evidence_tuple,
+                    detector=detectors_concat,
+                )
+            )
 
         # sort by highest confidence then semantic type name
         final.sort(key=lambda c: (-float(c.confidence), c.semantic_type.name))

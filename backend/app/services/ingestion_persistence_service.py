@@ -31,20 +31,17 @@ import asyncio
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Optional
-
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 from app.models.data_source import DatasetRegistry
 from app.models.ingestion import (
-    IngestionJob,
     IngestionStatus,
 )
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
 from app.services.ingestion_profiling_service import IngestionProfileResult
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Exception
@@ -183,9 +180,7 @@ class IngestionPersistenceService:
                         }
                         for col in profile.columns
                     ]
-                    columns_inserted = len(
-                        await self._column_repo.create_many(column_dicts)
-                    )
+                    columns_inserted = len(await self._column_repo.create_many(column_dicts))
                 else:
                     columns_inserted = 0
 
@@ -233,9 +228,7 @@ class IngestionPersistenceService:
             raise
         except Exception as exc:
             await self._session.rollback()
-            raise IngestionPersistenceError(
-                f"Ingestion persistence failed: {exc}"
-            ) from exc
+            raise IngestionPersistenceError(f"Ingestion persistence failed: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------

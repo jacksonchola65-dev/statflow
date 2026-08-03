@@ -13,8 +13,6 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.data_source import (
     DatasetRegistry,
     FileFormat,
@@ -25,7 +23,7 @@ from app.models.data_source import (
 )
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Domain exceptions
@@ -99,9 +97,7 @@ class DatasetRegistryService:
 
         # Validate unique dataset_name
         if await self._repo.name_exists(dataset_name):
-            raise DatasetNameConflictError(
-                f"A dataset named '{dataset_name}' already exists."
-            )
+            raise DatasetNameConflictError(f"A dataset named '{dataset_name}' already exists.")
 
         return await self._repo.create(
             data_source_id=data_source_id,
@@ -136,12 +132,8 @@ class DatasetRegistryService:
 
         # Validate unique dataset_name if being changed
         new_name = fields.get("dataset_name")
-        if new_name is not None and await self._repo.name_exists(
-            new_name, exclude_id=entry_id
-        ):
-            raise DatasetNameConflictError(
-                f"A dataset named '{new_name}' already exists."
-            )
+        if new_name is not None and await self._repo.name_exists(new_name, exclude_id=entry_id):
+            raise DatasetNameConflictError(f"A dataset named '{new_name}' already exists.")
 
         updated = await self._repo.update(entry_id, **fields)
         assert updated is not None

@@ -25,6 +25,7 @@ import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import (
@@ -36,7 +37,6 @@ from app.services.mapping_execution_service import (
     MappingExecutionService,
     SourceColumnNotFoundError,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers

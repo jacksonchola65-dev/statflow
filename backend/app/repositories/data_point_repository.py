@@ -1,10 +1,9 @@
 import uuid
 from typing import Optional
 
+from app.models.data_point import DataPoint
 from sqlalchemy import asc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.data_point import DataPoint
 
 
 class DataPointRepository:

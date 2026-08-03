@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import get_current_user, validate_csrf
 from app.db.session import get_db
 from app.models.user import User
@@ -19,6 +16,8 @@ from app.services.dashboard_service import (
     DashboardOwnershipError,
     DashboardService,
 )
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/dashboards", tags=["dashboards"])
 

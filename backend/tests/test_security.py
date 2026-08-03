@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
-
 from app.core.config import settings
 from app.core.security import (
     AccessTokenPayload,

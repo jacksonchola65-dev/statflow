@@ -33,7 +33,10 @@ class DashboardCardSchema(BaseModel):
             return None
         if not isinstance(value, dict):
             raise ValueError("visualization_snapshot must be a JSON object")
-        if any(key in {"token", "session", "password", "secret", "authorization", "cookie"} for key in value):
+        if any(
+            key in {"token", "session", "password", "secret", "authorization", "cookie"}
+            for key in value
+        ):
             raise ValueError("visualization_snapshot contains disallowed sensitive keys")
         return value
 
@@ -42,7 +45,9 @@ class DashboardCardSchema(BaseModel):
         payload = super().from_attributes(obj)
         if isinstance(obj, dict):
             return payload
-        payload["order"] = getattr(obj, "order", getattr(obj, "display_order", payload.get("order", 0)))
+        payload["order"] = getattr(
+            obj, "order", getattr(obj, "display_order", payload.get("order", 0))
+        )
         payload["visualization_type"] = getattr(
             obj,
             "visualization_type_value",

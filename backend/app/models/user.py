@@ -3,11 +3,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
+from app.db.base import Base
 from sqlalchemy import Boolean, DateTime, Enum, String, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.dashboard import Dashboard
@@ -19,6 +18,7 @@ from app.models.universal_dataset import UniversalDataset
 
 class UserRole(str, enum.Enum):
     """Role assigned to every StatFlow user account."""
+
     ADMIN = "ADMIN"
     DATA_MANAGER = "DATA_MANAGER"
     ANALYST = "ANALYST"

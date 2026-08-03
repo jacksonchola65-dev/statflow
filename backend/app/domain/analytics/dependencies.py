@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from fastapi import Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import get_db
 from app.domain.analytics.discovery import (
     DatasetDiscoveryRepository,
@@ -11,6 +8,8 @@ from app.domain.analytics.discovery import (
 from app.domain.analytics.planner import AnalyticsQueryPlanner
 from app.domain.analytics.repository import AnalyticsRepository
 from app.domain.analytics.service import AnalyticsService
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def get_analytics_query_planner(db: AsyncSession = Depends(get_db)) -> AnalyticsQueryPlanner:

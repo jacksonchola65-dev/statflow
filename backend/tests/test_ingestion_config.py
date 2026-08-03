@@ -24,14 +24,13 @@ Tests cover:
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
-
 from app.core.config import Settings
-
+from pydantic import ValidationError
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _settings(**overrides) -> Settings:
     """Construct a Settings instance that ignores the real .env file."""
@@ -41,6 +40,7 @@ def _settings(**overrides) -> Settings:
 # ---------------------------------------------------------------------------
 # 1. Defaults
 # ---------------------------------------------------------------------------
+
 
 def test_ingestion_max_file_bytes_default():
     """INGESTION_MAX_FILE_BYTES defaults to 10 MiB (10 * 1024 * 1024)."""
@@ -63,6 +63,7 @@ def test_ingestion_max_columns_default():
 # ---------------------------------------------------------------------------
 # 2. Valid environment overrides
 # ---------------------------------------------------------------------------
+
 
 def test_ingestion_max_file_bytes_override(monkeypatch):
     """INGESTION_MAX_FILE_BYTES can be overridden via environment variable."""
@@ -89,6 +90,7 @@ def test_ingestion_max_columns_override(monkeypatch):
 # 3. Zero values are rejected
 # ---------------------------------------------------------------------------
 
+
 def test_zero_file_bytes_rejected():
     """INGESTION_MAX_FILE_BYTES=0 must raise ValidationError."""
     with pytest.raises(ValidationError, match="INGESTION_MAX_FILE_BYTES"):
@@ -111,6 +113,7 @@ def test_zero_columns_rejected():
 # 4. Negative values are rejected
 # ---------------------------------------------------------------------------
 
+
 def test_negative_file_bytes_rejected():
     """INGESTION_MAX_FILE_BYTES=-1 must raise ValidationError."""
     with pytest.raises(ValidationError, match="INGESTION_MAX_FILE_BYTES"):
@@ -132,6 +135,7 @@ def test_negative_columns_rejected():
 # ---------------------------------------------------------------------------
 # 5. Non-integer environment variable values are rejected
 # ---------------------------------------------------------------------------
+
 
 def test_non_integer_file_bytes_env_rejected(monkeypatch):
     """INGESTION_MAX_FILE_BYTES='ten_mb' (non-integer) must fail validation."""
@@ -158,6 +162,7 @@ def test_non_integer_columns_env_rejected(monkeypatch):
 # 6. Unrelated existing settings are unaffected
 # ---------------------------------------------------------------------------
 
+
 def test_unrelated_settings_load_correctly():
     """Other settings fields are unchanged after adding ingestion limits."""
     s = _settings()
@@ -173,9 +178,11 @@ def test_unrelated_settings_load_correctly():
 # 7. Settings are accessible via the shared singleton
 # ---------------------------------------------------------------------------
 
+
 def test_singleton_exposes_ingestion_settings():
     """The shared ``settings`` object exposes all three ingestion fields."""
     from app.core.config import settings
+
     assert hasattr(settings, "INGESTION_MAX_FILE_BYTES")
     assert hasattr(settings, "INGESTION_MAX_ROWS")
     assert hasattr(settings, "INGESTION_MAX_COLUMNS")

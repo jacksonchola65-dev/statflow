@@ -4,16 +4,11 @@ import logging
 from dataclasses import dataclass
 from time import perf_counter
 
-from sqlalchemy import desc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.domain.analytics.compatibility import (
     is_dimension_eligible,
-    is_aggregation_supported,
     supported_aggregations,
 )
 from app.domain.analytics.contracts import (
-    AggregationFunction,
     AnalyticsDimensionDescriptor,
     AnalyticsMeasureDescriptor,
     DatasetColumnDescriptor,
@@ -22,23 +17,24 @@ from app.domain.analytics.contracts import (
     DatasetPreviewResult,
     DatasetStatistics,
     DatasetSummary,
-    AnalyticsValue,
 )
 from app.domain.analytics.exceptions import (
     DatasetNotAnalyticsReadyError,
     IncompleteIngestionJobError,
     UnknownIngestionJobError,
 )
-from app.models.data_source import DataSource, DatasetRegistry
+from app.models.data_source import DatasetRegistry, DataSource
 from app.models.ingestion import (
     DatasetColumn,
     DatasetRow,
+    InferredColumnType,
     IngestionJob,
     IngestionStatus,
-    InferredColumnType,
 )
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
+from sqlalchemy import desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +82,10 @@ class DatasetDiscoveryRepository:
             .offset(max(offset, 0))
             .limit(max(limit, 0))
         )
-        return [DatasetDiscoveryRow(job=job, dataset_registry=registry, data_source=source) for job, registry, source in result.all()]
+        return [
+            DatasetDiscoveryRow(job=job, dataset_registry=registry, data_source=source)
+            for job, registry, source in result.all()
+        ]
 
     async def get_job_with_registry_and_source(
         self, ingestion_job_id
@@ -116,9 +115,7 @@ class DatasetDiscoveryService:
     def __init__(self, repository: DatasetDiscoveryRepository) -> None:
         self._repository = repository
 
-    async def list_datasets(
-        self, *, limit: int = 50, offset: int = 0
-    ) -> DatasetListResult:
+    async def list_datasets(self, *, limit: int = 50, offset: int = 0) -> DatasetListResult:
         start = perf_counter()
         total = await self._repository.count_analytics_ready_datasets()
         rows = await self._repository.list_analytics_ready_datasets(offset=offset, limit=limit)
@@ -268,8 +265,7 @@ class DatasetDiscoveryService:
             numeric_column_count=sum(
                 1
                 for column in columns
-                if column.inferred_type
-                in {InferredColumnType.INTEGER, InferredColumnType.DECIMAL}
+                if column.inferred_type in {InferredColumnType.INTEGER, InferredColumnType.DECIMAL}
             ),
             text_column_count=sum(
                 1 for column in columns if column.inferred_type == InferredColumnType.TEXT
@@ -313,9 +309,7 @@ class DatasetDiscoveryService:
             supported_aggregations=list(supported_aggregations(column.inferred_type)),
         )
 
-    def _map_dimension_descriptor(
-        self, column: DatasetColumn
-    ) -> AnalyticsDimensionDescriptor:
+    def _map_dimension_descriptor(self, column: DatasetColumn) -> AnalyticsDimensionDescriptor:
         return AnalyticsDimensionDescriptor(
             identifier=column.normalized_name,
             display_name=column.original_name,

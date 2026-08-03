@@ -1,11 +1,24 @@
+from .compatibility import (
+    is_aggregation_supported,
+    is_dimension_eligible,
+    supported_aggregations,
+)
 from .contracts import (
     AggregationFunction,
+    AnalyticsDimensionDescriptor,
+    AnalyticsMeasureDescriptor,
     AnalyticsQuery,
     AnalyticsQueryError,
     AnalyticsResult,
     AnalyticsResultColumn,
     AnalyticsResultRole,
+    DatasetColumnDescriptor,
+    DatasetDetails,
+    DatasetListResult,
+    DatasetPreviewResult,
     DatasetReference,
+    DatasetStatistics,
+    DatasetSummary,
     Dimension,
     FilterClause,
     FilterOperator,
@@ -17,28 +30,16 @@ from .contracts import (
     Measure,
     SortClause,
     SortDirection,
-    DatasetSummary,
-    DatasetListResult,
-    DatasetColumnDescriptor,
-    AnalyticsDimensionDescriptor,
-    AnalyticsMeasureDescriptor,
-    DatasetDetails,
-    DatasetPreviewResult,
-    DatasetStatistics,
 )
+from .discovery import DatasetDiscoveryRepository, DatasetDiscoveryService
 from .exceptions import (
     AnalyticsQueryError as AnalyticsDomainQueryError,
+)
+from .exceptions import (
     InvalidAggregationError,
     InvalidExecutionPlanError,
     InvalidIdentifierError,
-    InvalidSortError,
 )
-from .compatibility import (
-    is_aggregation_supported,
-    is_dimension_eligible,
-    supported_aggregations,
-)
-from .discovery import DatasetDiscoveryRepository, DatasetDiscoveryService
 from .planner import (
     AnalyticsExecutionPlan,
     AnalyticsQueryPlanner,

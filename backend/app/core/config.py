@@ -1,6 +1,7 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import AnyHttpUrl, model_validator
 from typing import List
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -93,8 +94,8 @@ class Settings(BaseSettings):
         case_sensitive=True,
     )
 
-    @model_validator(mode='after')
-    def validate_settings(self) -> 'Settings':
+    @model_validator(mode="after")
+    def validate_settings(self) -> "Settings":
         # ── JWT secret (non-development environments) ──────────────────────
         if self.ENVIRONMENT != "development":
             secret = self.JWT_SECRET_KEY or ""
@@ -124,8 +125,7 @@ class Settings(BaseSettings):
             )
         if self.INGESTION_MAX_ROWS <= 0:
             raise ValueError(
-                f"INGESTION_MAX_ROWS must be a positive integer; "
-                f"got {self.INGESTION_MAX_ROWS}."
+                f"INGESTION_MAX_ROWS must be a positive integer; got {self.INGESTION_MAX_ROWS}."
             )
         if self.INGESTION_MAX_COLUMNS <= 0:
             raise ValueError(

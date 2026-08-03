@@ -1,7 +1,8 @@
-from typing import Tuple, List
+from typing import List
+
 from app.semantic.detectors.base import DetectorInput, DetectorResult, SemanticDetector
-from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
 from app.semantic.semantic_dictionary import SEMANTIC_DICTIONARY
+from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
 from app.semantic.semantic_types import SemanticType
 
 
@@ -57,11 +58,22 @@ class DictionarySemanticDetector(SemanticDetector):
                 else:
                     continue
 
-                evidence = SemanticEvidence(source=self.NAME, score=conf, description=f"matched alias '{matched_alias}' for '{sem_name}'")
+                evidence = SemanticEvidence(
+                    source=self.NAME,
+                    score=conf,
+                    description=f"matched alias '{matched_alias}' for '{sem_name}'",
+                )
                 classifications.append(
-                    SemanticClassification(semantic_type=SemanticType[sem_name], confidence=conf, evidence=(evidence,), detector=self.NAME)
+                    SemanticClassification(
+                        semantic_type=SemanticType[sem_name],
+                        confidence=conf,
+                        evidence=(evidence,),
+                        detector=self.NAME,
+                    )
                 )
 
-            results.append(DetectorResult(detector_name=self.NAME, classifications=tuple(classifications)))
+            results.append(
+                DetectorResult(detector_name=self.NAME, classifications=tuple(classifications))
+            )
 
         return results

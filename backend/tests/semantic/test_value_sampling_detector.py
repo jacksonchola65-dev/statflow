@@ -1,8 +1,7 @@
 import time
-import pytest
 
-from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
 from app.semantic.detectors.base import DetectorInput
+from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
 from app.semantic.semantic_types import SemanticType
 
 detector = ValueSamplingDetector()
@@ -18,17 +17,17 @@ def test_boolean_detection():
 
 
 def test_integer_detection():
-    out = detect(["1", "2", "3", "4"]) 
+    out = detect(["1", "2", "3", "4"])
     assert any(c.semantic_type == SemanticType.INTEGER for c in out.classifications)
 
 
 def test_decimal_detection():
-    out = detect(["1.1", "2.0", "3.5", "4.25", "5"]) 
+    out = detect(["1.1", "2.0", "3.5", "4.25", "5"])
     assert any(c.semantic_type == SemanticType.DECIMAL for c in out.classifications)
 
 
 def test_category_detection():
-    vals = [f"cat{(i%4)}" for i in range(25)]
+    vals = [f"cat{(i % 4)}" for i in range(25)]
     out = detect(vals)
     assert any(c.semantic_type == SemanticType.CATEGORY for c in out.classifications)
 
@@ -54,7 +53,10 @@ def test_age_detection():
 def test_quantity_detection():
     vals = ["1", "2", "3", "4", "5"]
     out = detect(vals)
-    assert any(c.semantic_type == SemanticType.QUANTITY or c.semantic_type == SemanticType.INTEGER for c in out.classifications)
+    assert any(
+        c.semantic_type == SemanticType.QUANTITY or c.semantic_type == SemanticType.INTEGER
+        for c in out.classifications
+    )
 
 
 def test_text_fallback():

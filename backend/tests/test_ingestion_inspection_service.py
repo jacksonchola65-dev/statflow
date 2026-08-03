@@ -12,12 +12,16 @@ from __future__ import annotations
 
 import sys
 import uuid
-from datetime import datetime, timezone
 
 import pytest
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
-from app.models.ingestion import DatasetColumn, DatasetRow, IngestionJob, IngestionStatus, InferredColumnType
+from app.models.ingestion import (
+    DatasetColumn,
+    DatasetRow,
+    InferredColumnType,
+    IngestionJob,
+    IngestionStatus,
+)
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
@@ -27,9 +31,9 @@ from app.services.ingestion_inspection_service import (
     InvalidInspectionPaginationError,
 )
 
-
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 
@@ -54,7 +58,9 @@ async def _make_registry(db_session) -> DatasetRegistry:
     return registry
 
 
-async def _make_job(db_session, registry: DatasetRegistry, status: IngestionStatus = IngestionStatus.COMPLETED) -> IngestionJob:
+async def _make_job(
+    db_session, registry: DatasetRegistry, status: IngestionStatus = IngestionStatus.COMPLETED
+) -> IngestionJob:
     repo = IngestionJobRepository(db_session)
     job = await repo.create(
         dataset_registry_id=registry.id,
@@ -68,31 +74,35 @@ async def _make_job(db_session, registry: DatasetRegistry, status: IngestionStat
 
 async def _make_column(db_session, job: IngestionJob, ordinal_position: int = 0) -> DatasetColumn:
     repo = DatasetColumnRepository(db_session)
-    cols = await repo.create_many([
-        {
-            "ingestion_job_id": job.id,
-            "original_name": f"Column {ordinal_position}",
-            "normalized_name": f"column_{ordinal_position}",
-            "inferred_type": InferredColumnType.TEXT,
-            "nullable": False,
-            "missing_count": 0,
-            "unique_count": 2,
-            "sample_values": ["a", "b"],
-            "ordinal_position": ordinal_position,
-        }
-    ])
+    cols = await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": f"Column {ordinal_position}",
+                "normalized_name": f"column_{ordinal_position}",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 2,
+                "sample_values": ["a", "b"],
+                "ordinal_position": ordinal_position,
+            }
+        ]
+    )
     return cols[0]
 
 
 async def _make_row(db_session, job: IngestionJob, row_number: int = 0) -> DatasetRow:
     repo = DatasetRowRepository(db_session)
-    await repo.create_many([
-        {
-            "ingestion_job_id": job.id,
-            "row_number": row_number,
-            "values": {"column_0": "a", "column_1": "b"},
-        }
-    ])
+    await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "row_number": row_number,
+                "values": {"column_0": "a", "column_1": "b"},
+            }
+        ]
+    )
     result = await repo.get_by_row_number(job.id, row_number)
     assert result is not None
     return result

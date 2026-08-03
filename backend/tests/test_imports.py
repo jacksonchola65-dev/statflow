@@ -28,8 +28,7 @@ import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
-import pytest_asyncio
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
@@ -38,10 +37,10 @@ from sqlalchemy.pool import NullPool
 # Helpers — CSV construction
 # ---------------------------------------------------------------------------
 
-PROV1 = "CP"      # Central (seeded by conftest)
-PROV2 = "LP"      # Luapula (seeded by conftest)
-IND1 = "POVERTY_RATE"   # seeded below
-IND2 = "POP_TOTAL"      # seeded below
+PROV1 = "CP"  # Central (seeded by conftest)
+PROV2 = "LP"  # Luapula (seeded by conftest)
+IND1 = "POVERTY_RATE"  # seeded below
+IND2 = "POP_TOTAL"  # seeded below
 
 HEADER = "province_code,indicator_code,value,reference_year,dataset_name,source_name\n"
 
@@ -92,9 +91,19 @@ def seed_indicators_module():
 
 
 def _assert_preview_shape(data: dict) -> None:
-    for key in ("preview_token", "total_rows", "valid_rows", "invalid_rows",
-                "duplicate_rows", "conflict_rows", "can_confirm",
-                "errors", "total_error_count", "errors_truncated", "sample_records"):
+    for key in (
+        "preview_token",
+        "total_rows",
+        "valid_rows",
+        "invalid_rows",
+        "duplicate_rows",
+        "conflict_rows",
+        "can_confirm",
+        "errors",
+        "total_error_count",
+        "errors_truncated",
+        "sample_records",
+    ):
         assert key in data, f"Missing key '{key}' in preview response"
 
 
@@ -152,9 +161,7 @@ async def test_valid_csv_round_trip(authed_client: AsyncSession, db_session: Asy
     from app.models.data_point import DataPoint
     from app.models.dataset import Dataset
 
-    ds_result = await db_session.execute(
-        select(Dataset).where(Dataset.name == ds_name)
-    )
+    ds_result = await db_session.execute(select(Dataset).where(Dataset.name == ds_name))
     dataset = ds_result.scalar_one_or_none()
     assert dataset is not None, f"Dataset '{ds_name}' not found after confirm"
 
@@ -386,6 +393,7 @@ async def test_confirm_manually_expired_token_returns_404(authed_client: AsyncSe
     timestamp to be older than 15 minutes.
     """
     from datetime import datetime, timedelta, timezone
+
     from app.services.import_service import _TOKEN_STORE
 
     ds_name = f"Expired_{uuid.uuid4().hex[:8]}"
@@ -475,6 +483,7 @@ async def test_transaction_rollback_on_integrity_error(
     # Verify 0 new rows were inserted (transaction rolled back).
     # Use a fresh query with a new connection to avoid stale session state.
     from app.core.config import settings as _settings
+
     verify_engine = create_async_engine(
         _settings.TEST_DATABASE_URL, echo=False, future=True, poolclass=NullPool
     )
@@ -482,14 +491,10 @@ async def test_transaction_rollback_on_integrity_error(
         bind=verify_engine, expire_on_commit=False, autocommit=False, autoflush=False
     )
     async with verify_factory() as verify_session:
-        after_count_res = await verify_session.execute(
-            select(func.count()).select_from(DataPoint)
-        )
+        after_count_res = await verify_session.execute(select(func.count()).select_from(DataPoint))
         after_count = after_count_res.scalar()
 
-        ds_res = await verify_session.execute(
-            select(Dataset).where(Dataset.name == ds_name)
-        )
+        ds_res = await verify_session.execute(select(Dataset).where(Dataset.name == ds_name))
         dataset = ds_res.scalar_one_or_none()
     await verify_engine.dispose()
 
@@ -517,10 +522,7 @@ async def test_error_truncation_110_invalid_rows(authed_client: AsyncSession) ->
       - len(errors) = 100   (capped at MAX_ERROR_RESPONSE)
       - total_error_count = 110
     """
-    rows = [
-        f"UNKNOWN_ZZZ,{IND1},{i * 1.1:.1f},2020,TruncDS,TruncSource"
-        for i in range(1, 111)
-    ]
+    rows = [f"UNKNOWN_ZZZ,{IND1},{i * 1.1:.1f},2020,TruncDS,TruncSource" for i in range(1, 111)]
     csv_content = (HEADER + "\n".join(rows) + "\n").encode("utf-8")
 
     resp = await authed_client.post(

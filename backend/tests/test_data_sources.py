@@ -16,9 +16,6 @@ from __future__ import annotations
 import uuid as _uuid
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.data_source import (
@@ -39,9 +36,11 @@ from app.services.data_source_service import (
 from app.services.dataset_registry_service import (
     DatasetNameConflictError,
     DatasetNotFoundError,
-    DataSourceNotFoundForDatasetError,
     DatasetRegistryService,
+    DataSourceNotFoundForDatasetError,
 )
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -380,9 +379,7 @@ async def test_create_source_duplicate_409(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_source_by_id(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     assert cr.status_code == 201
     src_id = cr.json()["id"]
 
@@ -399,9 +396,7 @@ async def test_get_source_missing_404(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_source(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
     pr = await authed_client.patch(
         f"/api/v1/data-sources/{src_id}",
@@ -414,9 +409,7 @@ async def test_update_source(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_source_returns_204(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
     dr = await authed_client.delete(f"/api/v1/data-sources/{src_id}")
     assert dr.status_code == 204
@@ -425,9 +418,7 @@ async def test_delete_source_returns_204(authed_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_delete_source_with_datasets_returns_409(authed_client: AsyncClient):
     """Deleting a source that has datasets must return 409."""
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
 
     # Create a dataset under this source
@@ -491,9 +482,7 @@ async def test_list_datasets_requires_auth(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_dataset_returns_201(authed_client: AsyncClient):
     # Create a source first
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
 
     dr = await authed_client.post(
@@ -525,9 +514,7 @@ async def test_create_dataset_missing_source_404(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_create_dataset_duplicate_409(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
     name = _dataset_name()
     payload = {
@@ -543,9 +530,7 @@ async def test_create_dataset_duplicate_409(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_dataset_by_id(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
     dr = await authed_client.post(
         "/api/v1/dataset-registry",
@@ -569,9 +554,7 @@ async def test_get_dataset_missing_404(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_update_dataset(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
     dr = await authed_client.post(
         "/api/v1/dataset-registry",
@@ -593,9 +576,7 @@ async def test_update_dataset(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_delete_dataset_returns_204(authed_client: AsyncClient):
-    cr = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_id = cr.json()["id"]
     dr = await authed_client.post(
         "/api/v1/dataset-registry",
@@ -612,12 +593,8 @@ async def test_delete_dataset_returns_204(authed_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_dataset_filter_by_data_source_id(authed_client: AsyncClient):
-    cr_a = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
-    cr_b = await authed_client.post(
-        "/api/v1/data-sources", json={"name": _source_name()}
-    )
+    cr_a = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
+    cr_b = await authed_client.post("/api/v1/data-sources", json={"name": _source_name()})
     src_a_id = cr_a.json()["id"]
     src_b_id = cr_b.json()["id"]
 
@@ -632,9 +609,7 @@ async def test_dataset_filter_by_data_source_id(authed_client: AsyncClient):
         json={"data_source_id": src_b_id, "dataset_name": name_b, "source_type": "OFFICIAL"},
     )
 
-    resp = await authed_client.get(
-        "/api/v1/dataset-registry", params={"data_source_id": src_a_id}
-    )
+    resp = await authed_client.get("/api/v1/dataset-registry", params={"data_source_id": src_a_id})
     assert resp.status_code == 200
     names = [d["dataset_name"] for d in resp.json()["datasets"]]
     assert name_a in names
@@ -646,6 +621,7 @@ async def test_create_dataset_requires_csrf(client: AsyncClient, db_session: Asy
     admin = await _make_admin(db_session)
     # Need a source — create via authed service directly
     from app.services.data_source_service import DataSourceService as _SrcSvc
+
     src_svc = _SrcSvc(db_session)
     src = await src_svc.create_source(name=_source_name())
     await db_session.flush()

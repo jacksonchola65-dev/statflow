@@ -1,12 +1,14 @@
 import dataclasses
 import random
 import time
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import pytest
-
 from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
-from app.semantic.v2.feature_models import LightValueFeatures, ExtendedValueFeatures, ColumnFeatureContext
+from app.semantic.v2.feature_models import (
+    ColumnFeatureContext,
+    ExtendedValueFeatures,
+)
 
 
 def run_extract(values: Tuple[Optional[str], ...]) -> ColumnFeatureContext:

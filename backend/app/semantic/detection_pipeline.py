@@ -1,9 +1,8 @@
 from typing import List
 
-from app.semantic.detectors.base import SemanticDetector, DetectorInput
 from app.semantic.consensus_engine import ConsensusEngine
+from app.semantic.detectors.base import DetectorInput, DetectorResult, SemanticDetector
 from app.semantic.semantic_models import SemanticClassification
-from app.semantic.detectors.base import DetectorResult
 
 
 class SemanticDetectionPipeline:

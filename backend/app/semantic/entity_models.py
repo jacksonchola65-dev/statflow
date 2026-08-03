@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Tuple, Iterable
 import math
+from dataclasses import dataclass, field
+from typing import Iterable, Tuple
 
 from .semantic_models import SemanticEvidence
 from .semantic_types import SemanticType

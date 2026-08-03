@@ -22,12 +22,13 @@ from __future__ import annotations
 import copy
 import sys
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import (
@@ -44,13 +45,14 @@ from app.services.mapping_execution_service import (
     TransformationExecutionError,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _col(target: TargetField, col: str,
-         ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+
+def _col(
+    target: TargetField, col: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.COLUMN,
@@ -60,8 +62,9 @@ def _col(target: TargetField, col: str,
     )
 
 
-def _fix(target: TargetField, value: str,
-         ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+def _fix(
+    target: TargetField, value: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.FIXED_VALUE,
@@ -156,8 +159,11 @@ async def test_execute_row_called_once_per_source_row():
 
 async def test_source_rows_not_mutated():
     cfg = _cfg(
-        _col(TargetField.VALUE, "revenue",
-             ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER])
+        _col(
+            TargetField.VALUE,
+            "revenue",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER],
+        )
     )
     original_rows = [{"revenue": "  100  "}, {"revenue": "  200  "}]
     rows_copy = copy.deepcopy(original_rows)
@@ -186,8 +192,11 @@ async def test_fixed_value_same_across_all_rows():
 
 async def test_parse_number_transformation_on_multiple_rows():
     cfg = _cfg(
-        _col(TargetField.VALUE, "revenue",
-             ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER])
+        _col(
+            TargetField.VALUE,
+            "revenue",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER],
+        )
     )
     rows = [{"revenue": "  100  "}, {"revenue": "  200.5  "}, {"revenue": "  300  "}]
     result = await _svc()._execute_rows(cfg, rows)
@@ -198,8 +207,11 @@ async def test_parse_number_transformation_on_multiple_rows():
 
 async def test_extract_year_across_multiple_rows():
     cfg = _cfg(
-        _col(TargetField.REFERENCE_YEAR, "order_date",
-             ops=[TransformationOperation.TRIM, TransformationOperation.EXTRACT_YEAR])
+        _col(
+            TargetField.REFERENCE_YEAR,
+            "order_date",
+            ops=[TransformationOperation.TRIM, TransformationOperation.EXTRACT_YEAR],
+        )
     )
     rows = [
         {"order_date": "2024-01-15"},
@@ -219,9 +231,11 @@ async def test_extract_year_across_multiple_rows():
 
 async def test_province_name_to_code_across_multiple_rows(db_session):
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE, "region",
-             ops=[TransformationOperation.TRIM,
-                  TransformationOperation.PROVINCE_NAME_TO_CODE])
+        _col(
+            TargetField.PROVINCE_CODE,
+            "region",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PROVINCE_NAME_TO_CODE],
+        )
     )
     rows = [
         {"region": "Lusaka"},
@@ -241,14 +255,11 @@ async def test_province_name_to_code_across_multiple_rows(db_session):
 
 
 async def test_failure_on_first_row_stops_execution():
-    cfg = _cfg(
-        _col(TargetField.VALUE, "revenue",
-             ops=[TransformationOperation.PARSE_NUMBER])
-    )
+    cfg = _cfg(_col(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]))
     rows = [
-        {"revenue": "bad_value"},   # row 0 — will fail
-        {"revenue": "200"},          # row 1 — must never execute
-        {"revenue": "300"},          # row 2 — must never execute
+        {"revenue": "bad_value"},  # row 0 — will fail
+        {"revenue": "200"},  # row 1 — must never execute
+        {"revenue": "300"},  # row 2 — must never execute
     ]
     with pytest.raises(TransformationExecutionError) as exc_info:
         await _svc()._execute_rows(cfg, rows)
@@ -257,8 +268,7 @@ async def test_failure_on_first_row_stops_execution():
 
 async def test_only_first_row_processed_when_it_fails():
     """Verify row 1 and 2 are never attempted after row 0 fails."""
-    cfg = _cfg(_col(TargetField.VALUE, "revenue",
-                    ops=[TransformationOperation.PARSE_NUMBER]))
+    cfg = _cfg(_col(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]))
     rows = [{"revenue": "bad"}, {"revenue": "200"}, {"revenue": "300"}]
     call_count = 0
     original = MappingExecutionService._execute_row
@@ -281,12 +291,11 @@ async def test_only_first_row_processed_when_it_fails():
 
 
 async def test_failure_on_middle_row_stops_at_that_row():
-    cfg = _cfg(_col(TargetField.VALUE, "revenue",
-                    ops=[TransformationOperation.PARSE_NUMBER]))
+    cfg = _cfg(_col(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]))
     rows = [
-        {"revenue": "100"},      # row 0 — succeeds
-        {"revenue": "bad"},      # row 1 — fails
-        {"revenue": "300"},      # row 2 — must never execute
+        {"revenue": "100"},  # row 0 — succeeds
+        {"revenue": "bad"},  # row 1 — fails
+        {"revenue": "300"},  # row 2 — must never execute
     ]
     call_count = 0
     original = MappingExecutionService._execute_row
@@ -309,12 +318,11 @@ async def test_failure_on_middle_row_stops_at_that_row():
 
 
 async def test_failure_on_last_row_returns_error_not_partial_result():
-    cfg = _cfg(_col(TargetField.VALUE, "revenue",
-                    ops=[TransformationOperation.PARSE_NUMBER]))
+    cfg = _cfg(_col(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]))
     rows = [
-        {"revenue": "100"},     # succeeds
-        {"revenue": "200"},     # succeeds
-        {"revenue": "bad"},     # fails — last row
+        {"revenue": "100"},  # succeeds
+        {"revenue": "200"},  # succeeds
+        {"revenue": "bad"},  # fails — last row
     ]
     with pytest.raises(TransformationExecutionError) as exc_info:
         await _svc()._execute_rows(cfg, rows)
@@ -342,8 +350,7 @@ async def test_original_exception_object_is_not_wrapped():
 
 
 async def test_transformation_exception_preserved_not_wrapped():
-    cfg = _cfg(_col(TargetField.VALUE, "revenue",
-                    ops=[TransformationOperation.EXTRACT_YEAR]))
+    cfg = _cfg(_col(TargetField.VALUE, "revenue", ops=[TransformationOperation.EXTRACT_YEAR]))
     rows = [{"revenue": "not-a-year"}]
 
     with pytest.raises(TransformationExecutionError) as exc_info:

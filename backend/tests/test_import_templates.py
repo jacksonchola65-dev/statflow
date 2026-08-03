@@ -17,11 +17,9 @@ from __future__ import annotations
 import uuid
 from types import SimpleNamespace
 
-import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
 
 # ---------------------------------------------------------------------------
 # Fixtures

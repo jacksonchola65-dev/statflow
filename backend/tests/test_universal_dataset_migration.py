@@ -1,17 +1,15 @@
-from alembic.config import Config
-from alembic import command
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine
-
-from app.core.config import settings
-from app.db.base import Base
 
 
 async def test_universal_dataset_tables_exist(db_session) -> None:
-    result = await db_session.execute(text("SELECT to_regclass('public.universal_dataset_versions')"))
+    result = await db_session.execute(
+        text("SELECT to_regclass('public.universal_dataset_versions')")
+    )
     assert result.scalar() is not None
 
-    result = await db_session.execute(text("SELECT to_regclass('public.universal_dataset_columns')"))
+    result = await db_session.execute(
+        text("SELECT to_regclass('public.universal_dataset_columns')")
+    )
     assert result.scalar() is not None
 
     result = await db_session.execute(text("SELECT to_regclass('public.universal_datasets')"))
@@ -29,7 +27,9 @@ async def test_universal_dataset_constraints_exist(db_session) -> None:
             """
         )
     )
-    assert any(row[0] == 'uq_universal_dataset_versions_dataset_version' for row in constraints.fetchall())
+    assert any(
+        row[0] == "uq_universal_dataset_versions_dataset_version" for row in constraints.fetchall()
+    )
 
 
 async def test_universal_dataset_rows_constraints_and_indexes_exist(db_session) -> None:
@@ -48,7 +48,9 @@ async def test_universal_dataset_rows_constraints_and_indexes_exist(db_session) 
             """
         )
     )
-    assert any(row[0] == 'uq_universal_dataset_rows_version_row_number' for row in constraints.fetchall())
+    assert any(
+        row[0] == "uq_universal_dataset_rows_version_row_number" for row in constraints.fetchall()
+    )
 
     indexes = await db_session.execute(
         text(
@@ -61,5 +63,5 @@ async def test_universal_dataset_rows_constraints_and_indexes_exist(db_session) 
         )
     )
     index_names = {row[0] for row in indexes.fetchall()}
-    assert 'ix_universal_dataset_rows_dataset_version_id' in index_names
-    assert 'ix_universal_dataset_rows_dataset_version_id_row_number' in index_names
+    assert "ix_universal_dataset_rows_dataset_version_id" in index_names
+    assert "ix_universal_dataset_rows_dataset_version_id_row_number" in index_names

@@ -3,12 +3,11 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from sqlalchemy import delete
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.dashboard import Dashboard
 from app.models.dashboard_card import DashboardCard, DashboardCardSize, DashboardVisualizationType
 from app.repositories.dashboard_repository import DashboardRepository
+from sqlalchemy import delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DashboardNotFoundError(Exception):
@@ -40,9 +39,7 @@ class DashboardService:
                     id=card_id,
                     title=raw.get("title") or "Visualization card",
                     subtitle=raw.get("subtitle"),
-                    visualization_type=DashboardVisualizationType(
-                        visualization_type.lower()
-                    ),
+                    visualization_type=DashboardVisualizationType(visualization_type.lower()),
                     visualization_snapshot=raw.get("visualization_snapshot") or {},
                     size=DashboardCardSize(size.lower()),
                     display_order=int(raw.get("order") or index),

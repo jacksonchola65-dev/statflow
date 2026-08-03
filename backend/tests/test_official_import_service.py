@@ -7,6 +7,7 @@ import uuid
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from dataclasses import dataclass
@@ -16,6 +17,15 @@ from app.models.data_source import DatasetRegistry, FileFormat, SourceType
 from app.models.ingestion import IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
+from app.services.ingestion_persistence_service import (
+    IngestionPersistenceResult,
+)
+from app.services.ingestion_profiling_service import (
+    InferredColumnType,
+    IngestionProfileResult,
+    ProfiledColumn,
+    ProfiledRow,
+)
 from app.services.official_import_service import (
     ImportData,
     ImportResult,
@@ -23,22 +33,15 @@ from app.services.official_import_service import (
     OfficialDataImporter,
     OfficialImportError,
     OfficialImportService,
+)
+from app.services.official_import_service import (
     import_data as import_data_wrapper,
 )
-from app.services.ingestion_persistence_service import (
-    IngestionPersistenceResult,
-)
-from app.services.ingestion_profiling_service import (
-    IngestionProfileResult,
-    ProfiledColumn,
-    ProfiledRow,
-    InferredColumnType,
-)
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 async def _make_registry(db_session) -> DatasetRegistry:
     ds_repo = DataSourceRepository(db_session)
@@ -151,6 +154,7 @@ class StubPersistenceService:
 # Tests
 # ===========================================================================
 
+
 async def test_official_import_service_orchestrates_profile_and_persistence(db_session):
     registry = await _make_registry(db_session)
     profile = _make_profile()
@@ -206,7 +210,9 @@ async def test_official_import_service_orchestrates_profile_and_persistence(db_s
     ]
 
 
-async def test_official_import_service_raises_official_import_error_for_importer_failure(db_session):
+async def test_official_import_service_raises_official_import_error_for_importer_failure(
+    db_session,
+):
     registry = await _make_registry(db_session)
     importer = DummyImporter(RuntimeError("network failure"))
 

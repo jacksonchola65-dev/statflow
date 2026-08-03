@@ -4,28 +4,26 @@ Tests for GET /api/v1/indicators
 Each test creates its own records with unique codes/names to avoid
 UniqueConstraint collisions across tests sharing the same database.
 """
+
 import uuid
 from typing import Optional
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.category import Category
 from app.models.indicator import Indicator
-
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _uid(n: int = 8) -> str:
     return str(uuid.uuid4())[:n].upper()
 
 
-async def _create_category(
-    db: AsyncSession, name: Optional[str] = None
-) -> Category:
+async def _create_category(db: AsyncSession, name: Optional[str] = None) -> Category:
     cat = Category(
         code=f"TST-{_uid()}",
         name=name or f"TestCat-{_uid()}",
@@ -59,6 +57,7 @@ async def _create_indicator(
 # ---------------------------------------------------------------------------
 # Basic endpoint tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_list_indicators_returns_200(authed_client: AsyncClient) -> None:
@@ -113,8 +112,7 @@ async def test_list_indicators_each_has_required_fields(
     assert len(indicators) >= 1
 
     for ind in indicators:
-        for field in ("id", "category_id", "code", "name",
-                      "description", "unit", "source_name"):
+        for field in ("id", "category_id", "code", "name", "description", "unit", "source_name"):
             assert field in ind, f"Missing '{field}' in {ind}"
         assert ind["id"]
         assert ind["category_id"]
@@ -125,6 +123,7 @@ async def test_list_indicators_each_has_required_fields(
 # ---------------------------------------------------------------------------
 # Category filtering
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_filter_indicators_by_category_id(

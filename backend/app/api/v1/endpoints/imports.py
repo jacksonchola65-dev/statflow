@@ -41,10 +41,6 @@ from __future__ import annotations
 import os
 import uuid
 
-from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile, status
-from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import require_data_manager_or_admin, validate_csrf
 from app.db.session import get_db
 from app.models.user import User
@@ -57,16 +53,15 @@ from app.schemas.imports import (
     SampleRecordSchema,
 )
 from app.schemas.ingestion_mapping import (
+    ConfirmMappedImportRequest,
+    ConfirmMappedImportResponse,
     FileInspectionResponse,
     ImportTemplateCreateRequest,
     ImportTemplateListResponse,
     ImportTemplateResponse,
     ImportTemplateUpdateRequest,
-    ImportErrorDetail,
     MapPreviewRequest,
     MapPreviewResponse,
-    ConfirmMappedImportRequest,
-    ConfirmMappedImportResponse,
 )
 from app.services.file_inspection_service import (
     DuplicateHeadersError,
@@ -78,11 +73,17 @@ from app.services.file_inspection_service import (
     InspectionTokenNotFoundError,
     InvalidEncodingError,
     MalformedCsvError,
-    MissingFileError,
     UnsupportedFormatError,
 )
 from app.services.import_service import ConfirmResult, ImportService, PreviewData
 from app.services.import_template_service import ImportTemplateService
+from app.services.mapped_preview_service import (
+    MappedPreviewTokenExpiredError,
+    MappedPreviewTokenForbiddenError,
+    MappedPreviewTokenNotFoundError,
+    _invalidate_mapped_preview_token,
+    _retrieve_mapped_preview_token,
+)
 from app.services.mapping_execution_service import (
     InspectionNotFoundError,
     InspectionOwnershipError,
@@ -92,26 +93,25 @@ from app.services.mapping_execution_service import (
     TransformationExecutionError,
     UnsupportedTransformationError,
 )
-from app.services.mapped_preview_service import (
-    _retrieve_mapped_preview_token,
-    _invalidate_mapped_preview_token,
-    MappedPreviewTokenNotFoundError,
-    MappedPreviewTokenExpiredError,
-    MappedPreviewTokenForbiddenError,
-)
 from app.services.universal_dataset_persistence_service import UniversalDatasetPersistenceService
 from app.utils.csv_parser import (
     EmptyFileError as CsvEmptyFileError,
+)
+from app.utils.csv_parser import (
     MalformedCsvError as CsvMalformedCsvError,
+)
+from app.utils.csv_parser import (
     MissingColumnsError,
     RowLimitExceeded,
 )
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-MAX_FILE_BYTES = 5 * 1024 * 1024          # 5 MB  (REQ-1.2)
+MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB  (REQ-1.2)
 ALLOWED_MIME_TYPES = {"text/csv", "text/plain"}
 
 # ---------------------------------------------------------------------------
@@ -126,30 +126,30 @@ router = APIRouter(prefix="/imports", tags=["Imports"])
 # ---------------------------------------------------------------------------
 
 ERROR_CODES = {
-    'IMPORT_FILE_MISSING': 'IMPORT_FILE_MISSING',
-    'IMPORT_UNSUPPORTED_FORMAT': 'IMPORT_UNSUPPORTED_FORMAT',
-    'IMPORT_FILE_TOO_LARGE': 'IMPORT_FILE_TOO_LARGE',
-    'IMPORT_EMPTY_FILE': 'IMPORT_EMPTY_FILE',
-    'IMPORT_MALFORMED_CSV': 'IMPORT_MALFORMED_CSV',
-    'IMPORT_INVALID_ENCODING': 'IMPORT_INVALID_ENCODING',
-    'IMPORT_DUPLICATE_HEADERS': 'IMPORT_DUPLICATE_HEADERS',
-    'IMPORT_MAPPING_REQUIRED': 'IMPORT_MAPPING_REQUIRED',
-    'IMPORT_INVALID_MAPPING': 'IMPORT_INVALID_MAPPING',
-    'IMPORT_INSPECTION_EXPIRED': 'IMPORT_INSPECTION_EXPIRED',
-    'IMPORT_INSPECTION_FORBIDDEN': 'IMPORT_INSPECTION_FORBIDDEN',
-    'IMPORT_TEMPLATE_NOT_FOUND': 'IMPORT_TEMPLATE_NOT_FOUND',
-    'IMPORT_TEMPLATE_NAME_CONFLICT': 'IMPORT_TEMPLATE_NAME_CONFLICT',
-    'IMPORT_SOURCE_COLUMN_NOT_FOUND': 'IMPORT_SOURCE_COLUMN_NOT_FOUND',
-    'IMPORT_TRANSFORMATION_UNSUPPORTED': 'IMPORT_TRANSFORMATION_UNSUPPORTED',
-    'IMPORT_MAPPING_EXECUTION_FAILED': 'IMPORT_MAPPING_EXECUTION_FAILED',
+    "IMPORT_FILE_MISSING": "IMPORT_FILE_MISSING",
+    "IMPORT_UNSUPPORTED_FORMAT": "IMPORT_UNSUPPORTED_FORMAT",
+    "IMPORT_FILE_TOO_LARGE": "IMPORT_FILE_TOO_LARGE",
+    "IMPORT_EMPTY_FILE": "IMPORT_EMPTY_FILE",
+    "IMPORT_MALFORMED_CSV": "IMPORT_MALFORMED_CSV",
+    "IMPORT_INVALID_ENCODING": "IMPORT_INVALID_ENCODING",
+    "IMPORT_DUPLICATE_HEADERS": "IMPORT_DUPLICATE_HEADERS",
+    "IMPORT_MAPPING_REQUIRED": "IMPORT_MAPPING_REQUIRED",
+    "IMPORT_INVALID_MAPPING": "IMPORT_INVALID_MAPPING",
+    "IMPORT_INSPECTION_EXPIRED": "IMPORT_INSPECTION_EXPIRED",
+    "IMPORT_INSPECTION_FORBIDDEN": "IMPORT_INSPECTION_FORBIDDEN",
+    "IMPORT_TEMPLATE_NOT_FOUND": "IMPORT_TEMPLATE_NOT_FOUND",
+    "IMPORT_TEMPLATE_NAME_CONFLICT": "IMPORT_TEMPLATE_NAME_CONFLICT",
+    "IMPORT_SOURCE_COLUMN_NOT_FOUND": "IMPORT_SOURCE_COLUMN_NOT_FOUND",
+    "IMPORT_TRANSFORMATION_UNSUPPORTED": "IMPORT_TRANSFORMATION_UNSUPPORTED",
+    "IMPORT_MAPPING_EXECUTION_FAILED": "IMPORT_MAPPING_EXECUTION_FAILED",
 }
 
 
 def _error_payload(code: str, message: str, details: dict | None = None) -> dict:
     return {
-        'code': ERROR_CODES.get(code, code),
-        'message': message,
-        'details': details or {},
+        "code": ERROR_CODES.get(code, code),
+        "message": message,
+        "details": details or {},
     }
 
 
@@ -188,20 +188,14 @@ def _assert_mime_type(content_type: str | None) -> None:
     if not content_type:
         raise HTTPException(
             status_code=415,
-            detail=(
-                "Missing Content-Type header. "
-                "Only text/csv and text/plain are accepted."
-            ),
+            detail=("Missing Content-Type header. Only text/csv and text/plain are accepted."),
         )
     # Normalise: take the primary media type, lower-cased
     mime = content_type.split(";")[0].strip().lower()
     if mime not in ALLOWED_MIME_TYPES:
         raise HTTPException(
             status_code=415,
-            detail=(
-                f"Unsupported media type '{mime}'. "
-                "Only text/csv and text/plain are accepted."
-            ),
+            detail=(f"Unsupported media type '{mime}'. Only text/csv and text/plain are accepted."),
         )
 
 
@@ -296,7 +290,7 @@ async def preview_csv_import(
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_FILE_MISSING',
+                "IMPORT_FILE_MISSING",
                 'No file was uploaded. Attach a file under the multipart field "file".',
                 {},
             ),
@@ -313,9 +307,9 @@ async def preview_csv_import(
         raise HTTPException(
             status_code=413,
             detail=_error_payload(
-                'IMPORT_FILE_TOO_LARGE',
-                f'File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB size limit. Reduce the file size and try again.',
-                {'max_file_bytes': MAX_FILE_BYTES},
+                "IMPORT_FILE_TOO_LARGE",
+                f"File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB size limit. Reduce the file size and try again.",
+                {"max_file_bytes": MAX_FILE_BYTES},
             ),
         )
 
@@ -324,8 +318,8 @@ async def preview_csv_import(
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_EMPTY_FILE',
-                'Uploaded file is empty.',
+                "IMPORT_EMPTY_FILE",
+                "Uploaded file is empty.",
             ),
         )
 
@@ -339,26 +333,26 @@ async def preview_csv_import(
     except CsvEmptyFileError as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_EMPTY_FILE', str(exc)),
+            detail=_error_payload("IMPORT_EMPTY_FILE", str(exc)),
         ) from exc
     except MissingColumnsError as exc:
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_MAPPING_REQUIRED',
-                f'Missing required columns: {exc.missing}',
-                {'missing_columns': exc.missing},
+                "IMPORT_MAPPING_REQUIRED",
+                f"Missing required columns: {exc.missing}",
+                {"missing_columns": exc.missing},
             ),
         ) from exc
     except CsvMalformedCsvError as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_MALFORMED_CSV', str(exc)),
+            detail=_error_payload("IMPORT_MALFORMED_CSV", str(exc)),
         ) from exc
     except RowLimitExceeded as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_MALFORMED_CSV', str(exc)),
+            detail=_error_payload("IMPORT_MALFORMED_CSV", str(exc)),
         ) from exc
 
     return _preview_data_to_response(preview_data)
@@ -394,7 +388,7 @@ async def inspect_file_upload(
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_FILE_MISSING',
+                "IMPORT_FILE_MISSING",
                 'No file was uploaded. Attach a file under the multipart field "file".',
             ),
         )
@@ -406,16 +400,16 @@ async def inspect_file_upload(
         raise HTTPException(
             status_code=413,
             detail=_error_payload(
-                'IMPORT_FILE_TOO_LARGE',
-                f'File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB size limit. Reduce the file size and try again.',
-                {'max_file_bytes': MAX_FILE_BYTES},
+                "IMPORT_FILE_TOO_LARGE",
+                f"File exceeds the {MAX_FILE_BYTES // (1024 * 1024)} MB size limit. Reduce the file size and try again.",
+                {"max_file_bytes": MAX_FILE_BYTES},
             ),
         )
 
     if not raw_bytes:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_EMPTY_FILE', 'Uploaded file is empty.'),
+            detail=_error_payload("IMPORT_EMPTY_FILE", "Uploaded file is empty."),
         )
 
     _sanitise_filename(file.filename)
@@ -430,32 +424,34 @@ async def inspect_file_upload(
     except FileTooLargeError as exc:
         raise HTTPException(
             status_code=413,
-            detail=_error_payload('IMPORT_FILE_TOO_LARGE', str(exc)),
+            detail=_error_payload("IMPORT_FILE_TOO_LARGE", str(exc)),
         ) from exc
     except UnsupportedFormatError as exc:
         raise HTTPException(
             status_code=415,
-            detail=_error_payload('IMPORT_UNSUPPORTED_FORMAT', str(exc)),
+            detail=_error_payload("IMPORT_UNSUPPORTED_FORMAT", str(exc)),
         ) from exc
     except EmptyFileError as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_EMPTY_FILE', str(exc)),
+            detail=_error_payload("IMPORT_EMPTY_FILE", str(exc)),
         ) from exc
     except InvalidEncodingError as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_INVALID_ENCODING', str(exc)),
+            detail=_error_payload("IMPORT_INVALID_ENCODING", str(exc)),
         ) from exc
     except MalformedCsvError as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_MALFORMED_CSV', str(exc)),
+            detail=_error_payload("IMPORT_MALFORMED_CSV", str(exc)),
         ) from exc
     except DuplicateHeadersError as exc:
         raise HTTPException(
             status_code=422,
-            detail=_error_payload('IMPORT_DUPLICATE_HEADERS', str(exc), {'duplicates': exc.duplicates}),
+            detail=_error_payload(
+                "IMPORT_DUPLICATE_HEADERS", str(exc), {"duplicates": exc.duplicates}
+            ),
         ) from exc
 
     return inspection_response
@@ -485,17 +481,17 @@ async def retrieve_file_inspection(
     except InspectionTokenExpiredError as exc:
         raise HTTPException(
             status_code=404,
-            detail=_error_payload('IMPORT_INSPECTION_EXPIRED', str(exc)),
+            detail=_error_payload("IMPORT_INSPECTION_EXPIRED", str(exc)),
         ) from exc
     except InspectionTokenNotFoundError as exc:
         raise HTTPException(
             status_code=404,
-            detail=_error_payload('IMPORT_INSPECTION_EXPIRED', str(exc)),
+            detail=_error_payload("IMPORT_INSPECTION_EXPIRED", str(exc)),
         ) from exc
     except InspectionTokenForbiddenError as exc:
         raise HTTPException(
             status_code=403,
-            detail=_error_payload('IMPORT_INSPECTION_FORBIDDEN', str(exc)),
+            detail=_error_payload("IMPORT_INSPECTION_FORBIDDEN", str(exc)),
         ) from exc
 
     return inspection_response
@@ -531,9 +527,7 @@ async def create_import_template(
     response_model=ImportTemplateListResponse,
     status_code=200,
     summary="List reusable import templates",
-    description=(
-        "Return all active import templates owned by the current user."
-    ),
+    description=("Return all active import templates owned by the current user."),
 )
 async def list_import_templates(
     db: AsyncSession = Depends(get_db),
@@ -549,9 +543,7 @@ async def list_import_templates(
     response_model=ImportTemplateResponse,
     status_code=200,
     summary="Get an import template",
-    description=(
-        "Return a single reusable import template owned by the current user."
-    ),
+    description=("Return a single reusable import template owned by the current user."),
 )
 async def get_import_template(
     template_id: uuid.UUID,
@@ -564,8 +556,8 @@ async def get_import_template(
         raise HTTPException(
             status_code=404,
             detail=_error_payload(
-                'IMPORT_TEMPLATE_NOT_FOUND',
-                f'Import template with id {template_id} not found.',
+                "IMPORT_TEMPLATE_NOT_FOUND",
+                f"Import template with id {template_id} not found.",
             ),
         )
     return ImportTemplateResponse.model_validate(template)
@@ -594,7 +586,7 @@ async def update_import_template(
         raise HTTPException(
             status_code=404,
             detail=_error_payload(
-                'IMPORT_TEMPLATE_NOT_FOUND',
+                "IMPORT_TEMPLATE_NOT_FOUND",
                 str(exc),
             ),
         ) from exc
@@ -602,7 +594,7 @@ async def update_import_template(
         raise HTTPException(
             status_code=409,
             detail=_error_payload(
-                'IMPORT_TEMPLATE_NAME_CONFLICT',
+                "IMPORT_TEMPLATE_NAME_CONFLICT",
                 str(exc),
             ),
         ) from exc
@@ -613,9 +605,7 @@ async def update_import_template(
     "/templates/{template_id}",
     status_code=204,
     summary="Deactivate an import template",
-    description=(
-        "Soft-delete the current user's import template by marking it inactive."
-    ),
+    description=("Soft-delete the current user's import template by marking it inactive."),
 )
 async def delete_import_template(
     template_id: uuid.UUID,
@@ -630,7 +620,7 @@ async def delete_import_template(
         raise HTTPException(
             status_code=404,
             detail=_error_payload(
-                'IMPORT_TEMPLATE_NOT_FOUND',
+                "IMPORT_TEMPLATE_NOT_FOUND",
                 str(exc),
             ),
         ) from exc
@@ -676,30 +666,30 @@ async def map_preview(
         raise HTTPException(
             status_code=400,
             detail=_error_payload(
-                'IMPORT_INVALID_MAPPING',
+                "IMPORT_INVALID_MAPPING",
                 f"Mapping configuration is invalid: {exc.errors[0]}",
-                {'errors': exc.errors},
+                {"errors": exc.errors},
             ),
         ) from exc
     except InspectionNotFoundError as exc:
         raise HTTPException(
             status_code=404,
-            detail=_error_payload('IMPORT_INSPECTION_EXPIRED', str(exc)),
+            detail=_error_payload("IMPORT_INSPECTION_EXPIRED", str(exc)),
         ) from exc
     except InspectionOwnershipError as exc:
         raise HTTPException(
             status_code=403,
-            detail=_error_payload('IMPORT_INSPECTION_FORBIDDEN', str(exc)),
+            detail=_error_payload("IMPORT_INSPECTION_FORBIDDEN", str(exc)),
         ) from exc
     except SourceColumnNotFoundError as exc:
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_SOURCE_COLUMN_NOT_FOUND',
+                "IMPORT_SOURCE_COLUMN_NOT_FOUND",
                 str(exc),
                 {
-                    'column_name': exc.column_name,
-                    'target_field': exc.target_field,
+                    "column_name": exc.column_name,
+                    "target_field": exc.target_field,
                 },
             ),
         ) from exc
@@ -707,21 +697,21 @@ async def map_preview(
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_TRANSFORMATION_UNSUPPORTED',
+                "IMPORT_TRANSFORMATION_UNSUPPORTED",
                 str(exc),
-                {'operation': exc.operation},
+                {"operation": exc.operation},
             ),
         ) from exc
     except TransformationExecutionError as exc:
         raise HTTPException(
             status_code=422,
             detail=_error_payload(
-                'IMPORT_MAPPING_EXECUTION_FAILED',
+                "IMPORT_MAPPING_EXECUTION_FAILED",
                 str(exc),
                 {
-                    'operation': exc.operation,
-                    'raw_value': exc.raw_value,
-                    'reason': exc.reason,
+                    "operation": exc.operation,
+                    "raw_value": exc.raw_value,
+                    "reason": exc.reason,
                 },
             ),
         ) from exc
@@ -734,7 +724,6 @@ async def map_preview(
         target_fields=result.target_fields,
         mapped_preview_token=result.mapped_preview_token,
     )
-
 
 
 @router.post(
@@ -756,18 +745,32 @@ async def map_confirm(
     try:
         cached = _retrieve_mapped_preview_token(body.mapped_preview_token, user.id)
     except MappedPreviewTokenNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=_error_payload('IMPORT_INSPECTION_EXPIRED', str(exc))) from exc
+        raise HTTPException(
+            status_code=404, detail=_error_payload("IMPORT_INSPECTION_EXPIRED", str(exc))
+        ) from exc
     except MappedPreviewTokenExpiredError as exc:
-        raise HTTPException(status_code=410, detail=_error_payload('IMPORT_INSPECTION_EXPIRED', str(exc))) from exc
+        raise HTTPException(
+            status_code=410, detail=_error_payload("IMPORT_INSPECTION_EXPIRED", str(exc))
+        ) from exc
     except MappedPreviewTokenForbiddenError as exc:
-        raise HTTPException(status_code=403, detail=_error_payload('IMPORT_INSPECTION_FORBIDDEN', str(exc))) from exc
+        raise HTTPException(
+            status_code=403, detail=_error_payload("IMPORT_INSPECTION_FORBIDDEN", str(exc))
+        ) from exc
 
     # Validation: name must be present (Pydantic ensures non-empty), but double-check
     if not body.name or not body.name.strip():
-        raise HTTPException(status_code=422, detail=_error_payload('IMPORT_INVALID_MAPPING', 'Dataset name cannot be blank'))
+        raise HTTPException(
+            status_code=422,
+            detail=_error_payload("IMPORT_INVALID_MAPPING", "Dataset name cannot be blank"),
+        )
 
     if not cached.transformed_rows:
-        raise HTTPException(status_code=422, detail=_error_payload('IMPORT_MAPPING_EXECUTION_FAILED', 'Mapped preview contains no rows to persist'))
+        raise HTTPException(
+            status_code=422,
+            detail=_error_payload(
+                "IMPORT_MAPPING_EXECUTION_FAILED", "Mapped preview contains no rows to persist"
+            ),
+        )
 
     service = UniversalDatasetPersistenceService(db)
     try:
@@ -780,10 +783,17 @@ async def map_confirm(
         )
     except ValueError as exc:
         # User-visible validation error — do not consume token
-        raise HTTPException(status_code=422, detail=_error_payload('IMPORT_INVALID_MAPPING', str(exc))) from exc
+        raise HTTPException(
+            status_code=422, detail=_error_payload("IMPORT_INVALID_MAPPING", str(exc))
+        ) from exc
     except Exception as exc:
         # Persistence failed — leave token available for retry
-        raise HTTPException(status_code=500, detail=_error_payload('IMPORT_MAPPING_EXECUTION_FAILED', 'Failed to persist mapped import')) from exc
+        raise HTTPException(
+            status_code=500,
+            detail=_error_payload(
+                "IMPORT_MAPPING_EXECUTION_FAILED", "Failed to persist mapped import"
+            ),
+        ) from exc
 
     # Success — consume the mapped-preview token
     _invalidate_mapped_preview_token(body.mapped_preview_token)

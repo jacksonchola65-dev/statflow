@@ -1,13 +1,8 @@
 from __future__ import annotations
 
 import inspect
-import uuid
-from datetime import date, datetime, timezone
 
 import pytest
-from pydantic import ValidationError
-from sqlalchemy import text
-
 from app.domain.analytics import (
     AggregationFunction,
     AnalyticsQuery,
@@ -20,21 +15,19 @@ from app.domain.analytics import (
     SortDirection,
 )
 from app.domain.analytics.exceptions import (
-    AnalyticsQueryError,
-    InvalidAggregationError,
     InvalidIdentifierError,
-    InvalidSortError,
 )
 from app.domain.analytics.metadata import IngestionMetadataResolver
 from app.domain.analytics.planner import AnalyticsQueryPlanner
 from app.domain.analytics.repository import AnalyticsRepository
-from app.models.data_source import DataSource, DatasetRegistry, FileFormat, SourceType
-from app.models.ingestion import IngestionJob, IngestionStatus, InferredColumnType
+from app.models.data_source import FileFormat, SourceType
+from app.models.ingestion import InferredColumnType, IngestionJob, IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
+from pydantic import ValidationError
 
 
 async def _make_dataset(db_session) -> IngestionJob:
@@ -102,8 +95,16 @@ async def _make_dataset(db_session) -> IngestionJob:
     row_repo = DatasetRowRepository(db_session)
     await row_repo.create_many(
         [
-            {"ingestion_job_id": job.id, "row_number": 0, "values": {"region": "North", "population": 100, "revenue": 10}},
-            {"ingestion_job_id": job.id, "row_number": 1, "values": {"region": "South", "population": 200, "revenue": 20}},
+            {
+                "ingestion_job_id": job.id,
+                "row_number": 0,
+                "values": {"region": "North", "population": 100, "revenue": 10},
+            },
+            {
+                "ingestion_job_id": job.id,
+                "row_number": 1,
+                "values": {"region": "South", "population": 200, "revenue": 20},
+            },
         ]
     )
 
@@ -114,7 +115,9 @@ async def _make_dataset(db_session) -> IngestionJob:
 @pytest.mark.asyncio
 async def test_planner_builds_execution_plan_from_valid_query(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="region")],
@@ -133,7 +136,9 @@ async def test_planner_builds_execution_plan_from_valid_query(db_session):
 @pytest.mark.asyncio
 async def test_planner_rejects_unknown_dimension(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="missing")],
@@ -146,7 +151,9 @@ async def test_planner_rejects_unknown_dimension(db_session):
 @pytest.mark.asyncio
 async def test_planner_rejects_unknown_measure(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         measures=[Measure(aggregation=AggregationFunction.SUM, column_name="missing")],
@@ -159,12 +166,16 @@ async def test_planner_rejects_unknown_measure(db_session):
 @pytest.mark.asyncio
 async def test_planner_rejects_unknown_filter(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="region")],
         measures=[Measure(aggregation=AggregationFunction.COUNT)],
-        filters=[FilterClause(column_name="missing", operator=FilterOperator.EQUALS, value="North")],
+        filters=[
+            FilterClause(column_name="missing", operator=FilterOperator.EQUALS, value="North")
+        ],
     )
 
     with pytest.raises(InvalidIdentifierError):
@@ -174,7 +185,6 @@ async def test_planner_rejects_unknown_filter(db_session):
 @pytest.mark.asyncio
 async def test_planner_rejects_unknown_sort(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
     with pytest.raises(ValidationError):
         AnalyticsQuery(
             dataset_reference=DatasetReference(ingestion_job_id=job.id),
@@ -187,7 +197,6 @@ async def test_planner_rejects_unknown_sort(db_session):
 @pytest.mark.asyncio
 async def test_planner_rejects_duplicate_identifiers(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
     with pytest.raises(ValidationError):
         AnalyticsQuery(
             dataset_reference=DatasetReference(ingestion_job_id=job.id),
@@ -199,11 +208,19 @@ async def test_planner_rejects_duplicate_identifiers(db_session):
 @pytest.mark.asyncio
 async def test_planner_resolves_metadata_for_dimensions_and_measures(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="region")],
-        measures=[Measure(aggregation=AggregationFunction.SUM, column_name="population", alias="population_sum")],
+        measures=[
+            Measure(
+                aggregation=AggregationFunction.SUM,
+                column_name="population",
+                alias="population_sum",
+            )
+        ],
     )
 
     plan = await planner.plan(query)
@@ -215,7 +232,9 @@ async def test_planner_resolves_metadata_for_dimensions_and_measures(db_session)
 @pytest.mark.asyncio
 async def test_repository_executes_count_and_grouping(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="region")],
@@ -233,14 +252,32 @@ async def test_repository_executes_count_and_grouping(db_session):
 @pytest.mark.asyncio
 async def test_repository_executes_sum_avg_min_max_and_filtering(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         measures=[
-            Measure(aggregation=AggregationFunction.SUM, column_name="population", alias="population_sum"),
-            Measure(aggregation=AggregationFunction.AVERAGE, column_name="population", alias="population_avg"),
-            Measure(aggregation=AggregationFunction.MINIMUM, column_name="population", alias="population_min"),
-            Measure(aggregation=AggregationFunction.MAXIMUM, column_name="population", alias="population_max"),
+            Measure(
+                aggregation=AggregationFunction.SUM,
+                column_name="population",
+                alias="population_sum",
+            ),
+            Measure(
+                aggregation=AggregationFunction.AVERAGE,
+                column_name="population",
+                alias="population_avg",
+            ),
+            Measure(
+                aggregation=AggregationFunction.MINIMUM,
+                column_name="population",
+                alias="population_min",
+            ),
+            Measure(
+                aggregation=AggregationFunction.MAXIMUM,
+                column_name="population",
+                alias="population_max",
+            ),
         ],
         filters=[FilterClause(column_name="region", operator=FilterOperator.EQUALS, value="North")],
     )
@@ -258,7 +295,9 @@ async def test_repository_executes_sum_avg_min_max_and_filtering(db_session):
 @pytest.mark.asyncio
 async def test_repository_supports_sorting_and_pagination(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
+    planner = AnalyticsQueryPlanner(
+        db_session, metadata_resolver=IngestionMetadataResolver(db_session)
+    )
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="region")],
@@ -279,7 +318,6 @@ async def test_repository_supports_sorting_and_pagination(db_session):
 @pytest.mark.asyncio
 async def test_repository_rejects_analytics_query_directly(db_session):
     job = await _make_dataset(db_session)
-    planner = AnalyticsQueryPlanner(db_session, metadata_resolver=IngestionMetadataResolver(db_session))
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=job.id),
         dimensions=[Dimension(column_name="region")],

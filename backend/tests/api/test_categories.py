@@ -5,19 +5,19 @@ Categories are not globally seeded. Each test creates its own records
 using unique codes (uuid-suffixed) to avoid UniqueConstraint collisions
 across tests that share the same database session.
 """
+
 import uuid
 from typing import Optional
 
 import pytest
+from app.models.category import Category
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.category import Category
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _unique_code(prefix: str = "CAT") -> str:
     """Generate a unique category code."""
@@ -50,6 +50,7 @@ async def _create_category(
 # Tests — no categories created
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_list_categories_returns_200(authed_client: AsyncClient) -> None:
     response = await authed_client.get("/api/v1/categories")
@@ -67,6 +68,7 @@ async def test_list_categories_empty_when_none_exist(authed_client: AsyncClient)
 # ---------------------------------------------------------------------------
 # Tests — categories created within the test
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_list_categories_returns_created_records(
@@ -110,11 +112,11 @@ async def test_list_categories_each_has_required_fields(
     assert len(categories) >= 1
 
     for c in categories:
-        assert "id" in c,          f"Missing 'id' in {c}"
-        assert "code" in c,        f"Missing 'code' in {c}"
-        assert "name" in c,        f"Missing 'name' in {c}"
+        assert "id" in c, f"Missing 'id' in {c}"
+        assert "code" in c, f"Missing 'code' in {c}"
+        assert "name" in c, f"Missing 'name' in {c}"
         assert "description" in c, f"Missing 'description' in {c}"
-        assert c["id"],   "id must be non-empty"
+        assert c["id"], "id must be non-empty"
         assert c["code"], "code must be non-empty"
         assert c["name"], "name must be non-empty"
 

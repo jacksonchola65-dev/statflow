@@ -2,11 +2,10 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, List
 
+from app.db.base import Base
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.data_point import DataPoint
@@ -16,9 +15,7 @@ if TYPE_CHECKING:
 class District(Base):
     __tablename__ = "districts"
 
-    __table_args__ = (
-        UniqueConstraint("province_id", "code", name="uq_districts_province_code"),
-    )
+    __table_args__ = (UniqueConstraint("province_id", "code", name="uq_districts_province_code"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

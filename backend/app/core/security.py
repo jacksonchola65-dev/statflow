@@ -15,11 +15,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 import jwt
-from pwdlib import PasswordHash
-from pwdlib.hashers.argon2 import Argon2Hasher
-
 from app.core.config import settings
 from app.models.user import UserRole
+from pwdlib import PasswordHash
+from pwdlib.hashers.argon2 import Argon2Hasher
 
 # ---------------------------------------------------------------------------
 # Password hashing
@@ -68,11 +67,11 @@ def verify_password(password: str, hashed_password: str) -> bool:
 class AccessTokenPayload:
     """Validated, typed JWT access-token payload returned by decode_access_token."""
 
-    sub: uuid.UUID    # user UUID
+    sub: uuid.UUID  # user UUID
     role: UserRole
     exp: datetime
     iat: datetime
-    jti: uuid.UUID    # unique token ID — enables future revocation list
+    jti: uuid.UUID  # unique token ID — enables future revocation list
 
 
 class InvalidTokenError(Exception):

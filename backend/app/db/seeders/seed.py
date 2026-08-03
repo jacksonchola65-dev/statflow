@@ -4,19 +4,18 @@ Main seeder entry point.
 Run with:
     python -m app.db.seeders.seed
 """
+
 import asyncio
 import logging
 import sys
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.db.session import AsyncSessionLocal
-from app.db.seeders.provinces import seed_provinces
-from app.db.seeders.districts import seed_luapula_districts
 from app.db.seeders.categories import seed_categories
-from app.db.seeders.indicators import seed_indicators
-from app.db.seeders.datasets import seed_datasets
 from app.db.seeders.data_points import seed_demo_data_points
+from app.db.seeders.datasets import seed_datasets
+from app.db.seeders.districts import seed_luapula_districts
+from app.db.seeders.indicators import seed_indicators
+from app.db.seeders.provinces import seed_provinces
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logging.basicConfig(
     level=logging.WARNING,
@@ -28,8 +27,9 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 def _make_quiet_session_factory():
     """Create a session factory with echo disabled, regardless of ENVIRONMENT."""
-    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
     from app.core.config import settings
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
     quiet_engine = create_async_engine(
         settings.DATABASE_URL,
         echo=False,

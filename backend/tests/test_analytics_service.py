@@ -5,7 +5,6 @@ import inspect
 import uuid
 
 import pytest
-
 from app.domain.analytics.contracts import (
     AggregationFunction,
     AnalyticsQuery,

@@ -8,25 +8,25 @@ Province data is drawn from the seeded provinces so we don't need to create
 them. The check constraint on data_points requires exactly one of
 province_id / district_id to be set.
 """
+
 import uuid
 from decimal import Decimal
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.category import Category
 from app.models.data_point import DataPoint
 from app.models.dataset import Dataset
 from app.models.district import District
 from app.models.indicator import Indicator
 from app.models.province import Province
-
+from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _uid(n: int = 8) -> str:
     return str(uuid.uuid4())[:n].upper()
@@ -126,6 +126,7 @@ async def _make_district_dp(
 # Basic tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_indicator_summary_returns_200(
     authed_client: AsyncClient, db_session: AsyncSession
@@ -194,6 +195,7 @@ async def test_decimal_value_serializes_correctly(
 # Province ordering
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_results_ordered_alphabetically_by_province(
     authed_client: AsyncClient, db_session: AsyncSession
@@ -217,6 +219,7 @@ async def test_results_ordered_alphabetically_by_province(
 # ---------------------------------------------------------------------------
 # dataset_id filtering
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_dataset_id_filter_returns_only_that_dataset(
@@ -245,11 +248,11 @@ async def test_dataset_id_filter_returns_only_that_dataset(
 # 404 — indicator not found
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_unknown_indicator_returns_404(authed_client: AsyncClient) -> None:
     response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary"
-        f"?indicator_id={uuid.uuid4()}&reference_year=2023"
+        f"/api/v1/analytics/indicator-summary?indicator_id={uuid.uuid4()}&reference_year=2023"
     )
     assert response.status_code == 404
 
@@ -257,6 +260,7 @@ async def test_unknown_indicator_returns_404(authed_client: AsyncClient) -> None
 # ---------------------------------------------------------------------------
 # Empty results
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_no_matching_rows_returns_empty_results(
@@ -266,8 +270,7 @@ async def test_no_matching_rows_returns_empty_results(
     ind = await _make_indicator(db_session, cat.id)
 
     response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary"
-        f"?indicator_id={ind.id}&reference_year=1999"
+        f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}&reference_year=1999"
     )
     assert response.status_code == 200
     body = response.json()
@@ -278,6 +281,7 @@ async def test_no_matching_rows_returns_empty_results(
 # ---------------------------------------------------------------------------
 # 409 — ambiguous data
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_ambiguous_data_without_dataset_id_returns_409(
@@ -294,8 +298,7 @@ async def test_ambiguous_data_without_dataset_id_returns_409(
     await _make_province_dp(db_session, ds_b.id, ind.id, prov.id, 2023)
 
     response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary"
-        f"?indicator_id={ind.id}&reference_year=2023"
+        f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}&reference_year=2023"
     )
     assert response.status_code == 409
     assert "ambiguous" in response.json()["detail"].lower()
@@ -312,8 +315,7 @@ async def test_single_dataset_without_dataset_id_does_not_return_409(
     await _make_province_dp(db_session, ds.id, ind.id, prov.id, 2024)
 
     response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary"
-        f"?indicator_id={ind.id}&reference_year=2024"
+        f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}&reference_year=2024"
     )
     assert response.status_code == 200
 
@@ -321,6 +323,7 @@ async def test_single_dataset_without_dataset_id_does_not_return_409(
 # ---------------------------------------------------------------------------
 # District-level rows excluded
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_district_level_rows_excluded(
@@ -369,6 +372,7 @@ async def test_mixed_geo_only_province_rows_returned(
 # Validation — 422
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_invalid_indicator_uuid_returns_422(authed_client: AsyncClient) -> None:
     response = await authed_client.get(
@@ -397,8 +401,7 @@ async def test_year_below_1900_returns_422(
     cat = await _make_category(db_session)
     ind = await _make_indicator(db_session, cat.id)
     response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary"
-        f"?indicator_id={ind.id}&reference_year=1800"
+        f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}&reference_year=1800"
     )
     assert response.status_code == 422
 
@@ -410,17 +413,14 @@ async def test_year_above_2100_returns_422(
     cat = await _make_category(db_session)
     ind = await _make_indicator(db_session, cat.id)
     response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary"
-        f"?indicator_id={ind.id}&reference_year=2200"
+        f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}&reference_year=2200"
     )
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_missing_indicator_id_returns_422(authed_client: AsyncClient) -> None:
-    response = await authed_client.get(
-        "/api/v1/analytics/indicator-summary?reference_year=2023"
-    )
+    response = await authed_client.get("/api/v1/analytics/indicator-summary?reference_year=2023")
     assert response.status_code == 422
 
 
@@ -430,7 +430,5 @@ async def test_missing_reference_year_returns_422(
 ) -> None:
     cat = await _make_category(db_session)
     ind = await _make_indicator(db_session, cat.id)
-    response = await authed_client.get(
-        f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}"
-    )
+    response = await authed_client.get(f"/api/v1/analytics/indicator-summary?indicator_id={ind.id}")
     assert response.status_code == 422

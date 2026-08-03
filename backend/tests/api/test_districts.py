@@ -6,19 +6,19 @@ creates them via the db_session fixture. Codes are made unique per test
 using a short uuid suffix to avoid UniqueConstraint collisions across tests
 that share the same database session scope.
 """
+
 import uuid
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.district import District
 from app.models.province import Province
-
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _unique_code(prefix: str) -> str:
     """Generate a unique district code to avoid constraint collisions."""
@@ -28,6 +28,7 @@ def _unique_code(prefix: str) -> str:
 async def _get_province_id(db: AsyncSession, code: str) -> uuid.UUID:
     """Fetch the id of a seeded province by its code."""
     from sqlalchemy import select
+
     result = await db.execute(select(Province).where(Province.code == code))
     province = result.scalar_one()
     return province.id
@@ -50,6 +51,7 @@ async def _create_district(
 # Tests — no districts seeded
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_list_districts_returns_200(authed_client: AsyncClient) -> None:
     response = await authed_client.get("/api/v1/districts")
@@ -67,6 +69,7 @@ async def test_list_districts_empty_by_default(authed_client: AsyncClient) -> No
 # ---------------------------------------------------------------------------
 # Tests — districts created within the test
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_list_districts_returns_created_districts(
@@ -120,6 +123,7 @@ async def test_list_districts_each_has_required_fields(
 # Tests — filter by province_id
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_filter_districts_by_province_id(
     authed_client: AsyncClient, db_session: AsyncSession
@@ -167,6 +171,7 @@ async def test_filter_by_province_with_no_districts_returns_empty(
 # ---------------------------------------------------------------------------
 # Tests — invalid input
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_invalid_province_id_returns_422(authed_client: AsyncClient) -> None:

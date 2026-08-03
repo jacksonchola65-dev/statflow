@@ -1,9 +1,10 @@
 import time
+
 import pytest
 from app.semantic.consensus_engine import ConsensusEngine
+from app.semantic.detectors.base import DetectorResult
 from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
 from app.semantic.semantic_types import SemanticType
-from app.semantic.detectors.base import DetectorResult
 
 
 def dr(detector_name, classifications):
@@ -11,7 +12,12 @@ def dr(detector_name, classifications):
 
 
 def sc(st, conf, det="d"):
-    return SemanticClassification(semantic_type=st, confidence=conf, evidence=(SemanticEvidence(source=det, score=conf, description="e"),), detector=det)
+    return SemanticClassification(
+        semantic_type=st,
+        confidence=conf,
+        evidence=(SemanticEvidence(source=det, score=conf, description="e"),),
+        detector=det,
+    )
 
 
 def test_empty_input():
@@ -21,7 +27,11 @@ def test_empty_input():
 def test_single_detector():
     r = dr("d1", [sc(SemanticType.EMAIL, 0.9)])
     out = ConsensusEngine.merge([r])
-    assert len(out) == 1 and out[0].semantic_type == SemanticType.EMAIL and out[0].confidence == pytest.approx(0.9)
+    assert (
+        len(out) == 1
+        and out[0].semantic_type == SemanticType.EMAIL
+        and out[0].confidence == pytest.approx(0.9)
+    )
 
 
 def test_multiple_detectors_same_type_aggregation_and_cap():
@@ -54,7 +64,7 @@ def test_evidence_and_detector_merging_and_sorting():
 
 def test_deterministic_and_performance():
     cls = [sc(SemanticType.TEXT, 0.5) for _ in range(100)]
-    results = [dr(f"d{i}", cls[i:i+1]) for i in range(100)]
+    results = [dr(f"d{i}", cls[i : i + 1]) for i in range(100)]
     runs = 20
     times = []
     for _ in range(runs):

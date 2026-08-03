@@ -1,11 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Tuple, Sequence, Iterable
 import math
+from dataclasses import dataclass, field
+from typing import Iterable, Sequence, Tuple
 
-from .analytics_role_models import MeasureCandidate, Aggregation
-from .semantic_models import SemanticClassification, SemanticEvidence
+from .analytics_role_models import Aggregation, MeasureCandidate
+from .semantic_models import SemanticClassification
 from .semantic_types import SemanticType
-
 
 _MEASURE_TYPES = {
     SemanticType.INTEGER,
@@ -39,7 +38,12 @@ def _finite_ratio(value: float, name: str) -> float:
 
 
 def _aggregation_for_type(semantic_type: SemanticType) -> Aggregation:
-    if semantic_type in {SemanticType.CURRENCY, SemanticType.QUANTITY, SemanticType.INTEGER, SemanticType.DECIMAL}:
+    if semantic_type in {
+        SemanticType.CURRENCY,
+        SemanticType.QUANTITY,
+        SemanticType.INTEGER,
+        SemanticType.DECIMAL,
+    }:
         return Aggregation.SUM
     if semantic_type == SemanticType.PERCENTAGE:
         return Aggregation.AVG
@@ -64,7 +68,9 @@ class MeasureColumnInput:
                 raise TypeError("classifications must contain SemanticClassification instances")
         object.__setattr__(self, "classifications", cls)
 
-        object.__setattr__(self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio"))
+        object.__setattr__(
+            self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio")
+        )
         object.__setattr__(self, "null_ratio", _finite_ratio(self.null_ratio, "null_ratio"))
 
 
@@ -87,7 +93,8 @@ class MeasureDetector:
             seen_names.add(name)
 
             eligible = [
-                c for c in col.classifications
+                c
+                for c in col.classifications
                 if isinstance(c, SemanticClassification) and c.semantic_type in _MEASURE_TYPES
             ]
             if not eligible:

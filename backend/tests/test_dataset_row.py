@@ -24,20 +24,18 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
-import math
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import select, func, text
-from sqlalchemy.exc import IntegrityError
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
-from app.models.ingestion import DatasetRow, IngestionJob, IngestionStatus
+from app.models.ingestion import DatasetRow, IngestionJob
 from app.utils.row_values import RowValuesError, serialize_row_values, validate_row_values
-
+from sqlalchemy import func, select, text
+from sqlalchemy.exc import IntegrityError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -64,6 +62,7 @@ async def _make_registry(db_session) -> DatasetRegistry:
 
 async def _make_job(db_session, registry: DatasetRegistry) -> IngestionJob:
     from app.repositories.ingestion_job_repository import IngestionJobRepository
+
     repo = IngestionJobRepository(db_session)
     job = await repo.create(
         dataset_registry_id=registry.id,
@@ -190,7 +189,7 @@ def test_serialize_decimal_very_large():
     assert result["val"] == "123456789.123456789"
 
 
-def test_serialize_rejects_decimal_nan():
+def test_serialize_rejects_decimal_nan_object():
     """Direct Decimal NaN object is rejected by serialization."""
     with pytest.raises(RowValuesError, match="finite"):
         serialize_row_values({"val": Decimal("NaN")})
@@ -278,8 +277,7 @@ async def test_multiple_rows_for_one_job(db_session):
         await _insert_row(db_session, job, row_number=i, values={"idx": i})
 
     result = await db_session.execute(
-        select(func.count()).select_from(DatasetRow)
-        .where(DatasetRow.ingestion_job_id == job.id)
+        select(func.count()).select_from(DatasetRow).where(DatasetRow.ingestion_job_id == job.id)
     )
     assert result.scalar_one() == 5
 
@@ -329,8 +327,7 @@ async def test_cascade_delete_removes_rows(db_session):
     await db_session.flush()
 
     result = await db_session.execute(
-        select(func.count()).select_from(DatasetRow)
-        .where(DatasetRow.ingestion_job_id == job.id)
+        select(func.count()).select_from(DatasetRow).where(DatasetRow.ingestion_job_id == job.id)
     )
     assert result.scalar_one() == 0
 
@@ -442,8 +439,7 @@ async def test_cascade_delete_does_not_load_rows(db_session):
 
     # Rows must be gone (DB cascade handled it)
     result = await db_session.execute(
-        select(func.count()).select_from(DatasetRow)
-        .where(DatasetRow.ingestion_job_id == job.id)
+        select(func.count()).select_from(DatasetRow).where(DatasetRow.ingestion_job_id == job.id)
     )
     assert result.scalar_one() == 0
 

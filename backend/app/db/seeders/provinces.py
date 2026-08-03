@@ -3,12 +3,12 @@ Province seeder — idempotent.
 Inserts all 10 Zambian provinces. If a province code already exists,
 its name is updated to match the canonical value.
 """
+
 from dataclasses import dataclass
 
+from app.models.province import Province
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.province import Province
 
 
 @dataclass
@@ -42,9 +42,7 @@ async def seed_provinces(session: AsyncSession) -> dict[str, int]:
     updated = 0
 
     for record in ZAMBIA_PROVINCES:
-        result = await session.execute(
-            select(Province).where(Province.code == record.code)
-        )
+        result = await session.execute(select(Province).where(Province.code == record.code))
         existing = result.scalar_one_or_none()
 
         if existing is None:

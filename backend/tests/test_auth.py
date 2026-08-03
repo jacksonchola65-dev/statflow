@@ -16,18 +16,16 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt as _jwt
-import pytest
-
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import UserRole
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -10,8 +10,6 @@ import uuid
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.models.data_source import (
     FileFormat,
     ImportMethod,
@@ -19,7 +17,7 @@ from app.models.data_source import (
     SourceType,
     VerificationStatus,
 )
-
+from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
 # DataSource schemas

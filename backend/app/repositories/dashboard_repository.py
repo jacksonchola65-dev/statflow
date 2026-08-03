@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import uuid
 
+from app.models.dashboard import Dashboard
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from app.models.dashboard import Dashboard
 
 
 class DashboardRepository:

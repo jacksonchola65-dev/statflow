@@ -26,6 +26,7 @@ import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import (
@@ -39,13 +40,12 @@ from app.schemas.ingestion_mapping import (
 from app.services.mapping_execution_service import (
     InvalidMappingError,
     MappingExecutionService,
-    SUPPORTED_MAPPING_VERSION,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers — build minimal valid mappings
 # ---------------------------------------------------------------------------
+
 
 def _col(target: TargetField, source_column: str = "col") -> ColumnMapping:
     """Convenience: column-source mapping."""
@@ -69,17 +69,19 @@ def _fix(target: TargetField, fixed_value: str = "FIXED") -> ColumnMapping:
     )
 
 
-def _valid_config(*, version: int = 1, extra: list[ColumnMapping] | None = None) -> MappingConfiguration:
+def _valid_config(
+    *, version: int = 1, extra: list[ColumnMapping] | None = None
+) -> MappingConfiguration:
     """
     Build a fully valid MappingConfiguration covering all five required targets.
     Optionally append extra mappings (e.g. source_name).
     """
     base = [
-        _col(TargetField.PROVINCE_CODE,   "region"),
-        _fix(TargetField.INDICATOR_CODE,  "ECOM_REVENUE"),
-        _col(TargetField.VALUE,           "revenue"),
-        _col(TargetField.REFERENCE_YEAR,  "order_date"),
-        _fix(TargetField.DATASET_NAME,    "Ecommerce Sales"),
+        _col(TargetField.PROVINCE_CODE, "region"),
+        _fix(TargetField.INDICATOR_CODE, "ECOM_REVENUE"),
+        _col(TargetField.VALUE, "revenue"),
+        _col(TargetField.REFERENCE_YEAR, "order_date"),
+        _fix(TargetField.DATASET_NAME, "Ecommerce Sales"),
     ]
     if extra:
         base.extend(extra)
@@ -131,9 +133,9 @@ def test_missing_province_code_raises():
     """Omitting province_code → InvalidMappingError listing 'province_code'."""
     mappings = [
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     # Build directly — Pydantic's own validator would reject fewer than 5 items
     # via min_items, so we bypass with model_construct + manual override.
@@ -146,10 +148,10 @@ def test_missing_province_code_raises():
 
 def test_missing_indicator_code_raises():
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.PROVINCE_CODE, "region"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -159,10 +161,10 @@ def test_missing_indicator_code_raises():
 
 def test_missing_value_raises():
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "IND"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -172,10 +174,10 @@ def test_missing_value_raises():
 
 def test_missing_reference_year_raises():
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _col(TargetField.VALUE, "revenue"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -185,9 +187,9 @@ def test_missing_reference_year_raises():
 
 def test_missing_dataset_name_raises():
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
@@ -223,12 +225,12 @@ def test_source_name_present_is_valid():
 def test_duplicate_province_code_raises():
     """Two mappings for province_code → InvalidMappingError."""
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
-        _col(TargetField.PROVINCE_CODE,  "region2"),   # duplicate
+        _col(TargetField.PROVINCE_CODE, "region"),
+        _col(TargetField.PROVINCE_CODE, "region2"),  # duplicate
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -239,12 +241,12 @@ def test_duplicate_province_code_raises():
 def test_duplicate_value_raises():
     """Two mappings for value → InvalidMappingError."""
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
-        _col(TargetField.VALUE,          "amount"),    # duplicate
+        _col(TargetField.VALUE, "revenue"),
+        _col(TargetField.VALUE, "amount"),  # duplicate
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -273,7 +275,7 @@ def test_column_type_missing_source_column_raises():
     bad_mapping = ColumnMapping.model_construct(
         target_field=TargetField.PROVINCE_CODE,
         source_type=MappingSourceType.COLUMN,
-        source_column="",          # empty — invalid
+        source_column="",  # empty — invalid
         fixed_value=None,
         transformations=[],
         required=True,
@@ -281,9 +283,9 @@ def test_column_type_missing_source_column_raises():
     mappings = [
         bad_mapping,
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -300,16 +302,16 @@ def test_column_type_with_fixed_value_also_set_raises():
         target_field=TargetField.PROVINCE_CODE,
         source_type=MappingSourceType.COLUMN,
         source_column="region",
-        fixed_value="HARDCODED",   # both set — invalid
+        fixed_value="HARDCODED",  # both set — invalid
         transformations=[],
         required=True,
     )
     mappings = [
         bad_mapping,
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -337,16 +339,16 @@ def test_fixed_type_missing_fixed_value_raises():
         target_field=TargetField.INDICATOR_CODE,
         source_type=MappingSourceType.FIXED_VALUE,
         source_column=None,
-        fixed_value="",            # empty — invalid
+        fixed_value="",  # empty — invalid
         transformations=[],
         required=True,
     )
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         bad_mapping,
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -367,11 +369,11 @@ def test_fixed_type_with_source_column_also_set_raises():
         required=True,
     )
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         bad_mapping,
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -396,11 +398,11 @@ def test_valid_transformations_pass():
         ],
     )
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         mapping_with_transforms,
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "order_date"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration(mapping_version=1, mappings=mappings)
     result = _svc().validate_mapping(cfg)
@@ -417,11 +419,11 @@ def test_all_whitelisted_transformations_individually_pass():
             transformations=[TransformationRule(operation=op)],
         )
         mappings = [
-            _col(TargetField.PROVINCE_CODE,  "region"),
+            _col(TargetField.PROVINCE_CODE, "region"),
             _fix(TargetField.INDICATOR_CODE, "IND"),
             mapping,
             _col(TargetField.REFERENCE_YEAR, "year"),
-            _fix(TargetField.DATASET_NAME,   "DS"),
+            _fix(TargetField.DATASET_NAME, "DS"),
         ]
         cfg = MappingConfiguration(mapping_version=1, mappings=mappings)
         result = _svc().validate_mapping(cfg)
@@ -448,11 +450,11 @@ def test_programmatically_injected_invalid_operation_raises():
         required=True,
     )
     mappings = [
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "IND"),
         bad_mapping,
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     ]
     cfg = MappingConfiguration.model_construct(mapping_version=1, mappings=mappings)
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -479,9 +481,9 @@ def test_multiple_errors_collected():
     """
     mappings = [
         _col(TargetField.PROVINCE_CODE, "r1"),
-        _col(TargetField.PROVINCE_CODE, "r2"),   # duplicate
+        _col(TargetField.PROVINCE_CODE, "r2"),  # duplicate
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
         # dataset_name intentionally omitted
     ]

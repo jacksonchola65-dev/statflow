@@ -21,11 +21,9 @@ from __future__ import annotations
 
 import uuid
 
+from app.models.user import User, UserRole
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.user import User, UserRole
-
 
 # ---------------------------------------------------------------------------
 # Private helper
@@ -54,9 +52,7 @@ class UserRepository:
 
     async def get_by_id(self, user_id: uuid.UUID) -> User | None:
         """Return user by primary key, or None if not found."""
-        result = await self._session.execute(
-            select(User).where(User.id == user_id)
-        )
+        result = await self._session.execute(select(User).where(User.id == user_id))
         return result.scalar_one_or_none()
 
     async def get_by_email(self, email: str) -> User | None:
@@ -68,9 +64,7 @@ class UserRepository:
         always performed on the same canonical form.
         """
         result = await self._session.execute(
-            select(User).where(
-                func.lower(func.trim(User.email)) == _normalize_email(email)
-            )
+            select(User).where(func.lower(func.trim(User.email)) == _normalize_email(email))
         )
         return result.scalar_one_or_none()
 
@@ -84,10 +78,7 @@ class UserRepository:
             limit: Maximum number of rows to return. Defaults to 100.
         """
         result = await self._session.execute(
-            select(User)
-            .order_by(User.created_at.asc(), User.id.asc())
-            .offset(skip)
-            .limit(limit)
+            select(User).order_by(User.created_at.asc(), User.id.asc()).offset(skip).limit(limit)
         )
         return list(result.scalars().all())
 
@@ -99,7 +90,9 @@ class UserRepository:
         the repository only provides the number.
         """
         result = await self._session.execute(
-            select(func.count()).select_from(User).where(
+            select(func.count())
+            .select_from(User)
+            .where(
                 User.role == UserRole.ADMIN,
                 User.is_active.is_(True),
             )
@@ -117,8 +110,10 @@ class UserRepository:
         If exclude_user_id is provided, that user's row is ignored — useful
         when checking whether a new email is free during an update operation.
         """
-        stmt = select(func.count()).select_from(User).where(
-            func.lower(func.trim(User.email)) == _normalize_email(email)
+        stmt = (
+            select(func.count())
+            .select_from(User)
+            .where(func.lower(func.trim(User.email)) == _normalize_email(email))
         )
         if exclude_user_id is not None:
             stmt = stmt.where(User.id != exclude_user_id)

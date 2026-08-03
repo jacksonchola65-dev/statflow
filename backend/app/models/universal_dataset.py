@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Optional
 
+from app.db.base import Base
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -20,8 +21,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.user import User
@@ -45,7 +44,9 @@ class UniversalDataset(Base):
     name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     source_filename: Mapped[str] = mapped_column(String(500), nullable=False)
-    status: Mapped[str] = mapped_column(String(50), nullable=False, default="draft", server_default=text("'draft'"))
+    status: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="draft", server_default=text("'draft'")
+    )
     current_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("universal_dataset_versions.id", ondelete="SET NULL"),
@@ -64,7 +65,9 @@ class UniversalDataset(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    owner: Mapped["User"] = relationship("User", foreign_keys=[owner_id], back_populates="universal_datasets")
+    owner: Mapped["User"] = relationship(
+        "User", foreign_keys=[owner_id], back_populates="universal_datasets"
+    )
     versions: Mapped[list["UniversalDatasetVersion"]] = relationship(
         "UniversalDatasetVersion",
         back_populates="dataset",
@@ -89,7 +92,9 @@ class UniversalDatasetVersion(Base):
     __tablename__ = "universal_dataset_versions"
 
     __table_args__ = (
-        UniqueConstraint("dataset_id", "version_number", name="uq_universal_dataset_versions_dataset_version"),
+        UniqueConstraint(
+            "dataset_id", "version_number", name="uq_universal_dataset_versions_dataset_version"
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -105,10 +110,18 @@ class UniversalDatasetVersion(Base):
         index=True,
     )
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    row_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
-    column_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default=text("0"))
-    schema_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb"))
-    source_type: Mapped[str] = mapped_column(String(50), nullable=False, default="csv", server_default=text("'csv'"))
+    row_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    column_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default=text("0")
+    )
+    schema_json: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
+    source_type: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="csv", server_default=text("'csv'")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -144,7 +157,9 @@ class UniversalDatasetColumn(Base):
     __tablename__ = "universal_dataset_columns"
 
     __table_args__ = (
-        UniqueConstraint("dataset_version_id", "name", name="uq_universal_dataset_columns_version_name"),
+        UniqueConstraint(
+            "dataset_version_id", "name", name="uq_universal_dataset_columns_version_name"
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -164,10 +179,14 @@ class UniversalDatasetColumn(Base):
     inferred_type: Mapped[str] = mapped_column(String(50), nullable=False)
     semantic_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     ordinal_position: Mapped[int] = mapped_column(Integer, nullable=False)
-    nullable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default=text("false"))
+    nullable: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     metadata_json: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
 
-    dataset_version: Mapped["UniversalDatasetVersion"] = relationship("UniversalDatasetVersion", back_populates="columns")
+    dataset_version: Mapped["UniversalDatasetVersion"] = relationship(
+        "UniversalDatasetVersion", back_populates="columns"
+    )
 
     def __repr__(self) -> str:
         return f"<DatasetColumn id={self.id} name={self.name!r}>"
@@ -178,8 +197,14 @@ class UniversalDatasetRow(Base):
 
     __table_args__ = (
         CheckConstraint("row_number > 0", name="ck_universal_dataset_rows_row_number_positive"),
-        UniqueConstraint("dataset_version_id", "row_number", name="uq_universal_dataset_rows_version_row_number"),
-        Index("ix_universal_dataset_rows_dataset_version_id_row_number", "dataset_version_id", "row_number"),
+        UniqueConstraint(
+            "dataset_version_id", "row_number", name="uq_universal_dataset_rows_version_row_number"
+        ),
+        Index(
+            "ix_universal_dataset_rows_dataset_version_id_row_number",
+            "dataset_version_id",
+            "row_number",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -208,7 +233,14 @@ class UniversalDatasetRow(Base):
         back_populates="rows",
     )
 
-    def __init__(self, *, dataset_version_id: uuid.UUID, row_number: int, data_json: dict, row_hash: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        *,
+        dataset_version_id: uuid.UUID,
+        row_number: int,
+        data_json: dict,
+        row_hash: Optional[str] = None,
+    ) -> None:
         self.dataset_version_id = dataset_version_id
         self.row_number = row_number
         self.data_json = data_json
@@ -216,7 +248,9 @@ class UniversalDatasetRow(Base):
 
     @staticmethod
     def _build_row_hash(data_json: dict) -> str:
-        normalized = json.dumps(data_json, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        normalized = json.dumps(
+            data_json, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
     def __repr__(self) -> str:

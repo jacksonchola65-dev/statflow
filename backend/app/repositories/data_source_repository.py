@@ -14,10 +14,9 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+from app.models.data_source import DataSource
 from sqlalchemy import asc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.data_source import DataSource
 
 
 class DataSourceRepository:
@@ -29,16 +28,12 @@ class DataSourceRepository:
     # ------------------------------------------------------------------
 
     async def get_by_id(self, source_id: uuid.UUID) -> Optional[DataSource]:
-        result = await self._session.execute(
-            select(DataSource).where(DataSource.id == source_id)
-        )
+        result = await self._session.execute(select(DataSource).where(DataSource.id == source_id))
         return result.scalar_one_or_none()
 
     async def get_by_name(self, name: str) -> Optional[DataSource]:
         result = await self._session.execute(
-            select(DataSource).where(
-                func.lower(func.trim(DataSource.name)) == name.strip().lower()
-            )
+            select(DataSource).where(func.lower(func.trim(DataSource.name)) == name.strip().lower())
         )
         return result.scalar_one_or_none()
 
@@ -50,11 +45,11 @@ class DataSourceRepository:
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def name_exists(
-        self, name: str, exclude_id: Optional[uuid.UUID] = None
-    ) -> bool:
-        stmt = select(func.count()).select_from(DataSource).where(
-            func.lower(func.trim(DataSource.name)) == name.strip().lower()
+    async def name_exists(self, name: str, exclude_id: Optional[uuid.UUID] = None) -> bool:
+        stmt = (
+            select(func.count())
+            .select_from(DataSource)
+            .where(func.lower(func.trim(DataSource.name)) == name.strip().lower())
         )
         if exclude_id is not None:
             stmt = stmt.where(DataSource.id != exclude_id)
@@ -64,10 +59,11 @@ class DataSourceRepository:
     async def count_datasets(self, source_id: uuid.UUID) -> int:
         """Count how many DatasetRegistry rows point to this DataSource."""
         from app.models.data_source import DatasetRegistry
+
         result = await self._session.execute(
-            select(func.count()).select_from(DatasetRegistry).where(
-                DatasetRegistry.data_source_id == source_id
-            )
+            select(func.count())
+            .select_from(DatasetRegistry)
+            .where(DatasetRegistry.data_source_id == source_id)
         )
         return result.scalar_one()
 
@@ -81,9 +77,7 @@ class DataSourceRepository:
         await self._session.flush()
         return source
 
-    async def update(
-        self, source_id: uuid.UUID, **fields
-    ) -> Optional[DataSource]:
+    async def update(self, source_id: uuid.UUID, **fields) -> Optional[DataSource]:
         source = await self.get_by_id(source_id)
         if source is None:
             return None

@@ -14,10 +14,9 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+from app.models.data_source import DatasetRegistry, SourceType, VerificationStatus
 from sqlalchemy import asc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.data_source import DatasetRegistry, SourceType, VerificationStatus
 
 
 class DatasetRegistryRepository:
@@ -46,19 +45,18 @@ class DatasetRegistryRepository:
         if source_type is not None:
             stmt = stmt.where(DatasetRegistry.source_type == source_type)
         if verification_status is not None:
-            stmt = stmt.where(
-                DatasetRegistry.verification_status == verification_status
-            )
+            stmt = stmt.where(DatasetRegistry.verification_status == verification_status)
         stmt = stmt.order_by(asc(DatasetRegistry.dataset_name))
         result = await self._session.execute(stmt)
         return list(result.scalars().all())
 
-    async def name_exists(
-        self, dataset_name: str, exclude_id: Optional[uuid.UUID] = None
-    ) -> bool:
-        stmt = select(func.count()).select_from(DatasetRegistry).where(
-            func.lower(func.trim(DatasetRegistry.dataset_name))
-            == dataset_name.strip().lower()
+    async def name_exists(self, dataset_name: str, exclude_id: Optional[uuid.UUID] = None) -> bool:
+        stmt = (
+            select(func.count())
+            .select_from(DatasetRegistry)
+            .where(
+                func.lower(func.trim(DatasetRegistry.dataset_name)) == dataset_name.strip().lower()
+            )
         )
         if exclude_id is not None:
             stmt = stmt.where(DatasetRegistry.id != exclude_id)
@@ -75,9 +73,7 @@ class DatasetRegistryRepository:
         await self._session.flush()
         return entry
 
-    async def update(
-        self, entry_id: uuid.UUID, **fields
-    ) -> Optional[DatasetRegistry]:
+    async def update(self, entry_id: uuid.UUID, **fields) -> Optional[DatasetRegistry]:
         entry = await self.get_by_id(entry_id)
         if entry is None:
             return None

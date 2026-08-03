@@ -5,10 +5,10 @@ import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, ClassVar, Literal, TypeAlias
+from typing import Any, ClassVar, TypeAlias
 
 from app.models.ingestion import IngestionStatus
-from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class AnalyticsQueryError(Exception):
@@ -91,7 +91,9 @@ class Dimension(BaseModel):
         if not value or not value.strip():
             raise InvalidAnalyticsIdentifierError("column_name must not be empty")
         if value.strip() != value:
-            raise InvalidAnalyticsIdentifierError("column_name must not have surrounding whitespace")
+            raise InvalidAnalyticsIdentifierError(
+                "column_name must not have surrounding whitespace"
+            )
         if re.search(r"[\s;\-\n\r\t]|/\*|\*/|--|['\"`]|[<>]", value):
             raise InvalidAnalyticsIdentifierError("column_name contains unsupported characters")
         if value in {"*", "?"}:

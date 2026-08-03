@@ -18,18 +18,15 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.security import hash_password
 from app.models.user import User, UserRole
 from app.repositories.user_repository import UserRepository
 from app.services.auth_service import (
     EmailAlreadyExistsError,
-    PasswordPolicyError,
     UserNotFoundError,
     _validate_password_policy,
 )
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Domain exceptions
@@ -154,9 +151,7 @@ class UserService:
         # Email uniqueness check (exclude current user's own email).
         if email is not None:
             if await self._repo.email_exists(email, exclude_user_id=user_id):
-                raise EmailAlreadyExistsError(
-                    "A user with that email already exists."
-                )
+                raise EmailAlreadyExistsError("A user with that email already exists.")
 
         # Last-admin check: only relevant when the target is currently ADMIN+active.
         if user.role == UserRole.ADMIN and user.is_active:
@@ -165,9 +160,7 @@ class UserService:
             if demoting or deactivating:
                 count = await self._repo.count_active_admins()
                 if count <= 1:
-                    raise LastActiveAdminError(
-                        "At least one active administrator must remain."
-                    )
+                    raise LastActiveAdminError("At least one active administrator must remain.")
 
         # Password: validate policy and hash if provided.
         hashed: str | None = None
@@ -216,8 +209,6 @@ class UserService:
         if user.role == UserRole.ADMIN and user.is_active:
             count = await self._repo.count_active_admins()
             if count <= 1:
-                raise LastActiveAdminError(
-                    "At least one active administrator must remain."
-                )
+                raise LastActiveAdminError("At least one active administrator must remain.")
 
         await self._repo.update_user(user_id, is_active=False)

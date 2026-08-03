@@ -1,12 +1,10 @@
-import math
 import pytest
-
 from app.semantic.analytics_role_models import (
-    MeasureCandidate,
-    DimensionCandidate,
-    AnalyticsRoleProfile,
     Aggregation,
+    AnalyticsRoleProfile,
+    DimensionCandidate,
     DimensionType,
+    MeasureCandidate,
 )
 from app.semantic.semantic_models import SemanticEvidence
 from app.semantic.semantic_types import SemanticType

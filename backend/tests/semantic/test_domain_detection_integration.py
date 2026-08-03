@@ -1,16 +1,21 @@
 import copy
 import time
-import pytest
 
-from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
-from app.semantic.semantic_types import SemanticType, DatasetDomain
-from app.semantic.domain_scoring_engine import DomainScoringEngine
+import pytest
 from app.semantic.dataset_domain_detector import DatasetDomainDetector
+from app.semantic.domain_scoring_engine import DomainScoringEngine
 from app.semantic.domain_signatures import DOMAIN_SIGNATURES
+from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
+from app.semantic.semantic_types import DatasetDomain, SemanticType
 
 
 def sc(t: SemanticType, c: float = 0.9):
-    return SemanticClassification(semantic_type=t, confidence=c, evidence=(SemanticEvidence(source="t", score=float(c), description="e"),), detector="d")
+    return SemanticClassification(
+        semantic_type=t,
+        confidence=c,
+        evidence=(SemanticEvidence(source="t", score=float(c), description="e"),),
+        detector="d",
+    )
 
 
 def all_domains():
@@ -32,11 +37,14 @@ def test_healthcare_dataset():
         [sc(SemanticType.AGE, 0.99)],
         [sc(SemanticType.IDENTIFIER, 0.97)],
         [sc(SemanticType.DATE, 0.96)],
-           [sc(SemanticType.CATEGORY, 0.95)],
-           [sc(SemanticType.CATEGORY, 0.99)],
+        [sc(SemanticType.CATEGORY, 0.95)],
+        [sc(SemanticType.CATEGORY, 0.99)],
     ]
     scores, pred = run_flow(cols)
-    assert pred.primary_domain == DatasetDomain.HEALTHCARE or pred.primary_domain == DatasetDomain.CUSTOM
+    assert (
+        pred.primary_domain == DatasetDomain.HEALTHCARE
+        or pred.primary_domain == DatasetDomain.CUSTOM
+    )
     assert pred.confidence >= 0.25
     # evidence from at least 2 semantic types and 2 columns
     hc_score = [s for s in scores if s.domain == DatasetDomain.HEALTHCARE][0]
@@ -63,11 +71,14 @@ def test_clear_education_and_ambiguous_case():
         [sc(SemanticType.AGE, 0.6)],
         [sc(SemanticType.IDENTIFIER, 0.95)],
         [sc(SemanticType.DATE, 0.9)],
-            [sc(SemanticType.CATEGORY, 1.0)],
-            [sc(SemanticType.CATEGORY, 1.0)],
+        [sc(SemanticType.CATEGORY, 1.0)],
+        [sc(SemanticType.CATEGORY, 1.0)],
     ]
     scores, pred = run_flow(cols_clear)
-    assert pred.primary_domain == DatasetDomain.EDUCATION or pred.primary_domain == DatasetDomain.CUSTOM
+    assert (
+        pred.primary_domain == DatasetDomain.EDUCATION
+        or pred.primary_domain == DatasetDomain.CUSTOM
+    )
 
     # ambiguous healthcare/education: make their scores within 0.09
     cols_amb = [
@@ -129,7 +140,9 @@ def test_weak_evidence_dataset():
 
 def test_single_column_protection():
     # multiple classifications but single column
-    cols = [[sc(SemanticType.PERSON, 0.9), sc(SemanticType.AGE, 0.85), sc(SemanticType.IDENTIFIER, 0.8)]]
+    cols = [
+        [sc(SemanticType.PERSON, 0.9), sc(SemanticType.AGE, 0.85), sc(SemanticType.IDENTIFIER, 0.8)]
+    ]
     scores, pred = run_flow(cols)
     # all domain scores must be zero
     assert all(s.score == 0.0 for s in scores)
@@ -163,7 +176,12 @@ def test_ambiguous_multi_domain_dataset():
 def test_empty_dataset():
     scores, pred = run_flow([])
     assert all(s.score == 0.0 for s in scores)
-    assert pred.primary_domain == DatasetDomain.CUSTOM and pred.confidence == 0.0 and pred.alternatives == () and pred.evidence == ()
+    assert (
+        pred.primary_domain == DatasetDomain.CUSTOM
+        and pred.confidence == 0.0
+        and pred.alternatives == ()
+        and pred.evidence == ()
+    )
 
 
 def test_determinism_and_input_immutability():

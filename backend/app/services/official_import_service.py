@@ -7,18 +7,15 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.data_source import DatasetRegistry
 from app.models.ingestion import IngestionStatus
 from app.services.ingestion_persistence_service import (
-    IngestionPersistenceResult,
     IngestionPersistenceService,
 )
 from app.services.ingestion_profiling_service import (
-    IngestionProfileResult,
     IngestionProfilingService,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ImportSource(str, Enum):
@@ -78,9 +75,7 @@ class OfficialImportService:
     ) -> None:
         self._session = session
         self._profiling_service = profiling_service or IngestionProfilingService()
-        self._persistence_service = persistence_service or IngestionPersistenceService(
-            session
-        )
+        self._persistence_service = persistence_service or IngestionPersistenceService(session)
 
     async def import_data(
         self,
@@ -96,9 +91,7 @@ class OfficialImportService:
             # Always allow cancellation to propagate.
             raise
         except Exception as exc:
-            raise OfficialImportError(
-                "Official importer failed to retrieve dataset."
-            ) from exc
+            raise OfficialImportError("Official importer failed to retrieve dataset.") from exc
 
         profile = self._profiling_service.profile_dataset(
             filename=import_data.original_filename,

@@ -1,9 +1,9 @@
-from app.semantic.v2.native_detection_pipeline import NativeDetectionPipeline
-from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
 from app.semantic.detectors.base import DetectorInput
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
+from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
+from app.semantic.v2.native_detection_pipeline import NativeDetectionPipeline
 
 
 def test_pipeline_parity_multi_column():
@@ -13,6 +13,7 @@ def test_pipeline_parity_multi_column():
     c1 = FeatureExtractionPipeline.extract("c1", col1_vals)
     c2 = FeatureExtractionPipeline.extract("c2", col2_vals)
     from app.semantic.v2.semantic_context import SemanticContext
+
     ctx = SemanticContext(columns=(c1, c2))
 
     # v1 detectors per column
@@ -36,6 +37,7 @@ def test_pipeline_parity_fused():
     c1 = FeatureExtractionPipeline.extract("c1", col1_vals)
     c2 = FeatureExtractionPipeline.extract("c2", col2_vals)
     from app.semantic.v2.semantic_context import SemanticContext
+
     ctx = SemanticContext(columns=(c1, c2))
 
     v1_results = []

@@ -10,28 +10,9 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 from unittest.mock import MagicMock
 
 import pytest
-
-from app.services.mapped_preview_service import (
-    _MAPPED_PREVIEW_STORE,
-    _retrieve_mapped_preview_token,
-    _MappedPreviewEntry,
-    MappedPreviewTokenNotFoundError,
-    MappedPreviewTokenExpiredError,
-    MappedPreviewTokenForbiddenError,
-)
-from app.services.file_inspection_service import (
-    CachedInspection,
-    _INSPECTION_STORE,
-    _InspectionTokenEntry,
-    TOKEN_TTL,
-)
-from app.services.mapping_execution_service import (
-    MappingExecutionService,
-)
 from app.schemas.ingestion_mapping import (
     ColumnMapping,
     MappingConfiguration,
@@ -41,6 +22,23 @@ from app.schemas.ingestion_mapping import (
     TargetField,
     TransformationOperation,
     TransformationRule,
+)
+from app.services.file_inspection_service import (
+    _INSPECTION_STORE,
+    TOKEN_TTL,
+    CachedInspection,
+    _InspectionTokenEntry,
+)
+from app.services.mapped_preview_service import (
+    _MAPPED_PREVIEW_STORE,
+    MappedPreviewTokenExpiredError,
+    MappedPreviewTokenForbiddenError,
+    MappedPreviewTokenNotFoundError,
+    _MappedPreviewEntry,
+    _retrieve_mapped_preview_token,
+)
+from app.services.mapping_execution_service import (
+    MappingExecutionService,
 )
 
 
@@ -54,7 +52,9 @@ def _make_col(name: str, samples: list[str]) -> SourceColumn:
     )
 
 
-def _store_inspection(owner_id: uuid.UUID, headers: list[str], columns: list[SourceColumn], age_minutes: float = 0) -> str:
+def _store_inspection(
+    owner_id: uuid.UUID, headers: list[str], columns: list[SourceColumn], age_minutes: float = 0
+) -> str:
     token = str(uuid.uuid4())
     payload = CachedInspection(
         inspection_token=token,
@@ -72,7 +72,9 @@ def _store_inspection(owner_id: uuid.UUID, headers: list[str], columns: list[Sou
     return token
 
 
-def _col_mapping(target: TargetField, col: str, ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+def _col_mapping(
+    target: TargetField, col: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.COLUMN,
@@ -82,7 +84,9 @@ def _col_mapping(target: TargetField, col: str, ops: list[TransformationOperatio
     )
 
 
-def _fix_mapping(target: TargetField, value: str, ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+def _fix_mapping(
+    target: TargetField, value: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.FIXED_VALUE,

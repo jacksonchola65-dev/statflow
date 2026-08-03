@@ -1,11 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Sequence, Tuple, Iterable, List
 import math
+from dataclasses import dataclass, field
+from typing import Iterable, List, Tuple
 
-from .semantic_models import SemanticClassification, SemanticEvidence
-from .semantic_types import SemanticType
 from .entity_models import EntityCandidate, EntityKeyCandidate
-
+from .semantic_models import SemanticClassification
+from .semantic_types import SemanticType
 
 KEY_TYPES = {SemanticType.IDENTIFIER, SemanticType.INTEGER, SemanticType.TEXT}
 
@@ -126,7 +125,9 @@ class EntityKeyDetector:
             if not eligible:
                 continue
             # sort by confidence desc, then semantic_type.value for tie-break
-            eligible_sorted = sorted(eligible, key=lambda c: (-float(c.confidence), c.semantic_type.value))
+            eligible_sorted = sorted(
+                eligible, key=lambda c: (-float(c.confidence), c.semantic_type.value)
+            )
             top = eligible_sorted[0]
             if float(top.confidence) < 0.60:
                 continue
@@ -167,6 +168,13 @@ class EntityKeyDetector:
             candidates.append(ek)
 
         # sort by descending confidence, entity_name CI, column_name CI, semantic_type.value
-        candidates.sort(key=lambda k: (-float(k.confidence), k.entity_name.lower(), k.column_name.lower(), k.semantic_type.value))
+        candidates.sort(
+            key=lambda k: (
+                -float(k.confidence),
+                k.entity_name.lower(),
+                k.column_name.lower(),
+                k.semantic_type.value,
+            )
+        )
 
         return tuple(candidates)

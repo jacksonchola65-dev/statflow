@@ -15,30 +15,23 @@ from __future__ import annotations
 import sys
 import uuid
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 
 import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import (
-    ColumnMapping,
-    MappingConfiguration,
-    MappingSourceType,
     SourceColumn,
     SourceColumnType,
-    TargetField,
-    TransformationOperation,
-    TransformationRule,
 )
 from app.services.file_inspection_service import (
-    CachedInspection,
     _INSPECTION_STORE,
+    CachedInspection,
     _InspectionTokenEntry,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -112,14 +105,15 @@ def _fix_m(target: str, value: str, ops: list[str] | None = None) -> dict:
     }
 
 
-def _five_mappings(region_col: str = "region", revenue_col: str = "revenue",
-                   date_col: str = "order_date") -> list[dict]:
+def _five_mappings(
+    region_col: str = "region", revenue_col: str = "revenue", date_col: str = "order_date"
+) -> list[dict]:
     return [
-        _col_m("province_code",  region_col),
+        _col_m("province_code", region_col),
         _fix_m("indicator_code", "ECOM_REVENUE"),
-        _col_m("value",          revenue_col),
+        _col_m("value", revenue_col),
         _col_m("reference_year", date_col),
-        _fix_m("dataset_name",   "Ecommerce Sales"),
+        _fix_m("dataset_name", "Ecommerce Sales"),
     ]
 
 
@@ -138,6 +132,7 @@ def cleanup_tokens():
 
 async def test_successful_map_preview(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     # Get the owner_id of the authed user by introspecting the override
     # (authed_client fixture creates a real user)
     app_overrides = authed_client._transport.app.dependency_overrides
@@ -146,9 +141,9 @@ async def test_successful_map_preview(authed_client, cleanup_tokens):
 
     headers = ["region", "revenue", "order_date"]
     columns = [
-        _col("region",     ["Lusaka",      "Central"]),
-        _col("revenue",    ["2500",        "1800"]),
-        _col("order_date", ["2024-01-15",  "2023-06-30"]),
+        _col("region", ["Lusaka", "Central"]),
+        _col("revenue", ["2500", "1800"]),
+        _col("order_date", ["2024-01-15", "2023-06-30"]),
     ]
     token = _store_token(owner_id, headers, columns)
     cleanup_tokens.append(token)
@@ -161,7 +156,11 @@ async def test_successful_map_preview(authed_client, cleanup_tokens):
     assert data["mapped_column_count"] == 5
     assert data["original_headers"] == headers
     assert set(data["target_fields"]) == {
-        "province_code", "indicator_code", "value", "reference_year", "dataset_name"
+        "province_code",
+        "indicator_code",
+        "value",
+        "reference_year",
+        "dataset_name",
     }
     assert len(data["transformed_rows"]) == 2
     assert data["transformed_rows"][0]["indicator_code"] == "ECOM_REVENUE"
@@ -176,11 +175,13 @@ async def test_missing_inspection_token_returns_422(authed_client):
     body = {
         "mapping_config": {
             "mapping_version": 1,
-            "mappings": [_fix_m("province_code", "LK"),
-                         _fix_m("indicator_code", "IND"),
-                         _fix_m("value", "100"),
-                         _fix_m("reference_year", "2024"),
-                         _fix_m("dataset_name", "DS")],
+            "mappings": [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _fix_m("value", "100"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         }
     }
     resp = await authed_client.post(URL, json=body)
@@ -194,6 +195,7 @@ async def test_missing_inspection_token_returns_422(authed_client):
 
 async def test_invalid_mapping_config_missing_required_fields(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
@@ -217,6 +219,7 @@ async def test_invalid_mapping_config_missing_required_fields(authed_client, cle
 
 async def test_invalid_mapping_version_returns_400(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
@@ -228,11 +231,13 @@ async def test_invalid_mapping_version_returns_400(authed_client, cleanup_tokens
         "inspection_token": token,
         "mapping_config": {
             "mapping_version": 2,
-            "mappings": [_fix_m("province_code", "LK"),
-                         _fix_m("indicator_code", "IND"),
-                         _fix_m("value", "100"),
-                         _fix_m("reference_year", "2024"),
-                         _fix_m("dataset_name", "DS")],
+            "mappings": [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _fix_m("value", "100"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         },
     }
     resp = await authed_client.post(URL, json=body)
@@ -251,11 +256,13 @@ async def test_nonexistent_token_returns_404(authed_client):
         URL,
         json=_mapping_body(
             str(uuid.uuid4()),
-            [_fix_m("province_code", "LK"),
-             _fix_m("indicator_code", "IND"),
-             _fix_m("value", "100"),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name", "DS")],
+            [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _fix_m("value", "100"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
     assert resp.status_code == 404
@@ -264,6 +271,7 @@ async def test_nonexistent_token_returns_404(authed_client):
 
 async def test_expired_token_returns_404(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
@@ -275,11 +283,13 @@ async def test_expired_token_returns_404(authed_client, cleanup_tokens):
         URL,
         json=_mapping_body(
             token,
-            [_fix_m("province_code", "LK"),
-             _fix_m("indicator_code", "IND"),
-             _fix_m("value", "100"),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name", "DS")],
+            [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _fix_m("value", "100"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
     assert resp.status_code == 404
@@ -291,7 +301,7 @@ async def test_expired_token_returns_404(authed_client, cleanup_tokens):
 
 
 async def test_wrong_owner_returns_403(authed_client, cleanup_tokens):
-    other_owner = uuid.uuid4()   # different from the authed user
+    other_owner = uuid.uuid4()  # different from the authed user
     token = _store_token(other_owner, ["x"], [_col("x", ["a"])])
     cleanup_tokens.append(token)
 
@@ -299,11 +309,13 @@ async def test_wrong_owner_returns_403(authed_client, cleanup_tokens):
         URL,
         json=_mapping_body(
             token,
-            [_fix_m("province_code", "LK"),
-             _fix_m("indicator_code", "IND"),
-             _fix_m("value", "100"),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name", "DS")],
+            [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _fix_m("value", "100"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
     assert resp.status_code == 403
@@ -317,6 +329,7 @@ async def test_wrong_owner_returns_403(authed_client, cleanup_tokens):
 
 async def test_missing_source_column_returns_422(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
@@ -329,11 +342,13 @@ async def test_missing_source_column_returns_422(authed_client, cleanup_tokens):
         URL,
         json=_mapping_body(
             token,
-            [_col_m("province_code",  "nonexistent"),
-             _fix_m("indicator_code", "IND"),
-             _col_m("value",          "revenue"),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name",   "DS")],
+            [
+                _col_m("province_code", "nonexistent"),
+                _fix_m("indicator_code", "IND"),
+                _col_m("value", "revenue"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
     assert resp.status_code == 422
@@ -349,6 +364,7 @@ async def test_missing_source_column_returns_422(authed_client, cleanup_tokens):
 
 async def test_transformation_failure_returns_422(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
@@ -361,11 +377,13 @@ async def test_transformation_failure_returns_422(authed_client, cleanup_tokens)
         URL,
         json=_mapping_body(
             token,
-            [_fix_m("province_code",  "LK"),
-             _fix_m("indicator_code", "IND"),
-             _col_m("value", "revenue", ops=["parse_number"]),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name",   "DS")],
+            [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _col_m("value", "revenue", ops=["parse_number"]),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
     assert resp.status_code == 422
@@ -381,6 +399,7 @@ async def test_transformation_failure_returns_422(authed_client, cleanup_tokens)
 
 async def test_response_contract_shape(authed_client, cleanup_tokens):
     from app.core.dependencies import get_current_user as _gcu
+
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
@@ -392,18 +411,26 @@ async def test_response_contract_shape(authed_client, cleanup_tokens):
         URL,
         json=_mapping_body(
             token,
-            [_col_m("province_code",  "col"),
-             _fix_m("indicator_code", "IND"),
-             _col_m("value",          "col"),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name",   "DS")],
+            [
+                _col_m("province_code", "col"),
+                _fix_m("indicator_code", "IND"),
+                _col_m("value", "col"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
     assert resp.status_code == 200
     data = resp.json()
     # All five required response keys must be present
-    for key in ("transformed_rows", "total_preview_rows", "mapped_column_count",
-                "original_headers", "target_fields", "mapped_preview_token"):
+    for key in (
+        "transformed_rows",
+        "total_preview_rows",
+        "mapped_column_count",
+        "original_headers",
+        "target_fields",
+        "mapped_preview_token",
+    ):
         assert key in data, f"Missing key '{key}' in response"
     assert isinstance(data["transformed_rows"], list)
     assert isinstance(data["total_preview_rows"], int)
@@ -419,21 +446,17 @@ async def test_response_contract_shape(authed_client, cleanup_tokens):
 
 async def test_no_database_insertion(authed_client, db_session, cleanup_tokens):
     """map-preview must never insert DataPoints or Datasets."""
-    from sqlalchemy import select, func
+    from app.core.dependencies import get_current_user as _gcu
     from app.models.data_point import DataPoint
     from app.models.dataset import Dataset
+    from sqlalchemy import func, select
 
-    from app.core.dependencies import get_current_user as _gcu
     app_overrides = authed_client._transport.app.dependency_overrides
     user = await app_overrides[_gcu]()
     owner_id = user.id
 
-    before_dp = (await db_session.execute(
-        select(func.count()).select_from(DataPoint)
-    )).scalar()
-    before_ds = (await db_session.execute(
-        select(func.count()).select_from(Dataset)
-    )).scalar()
+    before_dp = (await db_session.execute(select(func.count()).select_from(DataPoint))).scalar()
+    before_ds = (await db_session.execute(select(func.count()).select_from(Dataset))).scalar()
 
     token = _store_token(owner_id, ["rev"], [_col("rev", ["100", "200"])])
     cleanup_tokens.append(token)
@@ -442,20 +465,18 @@ async def test_no_database_insertion(authed_client, db_session, cleanup_tokens):
         URL,
         json=_mapping_body(
             token,
-            [_fix_m("province_code",  "LK"),
-             _fix_m("indicator_code", "IND"),
-             _col_m("value",          "rev"),
-             _fix_m("reference_year", "2024"),
-             _fix_m("dataset_name",   "DS")],
+            [
+                _fix_m("province_code", "LK"),
+                _fix_m("indicator_code", "IND"),
+                _col_m("value", "rev"),
+                _fix_m("reference_year", "2024"),
+                _fix_m("dataset_name", "DS"),
+            ],
         ),
     )
 
-    after_dp = (await db_session.execute(
-        select(func.count()).select_from(DataPoint)
-    )).scalar()
-    after_ds = (await db_session.execute(
-        select(func.count()).select_from(Dataset)
-    )).scalar()
+    after_dp = (await db_session.execute(select(func.count()).select_from(DataPoint))).scalar()
+    after_ds = (await db_session.execute(select(func.count()).select_from(Dataset))).scalar()
 
     assert after_dp == before_dp, "DataPoints were inserted — they should not be"
     assert after_ds == before_ds, "Datasets were inserted — they should not be"

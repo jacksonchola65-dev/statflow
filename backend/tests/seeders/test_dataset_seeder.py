@@ -5,33 +5,30 @@ Tests for:
 
 Each test manages its own cleanup to keep tests independent.
 """
+
 from decimal import Decimal
 
 import pytest
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.db.seeders.categories import seed_categories
 from app.db.seeders.data_points import (
-    DEMO_DATA,
     DEMO_DATASET_NAME,
     DEMO_REFERENCE_YEAR,
-    EXPECTED_TOTAL,
     DataPointSeedError,
     seed_demo_data_points,
 )
 from app.db.seeders.datasets import DEMO_DATASET, seed_datasets
 from app.db.seeders.indicators import seed_indicators
-from app.db.seeders.provinces import seed_provinces
 from app.models.data_point import DataPoint
 from app.models.dataset import Dataset
 from app.models.indicator import Indicator
 from app.models.province import Province
-
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 async def _delete_demo_dataset(session: AsyncSession) -> None:
     """Delete the demo dataset (cascades to data_points via ON DELETE CASCADE)."""
@@ -64,15 +61,14 @@ async def _get_demo_data_points(session: AsyncSession) -> list[DataPoint]:
     ds = await _get_demo_dataset(session)
     if ds is None:
         return []
-    result = await session.execute(
-        select(DataPoint).where(DataPoint.dataset_id == ds.id)
-    )
+    result = await session.execute(select(DataPoint).where(DataPoint.dataset_id == ds.id))
     return list(result.scalars().all())
 
 
 # ---------------------------------------------------------------------------
 # Dataset seeder tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_dataset_first_run_creates_record(db_session: AsyncSession) -> None:
@@ -138,6 +134,7 @@ async def test_dataset_metadata_update(db_session: AsyncSession) -> None:
 # ---------------------------------------------------------------------------
 # Data-point seeder tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_data_points_first_run_creates_60(db_session: AsyncSession) -> None:
@@ -208,9 +205,7 @@ async def test_data_point_value_update(db_session: AsyncSession) -> None:
 
     # Corrupt one value — Lusaka (LK) LITERACY_RATE
     ds = await _get_demo_dataset(db_session)
-    prov_result = await db_session.execute(
-        select(Province).where(Province.code == "LK")
-    )
+    prov_result = await db_session.execute(select(Province).where(Province.code == "LK"))
     lusaka = prov_result.scalar_one()
     ind_result = await db_session.execute(
         select(Indicator).where(Indicator.code == "LITERACY_RATE")
@@ -264,19 +259,13 @@ async def test_missing_indicator_raises_clear_error(db_session: AsyncSession) ->
     await seed_datasets(db_session)
 
     # Delete POVERTY_RATE indicator — first delete any data_points referencing it
-    ind_result = await db_session.execute(
-        select(Indicator).where(Indicator.code == "POVERTY_RATE")
-    )
+    ind_result = await db_session.execute(select(Indicator).where(Indicator.code == "POVERTY_RATE"))
     poverty_rate = ind_result.scalar_one_or_none()
     if poverty_rate is None:
         pytest.skip("POVERTY_RATE not present")
 
-    await db_session.execute(
-        delete(DataPoint).where(DataPoint.indicator_id == poverty_rate.id)
-    )
-    await db_session.execute(
-        delete(Indicator).where(Indicator.code == "POVERTY_RATE")
-    )
+    await db_session.execute(delete(DataPoint).where(DataPoint.indicator_id == poverty_rate.id))
+    await db_session.execute(delete(Indicator).where(Indicator.code == "POVERTY_RATE"))
     await db_session.commit()
 
     with pytest.raises(DataPointSeedError) as exc_info:

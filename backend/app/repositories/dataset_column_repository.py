@@ -16,10 +16,9 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+from app.models.ingestion import DatasetColumn
 from sqlalchemy import asc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.ingestion import DatasetColumn, InferredColumnType
 
 
 class DatasetColumnRepository:
@@ -32,9 +31,7 @@ class DatasetColumnRepository:
     # Read
     # ------------------------------------------------------------------
 
-    async def list_by_ingestion_job(
-        self, ingestion_job_id: uuid.UUID
-    ) -> list[DatasetColumn]:
+    async def list_by_ingestion_job(self, ingestion_job_id: uuid.UUID) -> list[DatasetColumn]:
         """Return all columns for an ingestion job, ordered by ordinal_position ASC.
 
         ordinal_position is a zero-based integer assigned at creation time that
@@ -92,9 +89,7 @@ class DatasetColumnRepository:
     # Write
     # ------------------------------------------------------------------
 
-    async def create_many(
-        self, columns: list[dict]
-    ) -> list[DatasetColumn]:
+    async def create_many(self, columns: list[dict]) -> list[DatasetColumn]:
         """Bulk-insert DatasetColumn records in a single add_all + flush call.
 
         Each dict in *columns* must contain:
@@ -126,9 +121,7 @@ class DatasetColumnRepository:
         # For bulk volumes use session.execute(delete(...)) instead — but for
         # this MVP the column count per job is bounded (max 500 by config).
         result = await self._session.execute(
-            select(DatasetColumn).where(
-                DatasetColumn.ingestion_job_id == ingestion_job_id
-            )
+            select(DatasetColumn).where(DatasetColumn.ingestion_job_id == ingestion_job_id)
         )
         rows = list(result.scalars().all())
         for row in rows:

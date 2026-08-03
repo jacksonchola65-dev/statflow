@@ -14,14 +14,13 @@ Follows the StatFlow repository pattern:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
-
-from sqlalchemy import desc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_source import FileFormat
 from app.models.ingestion import IngestionJob, IngestionStatus
+from sqlalchemy import desc, func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class IngestionJobRepository:
@@ -36,17 +35,13 @@ class IngestionJobRepository:
 
     async def get_by_id(self, job_id: uuid.UUID) -> Optional[IngestionJob]:
         """Return an IngestionJob by primary key, or None if not found."""
-        result = await self._session.execute(
-            select(IngestionJob).where(IngestionJob.id == job_id)
-        )
+        result = await self._session.execute(select(IngestionJob).where(IngestionJob.id == job_id))
         return result.scalar_one_or_none()
 
     async def exists(self, job_id: uuid.UUID) -> bool:
         """Return True if a job with the given ID exists."""
         result = await self._session.execute(
-            select(func.count())
-            .select_from(IngestionJob)
-            .where(IngestionJob.id == job_id)
+            select(func.count()).select_from(IngestionJob).where(IngestionJob.id == job_id)
         )
         return result.scalar_one() > 0
 
@@ -109,11 +104,7 @@ class IngestionJobRepository:
         """
         result = await self._session.execute(
             select(IngestionJob)
-            .where(
-                IngestionJob.status.in_(
-                    [IngestionStatus.PENDING, IngestionStatus.PROCESSING]
-                )
-            )
+            .where(IngestionJob.status.in_([IngestionStatus.PENDING, IngestionStatus.PROCESSING]))
             .order_by(IngestionJob.started_at.asc().nulls_last(), IngestionJob.id.asc())
         )
         return list(result.scalars().all())

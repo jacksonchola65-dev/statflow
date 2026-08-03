@@ -3,7 +3,7 @@
 This package is intentionally lightweight and contains only immutable feature dataclasses.
 """
 
-from .feature_models import LightValueFeatures, ExtendedValueFeatures, ColumnFeatureContext
+from .feature_models import ColumnFeatureContext, ExtendedValueFeatures, LightValueFeatures
 
 # Backwards-compatibility alias
 ValueFeatureSet = LightValueFeatures

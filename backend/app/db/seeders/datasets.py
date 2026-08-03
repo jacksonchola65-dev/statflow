@@ -4,13 +4,13 @@ Dataset seeder — idempotent.
 Seeds the StatFlow demonstration dataset.
 Located by name + reference_year; created if missing, updated if metadata changed.
 """
+
 from dataclasses import dataclass
 from typing import Optional
 
+from app.models.dataset import Dataset
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.dataset import Dataset
 
 
 @dataclass

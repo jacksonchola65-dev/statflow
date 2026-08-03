@@ -1,9 +1,9 @@
-from dataclasses import dataclass, field
-from typing import Tuple, Optional, Dict
-from uuid import UUID, uuid4
-
-from .semantic_types import DatasetDomain, SemanticType, ColumnRole
 import math
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Tuple
+from uuid import UUID
+
+from .semantic_types import ColumnRole, DatasetDomain, SemanticType
 
 
 @dataclass(frozen=True)

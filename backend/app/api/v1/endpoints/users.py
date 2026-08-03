@@ -18,9 +18,6 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import require_admin, validate_csrf
 from app.db.session import get_db
 from app.models.user import User
@@ -32,6 +29,8 @@ from app.services.auth_service import (
     UserNotFoundError,
 )
 from app.services.user_service import LastActiveAdminError, SelfDeletionError, UserService
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/users", tags=["users"])
 

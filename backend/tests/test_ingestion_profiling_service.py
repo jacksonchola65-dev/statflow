@@ -16,24 +16,18 @@ from __future__ import annotations
 
 import csv
 import io
-import math
 from datetime import date, datetime
 from decimal import Decimal
 
 import openpyxl
 import pytest
-
 from app.models.data_source import FileFormat
 from app.models.ingestion import InferredColumnType
 from app.services.ingestion_profiling_service import (
     IngestionProfileResult,
     IngestionProfilingError,
-    IngestionProfilingService,
-    ProfiledColumn,
-    ProfiledRow,
     profile_dataset,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -109,7 +103,7 @@ def test_duplicate_headers_deduplicated():
     content = _csv(["Value", "Value", "ID"], [["1", "2", "x"]])
     result = profile_dataset(filename="dup.csv", content=content)
     norms = [c.normalized_name for c in result.columns]
-    assert len(set(norms)) == 3   # all unique after deduplication
+    assert len(set(norms)) == 3  # all unique after deduplication
     assert norms[0] == "value"
     assert norms[1] != norms[0]
 
@@ -184,7 +178,7 @@ def test_missing_count():
     # Use two columns so one can be blank without triggering blank-row skip
     content = _csv(["X", "Y"], [["1", "a"], ["", "b"], ["3", "c"], ["", "d"]])
     result = profile_dataset(filename="miss.csv", content=content)
-    col = result.columns[0]   # column X
+    col = result.columns[0]  # column X
     assert col.missing_count == 2
 
 
@@ -204,7 +198,7 @@ def test_nullable_false_when_no_missing():
 def test_unique_count_excludes_missing():
     content = _csv(["X"], [["a"], [""], ["a"], ["b"]])
     result = profile_dataset(filename="uniq.csv", content=content)
-    assert result.columns[0].unique_count == 2   # "a" and "b" (blank excluded)
+    assert result.columns[0].unique_count == 2  # "a" and "b" (blank excluded)
 
 
 def test_samples_exclude_missing():
@@ -336,7 +330,7 @@ def test_decimal_very_small():
 
 def test_csv_nan_string_infers_text():
     """CSV literal string "NaN" is valid TEXT (not a Decimal object).
-    
+
     The string "NaN" from a CSV file cannot be a Decimal("NaN") object;
     it's just text. Type inference checks it as a string and rejects it
     as a decimal candidate, so it infers as TEXT.
@@ -350,7 +344,7 @@ def test_csv_nan_string_infers_text():
 
 def test_csv_infinity_string_infers_text():
     """CSV literal string "Infinity" is valid TEXT (not a Decimal object).
-    
+
     The string "Infinity" from a CSV file cannot be a Decimal("Infinity") object;
     it's just text. Type inference checks it as a string and rejects it
     as a decimal candidate, so it infers as TEXT.
@@ -375,12 +369,12 @@ def test_decimal_in_samples():
 
 def test_direct_decimal_nan_rejected():
     """Direct Decimal NaN object is rejected during cell conversion.
-    
+
     When XLSX parsing or other sources provide actual Decimal("NaN") objects
     (not the string "NaN"), they must be rejected by the profiling service.
     """
     from app.services.ingestion_profiling_service import _convert_cell
-    
+
     with pytest.raises(IngestionProfilingError, match="non-finite"):
         _convert_cell("Amount", Decimal("NaN"))
 
@@ -388,7 +382,7 @@ def test_direct_decimal_nan_rejected():
 def test_direct_decimal_positive_infinity_rejected():
     """Direct Decimal Infinity object is rejected during cell conversion."""
     from app.services.ingestion_profiling_service import _convert_cell
-    
+
     with pytest.raises(IngestionProfilingError, match="non-finite"):
         _convert_cell("Amount", Decimal("Infinity"))
 
@@ -396,7 +390,7 @@ def test_direct_decimal_positive_infinity_rejected():
 def test_direct_decimal_negative_infinity_rejected():
     """Direct Decimal -Infinity object is rejected during cell conversion."""
     from app.services.ingestion_profiling_service import _convert_cell
-    
+
     with pytest.raises(IngestionProfilingError, match="non-finite"):
         _convert_cell("Amount", Decimal("-Infinity"))
 
@@ -404,7 +398,7 @@ def test_direct_decimal_negative_infinity_rejected():
 def test_direct_finite_decimal_preserved():
     """Direct finite Decimal objects are preserved during cell conversion."""
     from app.services.ingestion_profiling_service import _convert_cell
-    
+
     result = _convert_cell("Amount", Decimal("123.45"))
     # Cell conversion returns the Decimal as-is; serialization happens later
     assert isinstance(result, Decimal)
@@ -468,12 +462,13 @@ def test_nested_list_rejected():
     """Parser returns str rows for CSV; test via a mock parsed dataset."""
     # Simulate by patching parse_ingestion_file to return a nested list cell
     from unittest.mock import patch
+
     from app.models.data_source import FileFormat
     from app.utils.ingestion_parser import ParsedDataset
 
     mock_parsed = ParsedDataset(
         original_column_names=["col"],
-        rows=[[[1, 2, 3]]],   # nested list
+        rows=[[[1, 2, 3]]],  # nested list
         row_count=1,
         column_count=1,
         detected_file_format=FileFormat.CSV,
@@ -490,6 +485,7 @@ def test_nested_list_rejected():
 
 def test_nested_dict_rejected():
     from unittest.mock import patch
+
     from app.models.data_source import FileFormat
     from app.utils.ingestion_parser import ParsedDataset
 
@@ -512,6 +508,7 @@ def test_nested_dict_rejected():
 
 def test_bytes_rejected():
     from unittest.mock import patch
+
     from app.models.data_source import FileFormat
     from app.utils.ingestion_parser import ParsedDataset
 
@@ -587,6 +584,7 @@ def test_oversized_file_raises_profiling_error():
 def test_no_repository_imports_in_service():
     """The profiling service module must not import any repository classes."""
     import importlib
+
     import app.services.ingestion_profiling_service as svc_module
 
     source = importlib.util.find_spec(svc_module.__name__).origin
@@ -601,6 +599,7 @@ def test_no_repository_imports_in_service():
 def test_no_orm_model_creation_in_service():
     """The profiling service must not instantiate IngestionJob or DatasetColumn."""
     import importlib
+
     import app.services.ingestion_profiling_service as svc_module
 
     source = importlib.util.find_spec(svc_module.__name__).origin
@@ -614,6 +613,7 @@ def test_no_orm_model_creation_in_service():
 def test_no_database_session_in_service():
     """The profiling service must not use AsyncSession or get_db."""
     import importlib
+
     import app.services.ingestion_profiling_service as svc_module
 
     source = importlib.util.find_spec(svc_module.__name__).origin

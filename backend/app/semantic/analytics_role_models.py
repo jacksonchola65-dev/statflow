@@ -1,7 +1,7 @@
+import math
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Tuple, Iterable
-import math
+from typing import Tuple
 
 from .semantic_models import SemanticEvidence
 from .semantic_types import SemanticType
@@ -92,7 +92,9 @@ class MeasureCandidate:
         object.__setattr__(self, "aggregation", self_aggregation)
 
         object.__setattr__(self, "confidence", _validate_confidence(self.confidence))
-        object.__setattr__(self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio"))
+        object.__setattr__(
+            self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio")
+        )
         object.__setattr__(self, "null_ratio", _finite_ratio(self.null_ratio, "null_ratio"))
 
         evidence_tuple = tuple(self.evidence)
@@ -122,7 +124,9 @@ class DimensionCandidate:
         object.__setattr__(self, "dimension_type", self_dimension)
 
         object.__setattr__(self, "confidence", _validate_confidence(self.confidence))
-        object.__setattr__(self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio"))
+        object.__setattr__(
+            self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio")
+        )
         object.__setattr__(self, "null_ratio", _finite_ratio(self.null_ratio, "null_ratio"))
 
         evidence_tuple = tuple(self.evidence)

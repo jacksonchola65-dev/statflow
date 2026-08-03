@@ -74,19 +74,18 @@ from __future__ import annotations
 import uuid
 from typing import Any, Sequence
 
+from app.models.ingestion import DatasetRow
 from sqlalchemy import delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.ingestion import DatasetRow
 
 # ---------------------------------------------------------------------------
 # Internal constants
 # ---------------------------------------------------------------------------
 
-_INSERT_BATCH_SIZE: int = 500    # rows per Core execute() call
-_DEFAULT_LIMIT:     int = 1_000
-_MAX_LIMIT:         int = 10_000
-_MIN_LIMIT:         int = 1
+_INSERT_BATCH_SIZE: int = 500  # rows per Core execute() call
+_DEFAULT_LIMIT: int = 1_000
+_MAX_LIMIT: int = 10_000
+_MIN_LIMIT: int = 1
 
 # ---------------------------------------------------------------------------
 # Typed input for create_many
@@ -109,9 +108,7 @@ class DatasetRowRepository:
     # Write
     # ------------------------------------------------------------------
 
-    async def create_many(
-        self, rows: Sequence[RowInsertMapping]
-    ) -> int:
+    async def create_many(self, rows: Sequence[RowInsertMapping]) -> int:
         """Bulk-insert dataset rows using bounded Core INSERT batches.
 
         Parameters
@@ -163,9 +160,7 @@ class DatasetRowRepository:
 
     async def get_by_id(self, row_id: uuid.UUID) -> DatasetRow | None:
         """Return a DatasetRow by primary key, or None if not found."""
-        result = await self._session.execute(
-            select(DatasetRow).where(DatasetRow.id == row_id)
-        )
+        result = await self._session.execute(select(DatasetRow).where(DatasetRow.id == row_id))
         return result.scalar_one_or_none()
 
     async def get_by_row_number(
@@ -200,7 +195,7 @@ class DatasetRowRepository:
         limit:  clamped to [_MIN_LIMIT, _MAX_LIMIT] (max 10,000)
         """
         safe_offset = max(0, offset)
-        safe_limit  = max(_MIN_LIMIT, min(_MAX_LIMIT, limit))
+        safe_limit = max(_MIN_LIMIT, min(_MAX_LIMIT, limit))
 
         result = await self._session.execute(
             select(DatasetRow)
@@ -240,9 +235,7 @@ class DatasetRowRepository:
     # Delete
     # ------------------------------------------------------------------
 
-    async def delete_by_ingestion_job(
-        self, ingestion_job_id: uuid.UUID
-    ) -> int:
+    async def delete_by_ingestion_job(self, ingestion_job_id: uuid.UUID) -> int:
         """Bulk-delete all rows for a job using a single Core DELETE statement.
 
         Returns the number of deleted rows. Does NOT load rows first.

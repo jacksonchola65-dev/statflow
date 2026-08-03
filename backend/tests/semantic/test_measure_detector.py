@@ -1,14 +1,16 @@
-import math
 import pytest
-
-from app.semantic.measure_detector import MeasureDetector, MeasureColumnInput
 from app.semantic.analytics_role_models import Aggregation
+from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
 from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
 from app.semantic.semantic_types import SemanticType
 
 
 def sc(semantic_type, confidence):
-    return SemanticClassification(semantic_type=semantic_type, confidence=confidence, evidence=(SemanticEvidence(source="d", score=confidence),))
+    return SemanticClassification(
+        semantic_type=semantic_type,
+        confidence=confidence,
+        evidence=(SemanticEvidence(source="d", score=confidence),),
+    )
 
 
 def test_empty_input_returns_empty_tuple():
@@ -52,9 +54,18 @@ def test_threshold_enforced():
 
 
 def test_aggregation_inference():
-    c1 = MeasureColumnInput(column_name="c1", classifications=(sc(SemanticType.CURRENCY, 0.9),),)
-    c2 = MeasureColumnInput(column_name="c2", classifications=(sc(SemanticType.PERCENTAGE, 0.75),),)
-    c3 = MeasureColumnInput(column_name="c3", classifications=(sc(SemanticType.INTEGER, 0.8),),)
+    c1 = MeasureColumnInput(
+        column_name="c1",
+        classifications=(sc(SemanticType.CURRENCY, 0.9),),
+    )
+    c2 = MeasureColumnInput(
+        column_name="c2",
+        classifications=(sc(SemanticType.PERCENTAGE, 0.75),),
+    )
+    c3 = MeasureColumnInput(
+        column_name="c3",
+        classifications=(sc(SemanticType.INTEGER, 0.8),),
+    )
     result = MeasureDetector.discover((c1, c2, c3))
     assert [m.name for m in result] == ["c1", "c3", "c2"]
     assert {m.name: m.aggregation for m in result} == {
@@ -65,8 +76,14 @@ def test_aggregation_inference():
 
 
 def test_duplicate_suppression_first_occurrence_wins():
-    c1 = MeasureColumnInput(column_name="m", classifications=(sc(SemanticType.DECIMAL, 0.8),),)
-    c2 = MeasureColumnInput(column_name="m", classifications=(sc(SemanticType.CURRENCY, 0.9),),)
+    c1 = MeasureColumnInput(
+        column_name="m",
+        classifications=(sc(SemanticType.DECIMAL, 0.8),),
+    )
+    c2 = MeasureColumnInput(
+        column_name="m",
+        classifications=(sc(SemanticType.CURRENCY, 0.9),),
+    )
     result = MeasureDetector.discover((c1, c2))
     assert len(result) == 1
     assert result[0].semantic_type == SemanticType.DECIMAL
@@ -74,15 +91,27 @@ def test_duplicate_suppression_first_occurrence_wins():
 
 
 def test_deterministic_sorting_by_confidence_then_name():
-    c1 = MeasureColumnInput(column_name="b", classifications=(sc(SemanticType.INTEGER, 0.9),),)
-    c2 = MeasureColumnInput(column_name="a", classifications=(sc(SemanticType.DECIMAL, 0.9),),)
-    c3 = MeasureColumnInput(column_name="c", classifications=(sc(SemanticType.CURRENCY, 0.85),),)
+    c1 = MeasureColumnInput(
+        column_name="b",
+        classifications=(sc(SemanticType.INTEGER, 0.9),),
+    )
+    c2 = MeasureColumnInput(
+        column_name="a",
+        classifications=(sc(SemanticType.DECIMAL, 0.9),),
+    )
+    c3 = MeasureColumnInput(
+        column_name="c",
+        classifications=(sc(SemanticType.CURRENCY, 0.85),),
+    )
     result = MeasureDetector.discover((c1, c2, c3))
     assert [m.name for m in result] == ["a", "b", "c"]
 
 
 def test_input_immutability_preserved():
-    c1 = MeasureColumnInput(column_name="x", classifications=(sc(SemanticType.QUANTITY, 0.7),),)
+    c1 = MeasureColumnInput(
+        column_name="x",
+        classifications=(sc(SemanticType.QUANTITY, 0.7),),
+    )
     cols = [c1]
     result = MeasureDetector.discover(cols)
     assert len(result) == 1
@@ -91,4 +120,7 @@ def test_input_immutability_preserved():
 
 def test_malformed_classification_iterable_raises():
     with pytest.raises(TypeError):
-        MeasureColumnInput(column_name="x", classifications=("notaclass",),)
+        MeasureColumnInput(
+            column_name="x",
+            classifications=("notaclass",),
+        )

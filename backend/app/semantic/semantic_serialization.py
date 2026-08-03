@@ -1,20 +1,27 @@
-from typing import Any, Dict, List, Tuple, Type
-from uuid import UUID
 import math
+from typing import Any, Dict, Type
+from uuid import UUID
 
-from .analytics_role_models import AnalyticsRoleProfile, DimensionCandidate, MeasureCandidate, Aggregation, DimensionType
+from .analytics_role_models import (
+    Aggregation,
+    AnalyticsRoleProfile,
+    DimensionCandidate,
+    DimensionType,
+    MeasureCandidate,
+)
 from .entity_models import EntityKeyCandidate
 from .semantic_models import (
+    SemanticClassification,
     SemanticColumn,
     SemanticEntity,
-    SemanticRelationship,
-    SemanticProfile,
     SemanticEvidence,
+    SemanticProfile,
+    SemanticRelationship,
     SemanticSuggestion,
-    SemanticClassification,
 )
-from .semantic_profile_models import SemanticColumnProfile, SemanticProfile as SemanticProfileModel
-from .semantic_types import DatasetDomain, SemanticType, ColumnRole
+from .semantic_profile_models import SemanticColumnProfile
+from .semantic_profile_models import SemanticProfile as SemanticProfileModel
+from .semantic_types import ColumnRole, DatasetDomain, SemanticType
 
 
 def _enum_from_str(enum_cls: Type, value: str):
@@ -141,7 +148,9 @@ def from_dict(cls: Type, data: Dict[str, Any]):
         if not math.isfinite(conf) or conf < 0.0 or conf > 1.0:
             raise ValueError("confidence must be finite between 0.0 and 1.0")
         metadata = data.get("metadata") or {}
-        return SemanticColumn(name=name, semantic_type=st, role=role, confidence=conf, metadata=metadata)
+        return SemanticColumn(
+            name=name, semantic_type=st, role=role, confidence=conf, metadata=metadata
+        )
 
     if cls is SemanticEvidence:
         _require(data, "source")
@@ -149,7 +158,9 @@ def from_dict(cls: Type, data: Dict[str, Any]):
         score = float(data["score"])
         if not math.isfinite(score):
             raise ValueError("score must be finite and not NaN")
-        return SemanticEvidence(source=data["source"], score=score, description=data.get("description"))
+        return SemanticEvidence(
+            source=data["source"], score=score, description=data.get("description")
+        )
 
     if cls is SemanticSuggestion:
         st = _enum_from_str(SemanticType, _require(data, "semantic_type"))
@@ -166,7 +177,13 @@ def from_dict(cls: Type, data: Dict[str, Any]):
         evidence_list = [from_dict(SemanticEvidence, e) for e in data.get("evidence", [])]
         suggestions_list = [from_dict(SemanticSuggestion, s) for s in data.get("suggestions", [])]
         detector = data.get("detector")
-        return SemanticClassification(semantic_type=st, confidence=conf, evidence=tuple(evidence_list), detector=detector, suggestions=tuple(suggestions_list))
+        return SemanticClassification(
+            semantic_type=st,
+            confidence=conf,
+            evidence=tuple(evidence_list),
+            detector=detector,
+            suggestions=tuple(suggestions_list),
+        )
 
     if cls is SemanticEntity:
         _require(data, "id")
@@ -177,7 +194,14 @@ def from_dict(cls: Type, data: Dict[str, Any]):
         if not math.isfinite(conf) or conf < 0.0 or conf > 1.0:
             raise ValueError("confidence must be finite between 0.0 and 1.0")
         metadata = data.get("metadata") or {}
-        return SemanticEntity(id=UUID(data["id"]), name=data["name"], semantic_type=st, columns=cols, confidence=conf, metadata=metadata)
+        return SemanticEntity(
+            id=UUID(data["id"]),
+            name=data["name"],
+            semantic_type=st,
+            columns=cols,
+            confidence=conf,
+            metadata=metadata,
+        )
 
     if cls is SemanticRelationship:
         _require(data, "source_entity_id")
@@ -187,7 +211,13 @@ def from_dict(cls: Type, data: Dict[str, Any]):
         if not math.isfinite(conf) or conf < 0.0 or conf > 1.0:
             raise ValueError("confidence must be finite between 0.0 and 1.0")
         props = data.get("properties") or {}
-        return SemanticRelationship(source_entity_id=UUID(data["source_entity_id"]), target_entity_id=UUID(data["target_entity_id"]), relationship_type=data["relationship_type"], confidence=conf, properties=props)
+        return SemanticRelationship(
+            source_entity_id=UUID(data["source_entity_id"]),
+            target_entity_id=UUID(data["target_entity_id"]),
+            relationship_type=data["relationship_type"],
+            confidence=conf,
+            properties=props,
+        )
 
     if cls is MeasureCandidate:
         return MeasureCandidate(
@@ -213,7 +243,9 @@ def from_dict(cls: Type, data: Dict[str, Any]):
 
     if cls is AnalyticsRoleProfile:
         measures = tuple(from_dict(MeasureCandidate, m) for m in data.get("measure_candidates", []))
-        dimensions = tuple(from_dict(DimensionCandidate, d) for d in data.get("dimension_candidates", []))
+        dimensions = tuple(
+            from_dict(DimensionCandidate, d) for d in data.get("dimension_candidates", [])
+        )
         return AnalyticsRoleProfile(measure_candidates=measures, dimension_candidates=dimensions)
 
     if cls is EntityKeyCandidate:
@@ -230,17 +262,27 @@ def from_dict(cls: Type, data: Dict[str, Any]):
     if cls is SemanticColumnProfile:
         return SemanticColumnProfile(
             column_name=_require(data, "column_name"),
-            classifications=tuple(from_dict(SemanticClassification, c) for c in data.get("classifications", [])),
-            key_candidates=tuple(from_dict(EntityKeyCandidate, k) for k in data.get("key_candidates", [])),
-            measure_candidates=tuple(from_dict(MeasureCandidate, m) for m in data.get("measure_candidates", [])),
-            dimension_candidates=tuple(from_dict(DimensionCandidate, d) for d in data.get("dimension_candidates", [])),
+            classifications=tuple(
+                from_dict(SemanticClassification, c) for c in data.get("classifications", [])
+            ),
+            key_candidates=tuple(
+                from_dict(EntityKeyCandidate, k) for k in data.get("key_candidates", [])
+            ),
+            measure_candidates=tuple(
+                from_dict(MeasureCandidate, m) for m in data.get("measure_candidates", [])
+            ),
+            dimension_candidates=tuple(
+                from_dict(DimensionCandidate, d) for d in data.get("dimension_candidates", [])
+            ),
         )
 
     if cls is SemanticProfileModel:
         return SemanticProfileModel(
             domain=_enum_from_str(DatasetDomain, _require(data, "domain")),
             entities=tuple(from_dict(SemanticEntity, e) for e in data.get("entities", [])),
-            relationships=tuple(from_dict(SemanticRelationship, r) for r in data.get("relationships", [])),
+            relationships=tuple(
+                from_dict(SemanticRelationship, r) for r in data.get("relationships", [])
+            ),
             columns=tuple(from_dict(SemanticColumnProfile, c) for c in data.get("columns", [])),
             analytics_roles=from_dict(AnalyticsRoleProfile, _require(data, "analytics_roles")),
         )
@@ -254,6 +296,13 @@ def from_dict(cls: Type, data: Dict[str, Any]):
         if not math.isfinite(oc) or oc < 0.0 or oc > 1.0:
             raise ValueError("overall_confidence must be finite between 0.0 and 1.0")
         metadata = data.get("metadata") or {}
-        return SemanticProfile(dataset_domain=domain, columns=cols, entities=ents, relationships=rels, overall_confidence=oc, metadata=metadata)
+        return SemanticProfile(
+            dataset_domain=domain,
+            columns=cols,
+            entities=ents,
+            relationships=rels,
+            overall_confidence=oc,
+            metadata=metadata,
+        )
 
     raise TypeError(f"Unsupported type for deserialization: {cls}")

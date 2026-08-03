@@ -5,8 +5,6 @@ from decimal import Decimal
 from uuid import uuid4
 
 import pytest
-from pydantic import ValidationError
-
 from app.domain.analytics import (
     AggregationFunction,
     AnalyticsQuery,
@@ -20,6 +18,7 @@ from app.domain.analytics import (
     SortClause,
     SortDirection,
 )
+from pydantic import ValidationError
 
 
 def test_count_without_column_is_valid() -> None:
@@ -90,7 +89,9 @@ def test_scalar_filter_without_value_rejected() -> None:
 
 
 def test_in_filter_with_non_empty_list_accepted() -> None:
-    clause = FilterClause(column_name="region", operator=FilterOperator.IN, value=["north", "south"])
+    clause = FilterClause(
+        column_name="region", operator=FilterOperator.IN, value=["north", "south"]
+    )
     assert clause.value == ["north", "south"]
 
 
@@ -176,7 +177,10 @@ def test_measure_maximum_enforced() -> None:
         AnalyticsQuery(
             dataset_reference=DatasetReference(ingestion_job_id=uuid4()),
             dimensions=[Dimension(column_name="region")],
-            measures=[Measure(aggregation=AggregationFunction.SUM, column_name="population") for _ in range(11)],
+            measures=[
+                Measure(aggregation=AggregationFunction.SUM, column_name="population")
+                for _ in range(11)
+            ],
         )
 
 
@@ -186,7 +190,10 @@ def test_filter_maximum_enforced() -> None:
             dataset_reference=DatasetReference(ingestion_job_id=uuid4()),
             dimensions=[Dimension(column_name="region")],
             measures=[Measure(aggregation=AggregationFunction.COUNT)],
-            filters=[FilterClause(column_name="region", operator=FilterOperator.EQUALS, value="north") for _ in range(21)],
+            filters=[
+                FilterClause(column_name="region", operator=FilterOperator.EQUALS, value="north")
+                for _ in range(21)
+            ],
         )
 
 
@@ -196,7 +203,9 @@ def test_sort_maximum_enforced() -> None:
             dataset_reference=DatasetReference(ingestion_job_id=uuid4()),
             dimensions=[Dimension(column_name="region")],
             measures=[Measure(aggregation=AggregationFunction.COUNT)],
-            sorting=[SortClause(target="region", direction=SortDirection.ASCENDING) for _ in range(6)],
+            sorting=[
+                SortClause(target="region", direction=SortDirection.ASCENDING) for _ in range(6)
+            ],
         )
 
 
@@ -255,7 +264,12 @@ def test_result_with_mapping_rows_validates() -> None:
         ingestion_job_id=uuid4(),
         columns=[
             AnalyticsResultColumn(identifier="region", label="region", role="dimension"),
-            AnalyticsResultColumn(identifier="row_count", label="row_count", role="measure", aggregation=AggregationFunction.COUNT),
+            AnalyticsResultColumn(
+                identifier="row_count",
+                label="row_count",
+                role="measure",
+                aggregation=AggregationFunction.COUNT,
+            ),
         ],
         rows=[{"region": "north", "row_count": 3}],
         row_count=1,
@@ -272,7 +286,12 @@ def test_result_missing_key_rejected() -> None:
             ingestion_job_id=uuid4(),
             columns=[
                 AnalyticsResultColumn(identifier="region", label="region", role="dimension"),
-                AnalyticsResultColumn(identifier="row_count", label="row_count", role="measure", aggregation=AggregationFunction.COUNT),
+                AnalyticsResultColumn(
+                    identifier="row_count",
+                    label="row_count",
+                    role="measure",
+                    aggregation=AggregationFunction.COUNT,
+                ),
             ],
             rows=[{"region": "north"}],
             row_count=1,
@@ -314,7 +333,13 @@ def test_uuid_enum_and_decimal_serialization() -> None:
     query = AnalyticsQuery(
         dataset_reference=DatasetReference(ingestion_job_id=uuid4()),
         dimensions=[Dimension(column_name="region")],
-        measures=[Measure(aggregation=AggregationFunction.SUM, column_name="population", alias="population_sum")],
+        measures=[
+            Measure(
+                aggregation=AggregationFunction.SUM,
+                column_name="population",
+                alias="population_sum",
+            )
+        ],
     )
     payload = query.model_dump(mode="json")
     assert isinstance(payload["dataset_reference"]["ingestion_job_id"], str)
@@ -322,7 +347,14 @@ def test_uuid_enum_and_decimal_serialization() -> None:
 
     result = AnalyticsResult(
         ingestion_job_id=uuid4(),
-        columns=[AnalyticsResultColumn(identifier="population_sum", label="population_sum", role="measure", aggregation=AggregationFunction.SUM)],
+        columns=[
+            AnalyticsResultColumn(
+                identifier="population_sum",
+                label="population_sum",
+                role="measure",
+                aggregation=AggregationFunction.SUM,
+            )
+        ],
         rows=[{"population_sum": Decimal("100.50")}],
         row_count=1,
         limit=100,
@@ -340,7 +372,12 @@ def test_date_and_datetime_serialization() -> None:
             AnalyticsResultColumn(identifier="report_date", label="report_date", role="dimension"),
             AnalyticsResultColumn(identifier="event_at", label="event_at", role="dimension"),
         ],
-        rows=[{"report_date": date(2024, 1, 1), "event_at": datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc)}],
+        rows=[
+            {
+                "report_date": date(2024, 1, 1),
+                "event_at": datetime(2024, 1, 1, 12, 0, tzinfo=timezone.utc),
+            }
+        ],
         row_count=1,
         limit=100,
         offset=0,

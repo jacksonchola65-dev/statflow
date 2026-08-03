@@ -26,22 +26,17 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
 
 import pytest
-from pydantic import ValidationError
-
 from app.models.data_source import FileFormat
 from app.models.ingestion import (
-    DatasetColumn,
-    DatasetRow,
-    IngestionJob,
-    IngestionStatus,
     InferredColumnType,
+    IngestionStatus,
 )
 from app.schemas.ingestion import (
     DatasetColumnResponse,
@@ -51,8 +46,7 @@ from app.schemas.ingestion import (
     IngestionResultResponse,
     PaginationResponse,
 )
-from app.services.ingestion_persistence_service import IngestionPersistenceResult
-
+from pydantic import ValidationError
 
 # ===========================================================================
 # PaginationResponse tests

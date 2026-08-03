@@ -6,13 +6,13 @@ If a district code already exists, its name is updated to match the
 canonical value. If Luapula Province is missing, a clear error is raised
 and no data is inserted.
 """
-from dataclasses import dataclass
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from dataclasses import dataclass
 
 from app.models.district import District
 from app.models.province import Province
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ProvinceNotFoundError(RuntimeError):
@@ -26,18 +26,18 @@ class DistrictRecord:
 
 
 LUAPULA_DISTRICTS: list[DistrictRecord] = [
-    DistrictRecord("LP-CHEMBE",       "Chembe"),
-    DistrictRecord("LP-CHIENGE",      "Chienge"),
-    DistrictRecord("LP-CHIFUNABULI",  "Chifunabuli"),
-    DistrictRecord("LP-CHIPILI",      "Chipili"),
-    DistrictRecord("LP-KAWAMBWA",     "Kawambwa"),
-    DistrictRecord("LP-LUNGA",        "Lunga"),
-    DistrictRecord("LP-MANSA",        "Mansa"),
-    DistrictRecord("LP-MILENGE",      "Milenge"),
+    DistrictRecord("LP-CHEMBE", "Chembe"),
+    DistrictRecord("LP-CHIENGE", "Chienge"),
+    DistrictRecord("LP-CHIFUNABULI", "Chifunabuli"),
+    DistrictRecord("LP-CHIPILI", "Chipili"),
+    DistrictRecord("LP-KAWAMBWA", "Kawambwa"),
+    DistrictRecord("LP-LUNGA", "Lunga"),
+    DistrictRecord("LP-MANSA", "Mansa"),
+    DistrictRecord("LP-MILENGE", "Milenge"),
     DistrictRecord("LP-MWANSABOMBWE", "Mwansabombwe"),
-    DistrictRecord("LP-MWENSE",       "Mwense"),
-    DistrictRecord("LP-NCHELENGE",    "Nchelenge"),
-    DistrictRecord("LP-SAMFYA",       "Samfya"),
+    DistrictRecord("LP-MWENSE", "Mwense"),
+    DistrictRecord("LP-NCHELENGE", "Nchelenge"),
+    DistrictRecord("LP-SAMFYA", "Samfya"),
 ]
 
 
@@ -52,9 +52,7 @@ async def seed_luapula_districts(session: AsyncSession) -> dict[str, int]:
         dict with keys 'created', 'updated', 'total'
     """
     # Locate the Luapula province — fail clearly if missing
-    result = await session.execute(
-        select(Province).where(Province.code == "LP")
-    )
+    result = await session.execute(select(Province).where(Province.code == "LP"))
     luapula = result.scalar_one_or_none()
 
     if luapula is None:
@@ -67,9 +65,7 @@ async def seed_luapula_districts(session: AsyncSession) -> dict[str, int]:
     updated = 0
 
     for record in LUAPULA_DISTRICTS:
-        result = await session.execute(
-            select(District).where(District.code == record.code)
-        )
+        result = await session.execute(select(District).where(District.code == record.code))
         existing = result.scalar_one_or_none()
 
         if existing is None:

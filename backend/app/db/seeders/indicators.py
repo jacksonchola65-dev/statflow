@@ -6,13 +6,13 @@ Locates each category by its stable code. If a required category is
 missing, a clear error is raised and no indicators are inserted.
 If an indicator code already exists, changed fields are updated.
 """
-from dataclasses import dataclass
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from dataclasses import dataclass
 
 from app.models.category import Category
 from app.models.indicator import Indicator
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class CategoryNotFoundError(RuntimeError):
@@ -127,9 +127,7 @@ STATFLOW_INDICATORS: list[IndicatorRecord] = [
 ]
 
 # All unique category codes referenced by the indicators above
-REQUIRED_CATEGORY_CODES: list[str] = sorted(
-    {r.category_code for r in STATFLOW_INDICATORS}
-)
+REQUIRED_CATEGORY_CODES: list[str] = sorted({r.category_code for r in STATFLOW_INDICATORS})
 
 
 async def seed_indicators(session: AsyncSession) -> dict[str, int]:
@@ -147,9 +145,7 @@ async def seed_indicators(session: AsyncSession) -> dict[str, int]:
     missing: list[str] = []
 
     for code in REQUIRED_CATEGORY_CODES:
-        result = await session.execute(
-            select(Category).where(Category.code == code)
-        )
+        result = await session.execute(select(Category).where(Category.code == code))
         category = result.scalar_one_or_none()
         if category is None:
             missing.append(code)
@@ -168,9 +164,7 @@ async def seed_indicators(session: AsyncSession) -> dict[str, int]:
     for record in STATFLOW_INDICATORS:
         category = category_map[record.category_code]
 
-        result = await session.execute(
-            select(Indicator).where(Indicator.code == record.code)
-        )
+        result = await session.execute(select(Indicator).where(Indicator.code == record.code))
         existing = result.scalar_one_or_none()
 
         if existing is None:

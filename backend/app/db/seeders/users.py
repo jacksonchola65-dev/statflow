@@ -22,13 +22,12 @@ import asyncio
 import logging
 import sys
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import settings
 from app.core.security import hash_password, verify_password
 from app.db.seeders.seed import _make_quiet_session_factory
 from app.models.user import UserRole
 from app.repositories.user_repository import UserRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logging.basicConfig(
     level=logging.WARNING,

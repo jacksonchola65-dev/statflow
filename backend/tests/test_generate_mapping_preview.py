@@ -28,6 +28,7 @@ import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import (
@@ -41,8 +42,8 @@ from app.schemas.ingestion_mapping import (
     TransformationRule,
 )
 from app.services.file_inspection_service import (
-    CachedInspection,
     _INSPECTION_STORE,
+    CachedInspection,
     _InspectionTokenEntry,
 )
 from app.services.mapped_preview_service import _MAPPED_PREVIEW_STORE
@@ -55,10 +56,10 @@ from app.services.mapping_execution_service import (
     TransformationExecutionError,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_col(name: str, samples: list[str]) -> SourceColumn:
     return SourceColumn(
@@ -93,8 +94,9 @@ def _store_inspection(
     return token
 
 
-def _col_mapping(target: TargetField, col: str,
-                 ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+def _col_mapping(
+    target: TargetField, col: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.COLUMN,
@@ -104,8 +106,9 @@ def _col_mapping(target: TargetField, col: str,
     )
 
 
-def _fix_mapping(target: TargetField, value: str,
-                 ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+def _fix_mapping(
+    target: TargetField, value: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.FIXED_VALUE,
@@ -147,19 +150,19 @@ async def test_successful_preview_returns_result(cleanup_tokens):
     owner_id = uuid.uuid4()
     headers = ["region", "revenue", "order_date"]
     columns = [
-        _make_col("region",     ["Lusaka",   "Central"]),
-        _make_col("revenue",    ["2500",     "1800"]),
+        _make_col("region", ["Lusaka", "Central"]),
+        _make_col("revenue", ["2500", "1800"]),
         _make_col("order_date", ["2024-01-15", "2023-06-30"]),
     ]
     token = _store_inspection(owner_id, headers, columns)
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _col_mapping(TargetField.PROVINCE_CODE,  "region"),
+        _col_mapping(TargetField.PROVINCE_CODE, "region"),
         _fix_mapping(TargetField.INDICATOR_CODE, "ECOM_REVENUE"),
-        _col_mapping(TargetField.VALUE,          "revenue"),
+        _col_mapping(TargetField.VALUE, "revenue"),
         _col_mapping(TargetField.REFERENCE_YEAR, "order_date"),
-        _fix_mapping(TargetField.DATASET_NAME,   "Ecommerce Sales"),
+        _fix_mapping(TargetField.DATASET_NAME, "Ecommerce Sales"),
     )
 
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
@@ -170,7 +173,11 @@ async def test_successful_preview_returns_result(cleanup_tokens):
     assert result.mapped_column_count == 5
     assert result.original_headers == headers
     assert set(result.target_fields) == {
-        "province_code", "indicator_code", "value", "reference_year", "dataset_name"
+        "province_code",
+        "indicator_code",
+        "value",
+        "reference_year",
+        "dataset_name",
     }
     assert len(result.transformed_rows) == 2
 
@@ -183,11 +190,11 @@ async def test_result_contains_correct_values(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _col_mapping(TargetField.PROVINCE_CODE,  "revenue"),
+        _col_mapping(TargetField.PROVINCE_CODE, "revenue"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _col_mapping(TargetField.VALUE,          "revenue"),
+        _col_mapping(TargetField.VALUE, "revenue"),
         _col_mapping(TargetField.REFERENCE_YEAR, "revenue"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""
@@ -206,11 +213,11 @@ async def test_empty_columns_returns_zero_rows(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _fix_mapping(TargetField.VALUE,          "100"),
+        _fix_mapping(TargetField.VALUE, "100"),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""
@@ -221,16 +228,16 @@ async def test_empty_columns_returns_zero_rows(cleanup_tokens):
 async def test_columns_with_no_sample_values_returns_zero_rows(cleanup_tokens):
     owner_id = uuid.uuid4()
     headers = ["revenue"]
-    columns = [_make_col("revenue", [])]   # empty sample_values
+    columns = [_make_col("revenue", [])]  # empty sample_values
     token = _store_inspection(owner_id, headers, columns)
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _col_mapping(TargetField.PROVINCE_CODE,  "revenue"),
+        _col_mapping(TargetField.PROVINCE_CODE, "revenue"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _col_mapping(TargetField.VALUE,          "revenue"),
+        _col_mapping(TargetField.VALUE, "revenue"),
         _col_mapping(TargetField.REFERENCE_YEAR, "revenue"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""
@@ -248,11 +255,11 @@ async def test_fixed_value_same_across_all_rows(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _col_mapping(TargetField.PROVINCE_CODE,  "x"),
+        _col_mapping(TargetField.PROVINCE_CODE, "x"),
         _fix_mapping(TargetField.INDICATOR_CODE, "ECOM"),
-        _col_mapping(TargetField.VALUE,          "x"),
+        _col_mapping(TargetField.VALUE, "x"),
         _col_mapping(TargetField.REFERENCE_YEAR, "x"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""
@@ -274,12 +281,15 @@ async def test_trim_and_parse_number_transformation(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _col_mapping(TargetField.VALUE, "revenue",
-                     ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER]),
+        _col_mapping(
+            TargetField.VALUE,
+            "revenue",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER],
+        ),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""
@@ -295,12 +305,15 @@ async def test_trim_and_extract_year_transformation(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _fix_mapping(TargetField.VALUE,          "100"),
-        _col_mapping(TargetField.REFERENCE_YEAR, "order_date",
-                     ops=[TransformationOperation.TRIM, TransformationOperation.EXTRACT_YEAR]),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.VALUE, "100"),
+        _col_mapping(
+            TargetField.REFERENCE_YEAR,
+            "order_date",
+            ops=[TransformationOperation.TRIM, TransformationOperation.EXTRACT_YEAR],
+        ),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""
@@ -321,13 +334,15 @@ async def test_province_name_to_code_in_preview(db_session, cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _col_mapping(TargetField.PROVINCE_CODE, "region",
-                     ops=[TransformationOperation.TRIM,
-                          TransformationOperation.PROVINCE_NAME_TO_CODE]),
+        _col_mapping(
+            TargetField.PROVINCE_CODE,
+            "region",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PROVINCE_NAME_TO_CODE],
+        ),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _fix_mapping(TargetField.VALUE,          "100"),
+        _fix_mapping(TargetField.VALUE, "100"),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     svc = MappingExecutionService(session=db_session)
     result = await svc.generate_mapping_preview(token, owner_id, cfg)
@@ -346,8 +361,7 @@ async def test_invalid_mapping_raises_before_inspection(cleanup_tokens):
     owner_id = uuid.uuid4()
     # Missing required targets — bypass Pydantic with model_construct
     cfg = MappingConfiguration.model_construct(
-        mapping_version=1,
-        mappings=[_fix_mapping(TargetField.SOURCE_NAME, "optional_only")]
+        mapping_version=1, mappings=[_fix_mapping(TargetField.SOURCE_NAME, "optional_only")]
     )
     # No inspection token needed — error raised before retrieval
     with pytest.raises(InvalidMappingError):
@@ -359,11 +373,11 @@ async def test_wrong_mapping_version_raises(cleanup_tokens):
     cfg = MappingConfiguration.model_construct(
         mapping_version=2,
         mappings=[
-            _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+            _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
             _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-            _fix_mapping(TargetField.VALUE,          "100"),
+            _fix_mapping(TargetField.VALUE, "100"),
             _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-            _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+            _fix_mapping(TargetField.DATASET_NAME, "DS"),
         ],
     )
     with pytest.raises(InvalidMappingError) as exc_info:
@@ -379,11 +393,11 @@ async def test_wrong_mapping_version_raises(cleanup_tokens):
 async def test_unknown_inspection_token_raises(cleanup_tokens):
     owner_id = uuid.uuid4()
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _fix_mapping(TargetField.VALUE,          "100"),
+        _fix_mapping(TargetField.VALUE, "100"),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     with pytest.raises(InspectionNotFoundError):
         await _svc_mock().generate_mapping_preview("nonexistent-token", owner_id, cfg)
@@ -395,11 +409,11 @@ async def test_expired_inspection_token_raises(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _fix_mapping(TargetField.VALUE,          "100"),
+        _fix_mapping(TargetField.VALUE, "100"),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     with pytest.raises(InspectionNotFoundError):
         await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
@@ -412,16 +426,16 @@ async def test_expired_inspection_token_raises(cleanup_tokens):
 
 async def test_wrong_owner_raises(cleanup_tokens):
     real_owner = uuid.uuid4()
-    attacker   = uuid.uuid4()
+    attacker = uuid.uuid4()
     token = _store_inspection(real_owner, ["x"], [_make_col("x", ["a"])])
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _fix_mapping(TargetField.VALUE,          "100"),
+        _fix_mapping(TargetField.VALUE, "100"),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     with pytest.raises(InspectionOwnershipError):
         await _svc_mock().generate_mapping_preview(token, attacker, cfg)
@@ -440,12 +454,11 @@ async def test_transformation_failure_propagates(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _fix_mapping(TargetField.PROVINCE_CODE,  "LK"),
+        _fix_mapping(TargetField.PROVINCE_CODE, "LK"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _col_mapping(TargetField.VALUE, "revenue",
-                     ops=[TransformationOperation.PARSE_NUMBER]),
+        _col_mapping(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]),
         _fix_mapping(TargetField.REFERENCE_YEAR, "2024"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     with pytest.raises(TransformationExecutionError) as exc_info:
         await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
@@ -467,11 +480,11 @@ async def test_preview_row_order_preserved(cleanup_tokens):
     cleanup_tokens.append(token)
 
     cfg = _valid_cfg(
-        _col_mapping(TargetField.PROVINCE_CODE,  "revenue"),
+        _col_mapping(TargetField.PROVINCE_CODE, "revenue"),
         _fix_mapping(TargetField.INDICATOR_CODE, "IND"),
-        _col_mapping(TargetField.VALUE,          "revenue"),
+        _col_mapping(TargetField.VALUE, "revenue"),
         _col_mapping(TargetField.REFERENCE_YEAR, "revenue"),
-        _fix_mapping(TargetField.DATASET_NAME,   "DS"),
+        _fix_mapping(TargetField.DATASET_NAME, "DS"),
     )
     result = await _svc_mock().generate_mapping_preview(token, owner_id, cfg)
     assert result.mapped_preview_token is not None and result.mapped_preview_token != ""

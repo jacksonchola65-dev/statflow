@@ -1,13 +1,12 @@
 import uuid
 from typing import Optional
 
-from fastapi import HTTPException
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.indicator import Indicator
 from app.repositories.analytics_repository import AnalyticsRepository
 from app.schemas.analytics import IndicatorSummaryResponse, ProvinceIndicatorResult
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AnalyticsService:
@@ -22,9 +21,7 @@ class AnalyticsService:
         dataset_id: Optional[uuid.UUID] = None,
     ) -> IndicatorSummaryResponse:
         # ── Verify indicator exists ────────────────────────────────────────
-        result = await self._session.execute(
-            select(Indicator).where(Indicator.id == indicator_id)
-        )
+        result = await self._session.execute(select(Indicator).where(Indicator.id == indicator_id))
         indicator = result.scalar_one_or_none()
         if indicator is None:
             raise HTTPException(

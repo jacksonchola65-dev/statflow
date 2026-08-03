@@ -19,19 +19,17 @@ from __future__ import annotations
 import uuid as _uuid
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.security import decode_access_token
 from app.models.user import UserRole
 from app.services.auth_service import (
-    AuthService,
     AuthenticatedUser,
+    AuthService,
     EmailAlreadyExistsError,
     InvalidCredentialsError,
     PasswordPolicyError,
     UserNotFoundError,
 )
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helper utilities

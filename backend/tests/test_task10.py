@@ -21,7 +21,6 @@ import io
 import uuid as _uuid
 
 import pytest
-
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import UserRole
@@ -132,7 +131,7 @@ async def test_csrf_blank_cookie_returns_403(client, db_session):
     """POST with blank CSRF cookie value → 403."""
     user = await _make_user(db_session, UserRole.ADMIN)
     cookies = _auth_cookie(user.id, user.role)
-    cookies[settings.CSRF_COOKIE_NAME] = "   "   # blank
+    cookies[settings.CSRF_COOKIE_NAME] = "   "  # blank
     resp = await client.post(
         "/api/v1/users",
         json={"email": _unique_email(), "password": "validpassword123", "role": "VIEWER"},
@@ -417,9 +416,7 @@ async def test_admin_user_get_does_not_require_csrf(client, db_session):
 
 def _make_csv_file(content: str = _VALID_CSV) -> tuple:
     """Return (files_dict, content_type) for httpx multipart upload."""
-    return (
-        {"file": ("test.csv", io.BytesIO(content.encode()), "text/csv")},
-    )
+    return ({"file": ("test.csv", io.BytesIO(content.encode()), "text/csv")},)
 
 
 @pytest.mark.asyncio

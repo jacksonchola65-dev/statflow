@@ -15,19 +15,17 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
 from datetime import datetime, timezone
 
 import pytest
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
-from app.models.ingestion import DatasetColumn, IngestionJob, IngestionStatus, InferredColumnType
-from app.models.user import User, UserRole
+from app.models.ingestion import DatasetColumn, InferredColumnType, IngestionJob, IngestionStatus
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
-
 
 # ---------------------------------------------------------------------------
 # Shared test helpers
@@ -84,17 +82,21 @@ async def _make_column(
 ) -> DatasetColumn:
     """Create a single DatasetColumn via create_many."""
     repo = DatasetColumnRepository(db_session)
-    cols = await repo.create_many([{
-        "ingestion_job_id": job.id,
-        "original_name": original_name,
-        "normalized_name": normalized_name,
-        "inferred_type": inferred_type,
-        "nullable": False,
-        "missing_count": 0,
-        "unique_count": 5,
-        "sample_values": ["a", "b", "c"],
-        "ordinal_position": ordinal_position,
-    }])
+    cols = await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": original_name,
+                "normalized_name": normalized_name,
+                "inferred_type": inferred_type,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 5,
+                "sample_values": ["a", "b", "c"],
+                "ordinal_position": ordinal_position,
+            }
+        ]
+    )
     return cols[0]
 
 
@@ -242,7 +244,7 @@ async def test_job_delete_removes_job(db_session):
     repo = IngestionJobRepository(db_session)
     await repo.delete(job.id)
     await db_session.flush()
-    db_session.expire_all()           # synchronous — expires cached objects
+    db_session.expire_all()  # synchronous — expires cached objects
     assert await repo.get_by_id(job.id) is None
 
 
@@ -398,16 +400,32 @@ async def test_column_create_many_returns_columns_with_ids(db_session):
     registry = await _make_registry(db_session)
     job = await _make_job(db_session, registry)
     repo = DatasetColumnRepository(db_session)
-    cols = await repo.create_many([
-        {"ingestion_job_id": job.id, "original_name": "A", "normalized_name": "a",
-         "inferred_type": InferredColumnType.TEXT, "nullable": False,
-         "missing_count": 0, "unique_count": 3, "sample_values": ["x"],
-         "ordinal_position": 0},
-        {"ingestion_job_id": job.id, "original_name": "B", "normalized_name": "b",
-         "inferred_type": InferredColumnType.INTEGER, "nullable": True,
-         "missing_count": 2, "unique_count": 5, "sample_values": ["1", "2"],
-         "ordinal_position": 1},
-    ])
+    cols = await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "A",
+                "normalized_name": "a",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 3,
+                "sample_values": ["x"],
+                "ordinal_position": 0,
+            },
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "B",
+                "normalized_name": "b",
+                "inferred_type": InferredColumnType.INTEGER,
+                "nullable": True,
+                "missing_count": 2,
+                "unique_count": 5,
+                "sample_values": ["1", "2"],
+                "ordinal_position": 1,
+            },
+        ]
+    )
     assert len(cols) == 2
     for col in cols:
         assert col.id is not None
@@ -544,8 +562,9 @@ async def test_column_delete_by_job_removes_all(db_session):
     assert count == 2
     await db_session.flush()
     # Re-query directly — deleted rows should not be found by the DB query
-    from sqlalchemy import select, func
     from app.models.ingestion import DatasetColumn as DC
+    from sqlalchemy import func, select
+
     result = await db_session.execute(
         select(func.count()).select_from(DC).where(DC.ingestion_job_id == job.id)
     )
@@ -585,17 +604,21 @@ async def test_column_sample_values_persisted(db_session):
     registry = await _make_registry(db_session)
     job = await _make_job(db_session, registry)
     repo = DatasetColumnRepository(db_session)
-    cols = await repo.create_many([{
-        "ingestion_job_id": job.id,
-        "original_name": "Province",
-        "normalized_name": "province",
-        "inferred_type": InferredColumnType.TEXT,
-        "nullable": False,
-        "missing_count": 0,
-        "unique_count": 3,
-        "sample_values": ["Lusaka", "Copperbelt", "Eastern"],
-        "ordinal_position": 0,
-    }])
+    cols = await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "Province",
+                "normalized_name": "province",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 3,
+                "sample_values": ["Lusaka", "Copperbelt", "Eastern"],
+                "ordinal_position": 0,
+            }
+        ]
+    )
     assert cols[0].sample_values == ["Lusaka", "Copperbelt", "Eastern"]
 
 
@@ -613,9 +636,16 @@ async def test_column_various_inferred_types(db_session):
         ("text_col", InferredColumnType.TEXT),
     ]
     payload = [
-        {"ingestion_job_id": job.id, "original_name": name, "normalized_name": name,
-         "inferred_type": t, "nullable": False, "missing_count": 0, "unique_count": 1,
-         "ordinal_position": idx}
+        {
+            "ingestion_job_id": job.id,
+            "original_name": name,
+            "normalized_name": name,
+            "inferred_type": t,
+            "nullable": False,
+            "missing_count": 0,
+            "unique_count": 1,
+            "ordinal_position": idx,
+        }
         for idx, (name, t) in enumerate(type_cases)
     ]
     cols = await repo.create_many(payload)
@@ -662,17 +692,40 @@ async def test_columns_returned_in_ordinal_position_order(db_session):
     repo = DatasetColumnRepository(db_session)
 
     # Insert in reverse order (positions 2, 1, 0)
-    await repo.create_many([
-        {"ingestion_job_id": job.id, "original_name": "C", "normalized_name": "c",
-         "inferred_type": InferredColumnType.TEXT, "nullable": False,
-         "missing_count": 0, "unique_count": 1, "ordinal_position": 2},
-        {"ingestion_job_id": job.id, "original_name": "A", "normalized_name": "a",
-         "inferred_type": InferredColumnType.TEXT, "nullable": False,
-         "missing_count": 0, "unique_count": 1, "ordinal_position": 0},
-        {"ingestion_job_id": job.id, "original_name": "B", "normalized_name": "b",
-         "inferred_type": InferredColumnType.TEXT, "nullable": False,
-         "missing_count": 0, "unique_count": 1, "ordinal_position": 1},
-    ])
+    await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "C",
+                "normalized_name": "c",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 1,
+                "ordinal_position": 2,
+            },
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "A",
+                "normalized_name": "a",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 1,
+                "ordinal_position": 0,
+            },
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "B",
+                "normalized_name": "b",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 1,
+                "ordinal_position": 1,
+            },
+        ]
+    )
 
     cols = await repo.list_by_ingestion_job(job.id)
     assert len(cols) == 3
@@ -692,14 +745,30 @@ async def test_uuid_ordering_cannot_override_ordinal_position(db_session):
     job = await _make_job(db_session, registry)
     repo = DatasetColumnRepository(db_session)
 
-    await repo.create_many([
-        {"ingestion_job_id": job.id, "original_name": "Last", "normalized_name": "last",
-         "inferred_type": InferredColumnType.TEXT, "nullable": False,
-         "missing_count": 0, "unique_count": 1, "ordinal_position": 99},
-        {"ingestion_job_id": job.id, "original_name": "First", "normalized_name": "first",
-         "inferred_type": InferredColumnType.TEXT, "nullable": False,
-         "missing_count": 0, "unique_count": 1, "ordinal_position": 0},
-    ])
+    await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "Last",
+                "normalized_name": "last",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 1,
+                "ordinal_position": 99,
+            },
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "First",
+                "normalized_name": "first",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 1,
+                "ordinal_position": 0,
+            },
+        ]
+    )
 
     cols = await repo.list_by_ingestion_job(job.id)
     assert cols[0].normalized_name == "first"
@@ -734,19 +803,37 @@ async def test_duplicate_ordinal_position_same_job_rejected(db_session):
     job = await _make_job(db_session, registry)
     repo = DatasetColumnRepository(db_session)
 
-    await repo.create_many([{
-        "ingestion_job_id": job.id, "original_name": "A", "normalized_name": "a",
-        "inferred_type": InferredColumnType.TEXT, "nullable": False,
-        "missing_count": 0, "unique_count": 1, "ordinal_position": 0,
-    }])
+    await repo.create_many(
+        [
+            {
+                "ingestion_job_id": job.id,
+                "original_name": "A",
+                "normalized_name": "a",
+                "inferred_type": InferredColumnType.TEXT,
+                "nullable": False,
+                "missing_count": 0,
+                "unique_count": 1,
+                "ordinal_position": 0,
+            }
+        ]
+    )
     await db_session.flush()
 
     with pytest.raises(IntegrityError):
-        await repo.create_many([{
-            "ingestion_job_id": job.id, "original_name": "B", "normalized_name": "b",
-            "inferred_type": InferredColumnType.TEXT, "nullable": False,
-            "missing_count": 0, "unique_count": 1, "ordinal_position": 0,  # duplicate!
-        }])
+        await repo.create_many(
+            [
+                {
+                    "ingestion_job_id": job.id,
+                    "original_name": "B",
+                    "normalized_name": "b",
+                    "inferred_type": InferredColumnType.TEXT,
+                    "nullable": False,
+                    "missing_count": 0,
+                    "unique_count": 1,
+                    "ordinal_position": 0,  # duplicate!
+                }
+            ]
+        )
         await db_session.flush()
 
 
@@ -759,9 +846,18 @@ async def test_negative_ordinal_position_rejected(db_session):
     repo = DatasetColumnRepository(db_session)
 
     with pytest.raises(IntegrityError):
-        await repo.create_many([{
-            "ingestion_job_id": job.id, "original_name": "A", "normalized_name": "a",
-            "inferred_type": InferredColumnType.TEXT, "nullable": False,
-            "missing_count": 0, "unique_count": 1, "ordinal_position": -1,
-        }])
+        await repo.create_many(
+            [
+                {
+                    "ingestion_job_id": job.id,
+                    "original_name": "A",
+                    "normalized_name": "a",
+                    "inferred_type": InferredColumnType.TEXT,
+                    "nullable": False,
+                    "missing_count": 0,
+                    "unique_count": 1,
+                    "ordinal_position": -1,
+                }
+            ]
+        )
         await db_session.flush()

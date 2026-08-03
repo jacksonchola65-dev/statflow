@@ -16,9 +16,6 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import (
     get_current_user,
     require_data_manager_or_admin,
@@ -36,9 +33,11 @@ from app.schemas.data_source import (
 from app.services.dataset_registry_service import (
     DatasetNameConflictError,
     DatasetNotFoundError,
-    DataSourceNotFoundForDatasetError,
     DatasetRegistryService,
+    DataSourceNotFoundForDatasetError,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/dataset-registry", tags=["dataset-registry"])
 
@@ -77,9 +76,7 @@ async def get_dataset(
     return DatasetRegistryResponse.model_validate(entry)
 
 
-@router.post(
-    "", response_model=DatasetRegistryResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=DatasetRegistryResponse, status_code=status.HTTP_201_CREATED)
 async def create_dataset(
     body: DatasetRegistryCreateRequest,
     db: AsyncSession = Depends(get_db),

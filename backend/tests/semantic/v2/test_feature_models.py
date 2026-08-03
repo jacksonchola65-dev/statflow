@@ -1,6 +1,11 @@
 import dataclasses
+
 import pytest
-from app.semantic.v2.feature_models import LightValueFeatures, ColumnFeatureContext, ExtendedValueFeatures
+from app.semantic.v2.feature_models import (
+    ColumnFeatureContext,
+    ExtendedValueFeatures,
+    LightValueFeatures,
+)
 
 
 def make_value(raw: str, parsed: float | None = None):

@@ -13,15 +13,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+import app.api.v1.endpoints.ingestions as ingestions_module
 import pytest
-from fastapi import status
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import UserRole
-from app.services.auth_service import AuthService
 from app.schemas.ingestion import (
     DatasetColumnResponse,
     DatasetInspectionResponse,
@@ -29,12 +25,13 @@ from app.schemas.ingestion import (
     IngestionJobSummaryResponse,
     PaginationResponse,
 )
+from app.services.auth_service import AuthService
 from app.services.ingestion_inspection_service import (
     IngestionJobNotFoundError,
-    InvalidInspectionPaginationError,
 )
-
-import app.api.v1.endpoints.ingestions as ingestions_module
+from fastapi import status
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 def _auth_cookie(user_id: uuid.UUID, role: UserRole) -> dict:
@@ -56,7 +53,9 @@ async def _make_user(db_session: AsyncSession, role: UserRole):
 
 
 @pytest.mark.asyncio
-async def test_get_ingestion_inspection_returns_200(authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
+async def test_get_ingestion_inspection_returns_200(
+    authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
     expected = DatasetInspectionResponse(
         job=IngestionJobSummaryResponse(
             id=uuid.uuid4(),
@@ -112,27 +111,31 @@ async def test_get_ingestion_inspection_returns_200(authed_client: AsyncClient, 
         def __init__(self, session):
             self.session = session
 
-        async def get_inspection(self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50):
+        async def get_inspection(
+            self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50
+        ):
             return expected
 
     monkeypatch.setattr(ingestions_module, "IngestionInspectionService", StubService)
 
     job_id = uuid.uuid4()
-    response = await authed_client.get(
-        f"/api/v1/ingestions/{job_id}?page=1&page_size=1"
-    )
+    response = await authed_client.get(f"/api/v1/ingestions/{job_id}?page=1&page_size=1")
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == expected.model_dump(mode="json")
 
 
 @pytest.mark.asyncio
-async def test_get_ingestion_inspection_missing_job_returns_404(authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
+async def test_get_ingestion_inspection_missing_job_returns_404(
+    authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
     class StubService:
         def __init__(self, session):
             pass
 
-        async def get_inspection(self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50):
+        async def get_inspection(
+            self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50
+        ):
             raise IngestionJobNotFoundError("Ingestion job not found.")
 
     monkeypatch.setattr(ingestions_module, "IngestionInspectionService", StubService)
@@ -168,7 +171,9 @@ async def test_get_ingestion_inspection_invalid_page_size_returns_422(authed_cli
 
 
 @pytest.mark.asyncio
-async def test_get_ingestion_inspection_page_beyond_total_returns_empty_rows(authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
+async def test_get_ingestion_inspection_page_beyond_total_returns_empty_rows(
+    authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
     expected = DatasetInspectionResponse(
         job=IngestionJobSummaryResponse(
             id=uuid.uuid4(),
@@ -202,7 +207,9 @@ async def test_get_ingestion_inspection_page_beyond_total_returns_empty_rows(aut
         def __init__(self, session):
             pass
 
-        async def get_inspection(self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50):
+        async def get_inspection(
+            self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50
+        ):
             return expected
 
     monkeypatch.setattr(ingestions_module, "IngestionInspectionService", StubService)
@@ -225,7 +232,9 @@ async def test_get_ingestion_inspection_unauthorized_returns_401(client: AsyncCl
 
 
 @pytest.mark.asyncio
-async def test_get_ingestion_inspection_forbidden_returns_403(client: AsyncClient, db_session: AsyncSession):
+async def test_get_ingestion_inspection_forbidden_returns_403(
+    client: AsyncClient, db_session: AsyncSession
+):
     user = await _make_user(db_session, role=UserRole.VIEWER)
     response = await client.get(
         f"/api/v1/ingestions/{uuid.uuid4()}",
@@ -236,7 +245,9 @@ async def test_get_ingestion_inspection_forbidden_returns_403(client: AsyncClien
 
 
 @pytest.mark.asyncio
-async def test_get_ingestion_inspection_preserves_decimal_strings(authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
+async def test_get_ingestion_inspection_preserves_decimal_strings(
+    authed_client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+):
     expected = DatasetInspectionResponse(
         job=IngestionJobSummaryResponse(
             id=uuid.uuid4(),
@@ -278,7 +289,9 @@ async def test_get_ingestion_inspection_preserves_decimal_strings(authed_client:
         def __init__(self, session):
             pass
 
-        async def get_inspection(self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50):
+        async def get_inspection(
+            self, ingestion_job_id: uuid.UUID, page: int = 1, page_size: int = 50
+        ):
             return expected
 
     monkeypatch.setattr(ingestions_module, "IngestionInspectionService", StubService)

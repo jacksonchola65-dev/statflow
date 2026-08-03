@@ -19,9 +19,6 @@ from __future__ import annotations
 
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.config import settings
 from app.core.dependencies import get_current_user
 from app.db.session import get_db
@@ -34,6 +31,8 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services.auth_service import AuthService, InvalidCredentialsError
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

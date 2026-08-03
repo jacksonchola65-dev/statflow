@@ -29,6 +29,7 @@ import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import TransformationOperation
@@ -161,9 +162,7 @@ async def test_apply_transformation_async_province_name_to_code(db_session):
 async def test_apply_transformation_async_delegates_pure_ops(db_session):
     """Pure operations are delegated to the synchronous static method."""
     svc = MappingExecutionService(session=db_session)
-    result = await svc._apply_transformation_async(
-        TransformationOperation.UPPERCASE, "lusaka"
-    )
+    result = await svc._apply_transformation_async(TransformationOperation.UPPERCASE, "lusaka")
     assert result == "LUSAKA"
 
 
@@ -189,7 +188,8 @@ async def test_database_query_failure_raises_cleanly():
 
 async def test_ambiguous_match_raises():
     """Two provinces with the same name (impossible in prod) → clear error."""
-    from unittest.mock import MagicMock, AsyncMock, patch
+    from unittest.mock import AsyncMock, MagicMock
+
     from app.models.province import Province
 
     mock_prov_a = MagicMock(spec=Province)
@@ -230,21 +230,24 @@ def test_static_apply_transformation_raises_for_province_name_to_code():
 
 
 def test_trim_regression():
-    assert MappingExecutionService._apply_transformation(
-        TransformationOperation.TRIM, "  hi  "
-    ) == "hi"
+    assert (
+        MappingExecutionService._apply_transformation(TransformationOperation.TRIM, "  hi  ")
+        == "hi"
+    )
 
 
 def test_uppercase_regression():
-    assert MappingExecutionService._apply_transformation(
-        TransformationOperation.UPPERCASE, "lusaka"
-    ) == "LUSAKA"
+    assert (
+        MappingExecutionService._apply_transformation(TransformationOperation.UPPERCASE, "lusaka")
+        == "LUSAKA"
+    )
 
 
 def test_lowercase_regression():
-    assert MappingExecutionService._apply_transformation(
-        TransformationOperation.LOWERCASE, "LUSAKA"
-    ) == "lusaka"
+    assert (
+        MappingExecutionService._apply_transformation(TransformationOperation.LOWERCASE, "LUSAKA")
+        == "lusaka"
+    )
 
 
 def test_parse_number_regression():
@@ -254,6 +257,9 @@ def test_parse_number_regression():
 
 
 def test_extract_year_regression():
-    assert MappingExecutionService._apply_transformation(
-        TransformationOperation.EXTRACT_YEAR, "2024-06-15"
-    ) == 2024
+    assert (
+        MappingExecutionService._apply_transformation(
+            TransformationOperation.EXTRACT_YEAR, "2024-06-15"
+        )
+        == 2024
+    )

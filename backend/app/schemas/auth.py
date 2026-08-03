@@ -19,11 +19,9 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
+from app.models.user import UserRole
 from email_validator import EmailNotValidError, validate_email
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from app.models.user import UserRole
-
 
 # ---------------------------------------------------------------------------
 # Request schemas
@@ -42,7 +40,7 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-    @field_validator('email')
+    @field_validator("email")
     @classmethod
     def validate_email(cls, value: str) -> str:
         return _validate_email(value)
@@ -56,7 +54,7 @@ class UserCreate(BaseModel):
     full_name: Optional[str] = None
     role: UserRole
 
-    @field_validator('email')
+    @field_validator("email")
     @classmethod
     def validate_email(cls, value: str) -> str:
         return _validate_email(value)
@@ -107,15 +105,15 @@ class LoginResponse(BaseModel):
     """
 
     user: UserResponse
-    expires_in: int   # seconds until access token expires
-    csrf_token: str   # CSRF token — must be stored in JS (not HttpOnly)
+    expires_in: int  # seconds until access token expires
+    csrf_token: str  # CSRF token — must be stored in JS (not HttpOnly)
 
 
 class CurrentUserResponse(BaseModel):
     """Returned by GET /auth/me."""
 
     user: UserResponse
-    csrf_token: str   # CSRF token refreshed/restored from cookie
+    csrf_token: str  # CSRF token refreshed/restored from cookie
 
 
 class MessageResponse(BaseModel):

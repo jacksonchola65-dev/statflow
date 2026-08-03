@@ -1,9 +1,8 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Iterable
+from typing import Iterable, Tuple
 
 from .analytics_role_models import AnalyticsRoleProfile, DimensionCandidate, MeasureCandidate
-from .entity_models import EntityKeyCandidate
-from .entity_models import EntityCandidate, RelationshipCandidate
+from .entity_models import EntityCandidate, EntityKeyCandidate, RelationshipCandidate
 from .semantic_models import SemanticClassification, SemanticEntity, SemanticRelationship
 from .semantic_types import DatasetDomain
 
@@ -75,7 +74,9 @@ class SemanticProfile:
         relationships = _tupleify(self.relationships, "relationships")
         for r in relationships:
             if not isinstance(r, (RelationshipCandidate, SemanticRelationship)):
-                raise TypeError("relationships must contain RelationshipCandidate or SemanticRelationship instances")
+                raise TypeError(
+                    "relationships must contain RelationshipCandidate or SemanticRelationship instances"
+                )
         object.__setattr__(self, "relationships", relationships)
 
         columns = _tupleify(self.columns, "columns")

@@ -22,13 +22,12 @@ import uuid
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from sqlalchemy import func, select, tuple_
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.data_point import DataPoint
 from app.models.dataset import Dataset
 from app.models.indicator import Indicator
 from app.models.province import Province
+from sqlalchemy import func, select, tuple_
+from sqlalchemy.ext.asyncio import AsyncSession
 
 if TYPE_CHECKING:
     from app.utils.csv_parser import ParsedRow
@@ -76,7 +75,7 @@ class ConflictKey:
     indicator_id: uuid.UUID
     province_id: uuid.UUID
     reference_year: int
-    dataset_name: str = ""   # populated by the service at preview time
+    dataset_name: str = ""  # populated by the service at preview time
 
 
 # ---------------------------------------------------------------------------
@@ -101,18 +100,14 @@ class ImportRepository:
         The parser compares province codes case-insensitively, so upper-casing
         here is the single source of truth.
         """
-        result = await self._session.execute(
-            select(Province.code, Province.id)
-        )
+        result = await self._session.execute(select(Province.code, Province.id))
         return {row.code.upper(): row.id for row in result.all()}
 
     async def load_indicator_map(self) -> dict[str, uuid.UUID]:
         """
         Return {indicator.code.upper(): indicator.id} for all indicators.
         """
-        result = await self._session.execute(
-            select(Indicator.code, Indicator.id)
-        )
+        result = await self._session.execute(select(Indicator.code, Indicator.id))
         return {row.code.upper(): row.id for row in result.all()}
 
     async def load_dataset_names(self) -> set[str]:
@@ -141,9 +136,7 @@ class ImportRepository:
         Returns None if no Dataset matches.
         """
         result = await self._session.execute(
-            select(Dataset).where(
-                func.lower(func.trim(Dataset.name)) == name.strip().lower()
-            )
+            select(Dataset).where(func.lower(func.trim(Dataset.name)) == name.strip().lower())
         )
         return result.scalar_one_or_none()
 
@@ -208,27 +201,21 @@ class ImportRepository:
 
         # Build the set of (indicator_id, province_id, reference_year) tuples
         # to check against the given dataset_id.
-        tuples_to_check = [
-            (row.indicator_id, row.province_id, row.reference_year)
-            for row in rows
-        ]
+        tuples_to_check = [(row.indicator_id, row.province_id, row.reference_year) for row in rows]
 
-        stmt = (
-            select(
+        stmt = select(
+            DataPoint.indicator_id,
+            DataPoint.province_id,
+            DataPoint.reference_year,
+        ).where(
+            DataPoint.dataset_id == dataset_id,
+            DataPoint.province_id.isnot(None),
+            DataPoint.district_id.is_(None),
+            tuple_(
                 DataPoint.indicator_id,
                 DataPoint.province_id,
                 DataPoint.reference_year,
-            )
-            .where(
-                DataPoint.dataset_id == dataset_id,
-                DataPoint.province_id.isnot(None),
-                DataPoint.district_id.is_(None),
-                tuple_(
-                    DataPoint.indicator_id,
-                    DataPoint.province_id,
-                    DataPoint.reference_year,
-                ).in_(tuples_to_check),
-            )
+            ).in_(tuples_to_check),
         )
 
         result = await self._session.execute(stmt)

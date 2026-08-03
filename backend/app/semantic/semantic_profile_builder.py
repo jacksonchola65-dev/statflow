@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
-from typing import Tuple, Iterable
+from typing import Iterable, Tuple
 
 from .analytics_role_models import AnalyticsRoleProfile, DimensionCandidate, MeasureCandidate
 from .entity_models import EntityCandidate, EntityKeyCandidate, RelationshipCandidate
-from .semantic_models import SemanticClassification, SemanticEntity
+from .semantic_models import SemanticClassification
 from .semantic_profile_models import SemanticColumnProfile, SemanticProfile
 from .semantic_types import DatasetDomain
 
@@ -76,7 +76,9 @@ class SemanticProfileBuilder:
             raise TypeError("column_classifications must be a tuple of ColumnClassification")
         for cc in column_classifications:
             if not isinstance(cc, ColumnClassification):
-                raise TypeError("column_classifications must contain ColumnClassification instances")
+                raise TypeError(
+                    "column_classifications must contain ColumnClassification instances"
+                )
 
         keys_by_column: dict[str, list[EntityKeyCandidate]] = {}
         for key in key_candidates:
@@ -97,8 +99,12 @@ class SemanticProfileBuilder:
                     column_name=classification.column_name,
                     classifications=classification.classifications,
                     key_candidates=tuple(keys_by_column.get(classification.column_name, [])),
-                    measure_candidates=tuple(measures_by_column.get(classification.column_name, [])),
-                    dimension_candidates=tuple(dimensions_by_column.get(classification.column_name, [])),
+                    measure_candidates=tuple(
+                        measures_by_column.get(classification.column_name, [])
+                    ),
+                    dimension_candidates=tuple(
+                        dimensions_by_column.get(classification.column_name, [])
+                    ),
                 )
             )
 

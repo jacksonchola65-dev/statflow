@@ -24,11 +24,10 @@ import uuid
 from datetime import date, datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 
+from app.db.base import Base
 from sqlalchemy import Boolean, Date, DateTime, Enum, ForeignKey, String, Text, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.ingestion import IngestionJob
@@ -40,39 +39,39 @@ if TYPE_CHECKING:
 
 
 class SourceType(str, enum.Enum):
-    OFFICIAL     = "OFFICIAL"
+    OFFICIAL = "OFFICIAL"
     ORGANIZATION = "ORGANIZATION"
-    INTERNAL     = "INTERNAL"
+    INTERNAL = "INTERNAL"
 
 
 class FileFormat(str, enum.Enum):
-    CSV   = "CSV"
-    XLSX  = "XLSX"
-    JSON  = "JSON"
-    API   = "API"
+    CSV = "CSV"
+    XLSX = "XLSX"
+    JSON = "JSON"
+    API = "API"
     OTHER = "OTHER"
 
 
 class ImportMethod(str, enum.Enum):
-    MANUAL    = "MANUAL"
+    MANUAL = "MANUAL"
     SCHEDULED = "SCHEDULED"
-    API_PULL  = "API_PULL"
+    API_PULL = "API_PULL"
 
 
 class RefreshFrequency(str, enum.Enum):
-    DAILY     = "DAILY"
-    WEEKLY    = "WEEKLY"
-    MONTHLY   = "MONTHLY"
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
     QUARTERLY = "QUARTERLY"
-    ANNUALLY  = "ANNUALLY"
-    ADHOC     = "ADHOC"
+    ANNUALLY = "ANNUALLY"
+    ADHOC = "ADHOC"
 
 
 class VerificationStatus(str, enum.Enum):
     UNVERIFIED = "UNVERIFIED"
-    PENDING    = "PENDING"
-    VERIFIED   = "VERIFIED"
-    REJECTED   = "REJECTED"
+    PENDING = "PENDING"
+    VERIFIED = "VERIFIED"
+    REJECTED = "REJECTED"
 
 
 # ---------------------------------------------------------------------------
@@ -101,9 +100,7 @@ class DataSource(Base):
         index=True,
     )
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    organization_type: Mapped[Optional[str]] = mapped_column(
-        String(100), nullable=True
-    )
+    organization_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     base_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     country: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(
@@ -128,7 +125,7 @@ class DataSource(Base):
     datasets: Mapped[List["DatasetRegistry"]] = relationship(
         "DatasetRegistry",
         back_populates="data_source",
-        cascade="save-update, merge",   # intentionally NO delete-cascade; use service layer
+        cascade="save-update, merge",  # intentionally NO delete-cascade; use service layer
     )
 
     def __repr__(self) -> str:

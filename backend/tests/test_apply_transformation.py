@@ -40,6 +40,7 @@ import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import TransformationOperation
@@ -144,9 +145,12 @@ def test_trim_boolean_false_returned_unchanged():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("op", [
-    TransformationOperation.PROVINCE_NAME_TO_CODE,
-])
+@pytest.mark.parametrize(
+    "op",
+    [
+        TransformationOperation.PROVINCE_NAME_TO_CODE,
+    ],
+)
 def test_unsupported_operation_raises(op):
     """Every non-trim operation raises UnsupportedTransformationError."""
     with pytest.raises(UnsupportedTransformationError) as exc_info:
@@ -236,6 +240,7 @@ def test_lowercase_still_unsupported():
 def test_parse_number_still_unsupported():
     """parse_number is now supported — verify it returns a Decimal."""
     from decimal import Decimal
+
     assert _apply(TransformationOperation.PARSE_NUMBER, "100") == Decimal("100")
 
 
@@ -318,6 +323,7 @@ def test_uppercase_regression_after_lowercase():
 def test_parse_number_still_unsupported_after_lowercase():
     """parse_number is now supported — verify it returns a Decimal."""
     from decimal import Decimal
+
     assert _apply(TransformationOperation.PARSE_NUMBER, "42.5") == Decimal("42.5")
 
 
@@ -421,6 +427,7 @@ def test_parse_number_comma_formatted_large():
 
 def test_parse_number_empty_string_raises():
     from app.services.mapping_execution_service import TransformationExecutionError
+
     with pytest.raises(TransformationExecutionError) as exc_info:
         _apply(PARSE, "")
     assert exc_info.value.operation == "parse_number"
@@ -428,12 +435,14 @@ def test_parse_number_empty_string_raises():
 
 def test_parse_number_whitespace_only_string_raises():
     from app.services.mapping_execution_service import TransformationExecutionError
+
     with pytest.raises(TransformationExecutionError):
         _apply(PARSE, "   ")
 
 
 def test_parse_number_alphabetic_string_raises():
     from app.services.mapping_execution_service import TransformationExecutionError
+
     with pytest.raises(TransformationExecutionError) as exc_info:
         _apply(PARSE, "abc")
     assert "abc" in str(exc_info.value)
@@ -441,6 +450,7 @@ def test_parse_number_alphabetic_string_raises():
 
 def test_parse_number_malformed_string_raises():
     from app.services.mapping_execution_service import TransformationExecutionError
+
     with pytest.raises(TransformationExecutionError):
         _apply(PARSE, "12.34.56")
 
@@ -590,6 +600,7 @@ def test_extract_year_float_raises():
 
 def test_extract_year_decimal_raises():
     from decimal import Decimal
+
     with pytest.raises(_TxError):
         _apply(EY, Decimal("2024"))
 
@@ -623,6 +634,7 @@ def test_lowercase_regression_after_extract_year():
 
 def test_parse_number_regression_after_extract_year():
     from decimal import Decimal
+
     assert _apply(TransformationOperation.PARSE_NUMBER, "42.5") == Decimal("42.5")
 
 

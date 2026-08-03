@@ -1,29 +1,22 @@
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.domain.analytics.contracts import (
-    AggregationFunction,
-    AnalyticsQuery,
-    DatasetReference,
-    Dimension,
-    Measure,
-)
 from app.models.data_source import FileFormat, SourceType
-from app.models.ingestion import IngestionJob, IngestionStatus, InferredColumnType
+from app.models.ingestion import InferredColumnType, IngestionJob, IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def _make_dataset(db_session: AsyncSession, status: IngestionStatus = IngestionStatus.COMPLETED) -> IngestionJob:
+async def _make_dataset(
+    db_session: AsyncSession, status: IngestionStatus = IngestionStatus.COMPLETED
+) -> IngestionJob:
     ds_repo = DataSourceRepository(db_session)
     data_source = await ds_repo.create(name="Analytics Source", is_active=True)
     await db_session.flush()
@@ -88,8 +81,16 @@ async def _make_dataset(db_session: AsyncSession, status: IngestionStatus = Inge
     row_repo = DatasetRowRepository(db_session)
     await row_repo.create_many(
         [
-            {"ingestion_job_id": job.id, "row_number": 0, "values": {"region": "North", "population": 100, "revenue": 10}},
-            {"ingestion_job_id": job.id, "row_number": 1, "values": {"region": "South", "population": 200, "revenue": 20}},
+            {
+                "ingestion_job_id": job.id,
+                "row_number": 0,
+                "values": {"region": "North", "population": 100, "revenue": 10},
+            },
+            {
+                "ingestion_job_id": job.id,
+                "row_number": 1,
+                "values": {"region": "South", "population": 200, "revenue": 20},
+            },
         ]
     )
     await db_session.flush()
@@ -198,9 +199,7 @@ async def test_query_sorting_and_filters_are_supported(
         "measures": [
             {"aggregation": "SUM", "column_name": "population", "alias": "population_sum"},
         ],
-        "filters": [
-            {"column_name": "region", "operator": "EQUALS", "value": "South"}
-        ],
+        "filters": [{"column_name": "region", "operator": "EQUALS", "value": "South"}],
         "sorting": [{"target": "region", "direction": "DESCENDING"}],
     }
 

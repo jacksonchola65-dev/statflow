@@ -5,12 +5,12 @@ Seeds all core StatFlow indicator categories.
 If a category code already exists, its name and description are updated
 to match the canonical values. Missing categories are inserted.
 """
+
 from dataclasses import dataclass
 
+from app.models.category import Category
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.category import Category
 
 
 @dataclass
@@ -85,9 +85,7 @@ async def seed_categories(session: AsyncSession) -> dict[str, int]:
     updated = 0
 
     for record in STATFLOW_CATEGORIES:
-        result = await session.execute(
-            select(Category).where(Category.code == record.code)
-        )
+        result = await session.execute(select(Category).where(Category.code == record.code))
         existing = result.scalar_one_or_none()
 
         if existing is None:

@@ -10,12 +10,10 @@ Security contract:
 
 from __future__ import annotations
 
-from email_validator import EmailNotValidError, validate_email
-from pydantic import BaseModel, ConfigDict, field_validator
-
 from app.models.user import UserRole
 from app.schemas.auth import UserResponse  # noqa: F401 — re-exported for convenience
-
+from email_validator import EmailNotValidError, validate_email
+from pydantic import BaseModel, ConfigDict, field_validator
 
 # ---------------------------------------------------------------------------
 # Request schemas
@@ -37,7 +35,7 @@ class UserCreateRequest(BaseModel):
     role: UserRole = UserRole.VIEWER
     is_active: bool = True
 
-    @field_validator('email')
+    @field_validator("email")
     @classmethod
     def validate_email(cls, value: str) -> str:
         return _validate_email(value)
@@ -57,7 +55,7 @@ class UserUpdateRequest(BaseModel):
     is_active: bool | None = None
     password: str | None = None
 
-    @field_validator('email')
+    @field_validator("email")
     @classmethod
     def validate_email(cls, value: str | None) -> str | None:
         if value is None:

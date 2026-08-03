@@ -21,12 +21,13 @@ from __future__ import annotations
 
 import sys
 from decimal import Decimal
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.schemas.ingestion_mapping import (
@@ -43,12 +44,14 @@ from app.services.mapping_execution_service import (
     TransformationExecutionError,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _col(target: TargetField, col: str, ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+
+def _col(
+    target: TargetField, col: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.COLUMN,
@@ -58,7 +61,9 @@ def _col(target: TargetField, col: str, ops: list[TransformationOperation] | Non
     )
 
 
-def _fix(target: TargetField, value: str, ops: list[TransformationOperation] | None = None) -> ColumnMapping:
+def _fix(
+    target: TargetField, value: str, ops: list[TransformationOperation] | None = None
+) -> ColumnMapping:
     return ColumnMapping(
         target_field=target,
         source_type=MappingSourceType.FIXED_VALUE,
@@ -120,9 +125,9 @@ async def test_fixed_value_independent_of_source_row():
 
 async def test_multiple_column_mappings():
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE,   "region"),
-        _col(TargetField.VALUE,           "revenue"),
-        _col(TargetField.REFERENCE_YEAR,  "order_date"),
+        _col(TargetField.PROVINCE_CODE, "region"),
+        _col(TargetField.VALUE, "revenue"),
+        _col(TargetField.REFERENCE_YEAR, "order_date"),
     )
     row = {"region": "Lusaka", "revenue": "2500", "order_date": "2024"}
     result = await _svc()._execute_row(cfg, row)
@@ -133,16 +138,20 @@ async def test_multiple_column_mappings():
 
 async def test_all_five_required_fields():
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE,   "region"),
-        _fix(TargetField.INDICATOR_CODE,  "ECOM_REVENUE"),
-        _col(TargetField.VALUE,           "revenue"),
-        _col(TargetField.REFERENCE_YEAR,  "order_date"),
-        _fix(TargetField.DATASET_NAME,    "Ecommerce Sales"),
+        _col(TargetField.PROVINCE_CODE, "region"),
+        _fix(TargetField.INDICATOR_CODE, "ECOM_REVENUE"),
+        _col(TargetField.VALUE, "revenue"),
+        _col(TargetField.REFERENCE_YEAR, "order_date"),
+        _fix(TargetField.DATASET_NAME, "Ecommerce Sales"),
     )
     row = {"region": "Lusaka", "revenue": "2500", "order_date": "2024"}
     result = await _svc()._execute_row(cfg, row)
     assert set(result.keys()) == {
-        "province_code", "indicator_code", "value", "reference_year", "dataset_name"
+        "province_code",
+        "indicator_code",
+        "value",
+        "reference_year",
+        "dataset_name",
     }
 
 
@@ -153,12 +162,12 @@ async def test_all_five_required_fields():
 
 async def test_mixed_fixed_and_column_mappings():
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "ECOM_REVENUE"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "Ecommerce Sales"),
-        _fix(TargetField.SOURCE_NAME,    "Uploaded CSV"),
+        _fix(TargetField.DATASET_NAME, "Ecommerce Sales"),
+        _fix(TargetField.SOURCE_NAME, "Uploaded CSV"),
     )
     row = {"region": "Lusaka", "revenue": "2500", "year": "2024"}
     result = await _svc()._execute_row(cfg, row)
@@ -177,8 +186,11 @@ async def test_mixed_fixed_and_column_mappings():
 
 async def test_transformation_applied_to_column_value():
     cfg = _cfg(
-        _col(TargetField.VALUE, "revenue",
-             ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER])
+        _col(
+            TargetField.VALUE,
+            "revenue",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PARSE_NUMBER],
+        )
     )
     row = {"revenue": "  2500.75  "}
     result = await _svc()._execute_row(cfg, row)
@@ -187,8 +199,7 @@ async def test_transformation_applied_to_column_value():
 
 async def test_transformation_applied_to_fixed_value():
     cfg = _cfg(
-        _fix(TargetField.INDICATOR_CODE, "ecom_revenue",
-             ops=[TransformationOperation.UPPERCASE])
+        _fix(TargetField.INDICATOR_CODE, "ecom_revenue", ops=[TransformationOperation.UPPERCASE])
     )
     result = await _svc()._execute_row(cfg, {})
     assert result["indicator_code"] == "ECOM_REVENUE"
@@ -196,8 +207,11 @@ async def test_transformation_applied_to_fixed_value():
 
 async def test_extract_year_transformation():
     cfg = _cfg(
-        _col(TargetField.REFERENCE_YEAR, "order_date",
-             ops=[TransformationOperation.TRIM, TransformationOperation.EXTRACT_YEAR])
+        _col(
+            TargetField.REFERENCE_YEAR,
+            "order_date",
+            ops=[TransformationOperation.TRIM, TransformationOperation.EXTRACT_YEAR],
+        )
     )
     row = {"order_date": "  2024-06-15  "}
     result = await _svc()._execute_row(cfg, row)
@@ -220,8 +234,8 @@ async def test_missing_source_column_raises():
 async def test_missing_column_stops_row_execution():
     """When one mapping fails due to missing column, subsequent mappings are not executed."""
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE,  "missing_col"),   # will fail
-        _col(TargetField.VALUE,          "revenue"),       # should never execute
+        _col(TargetField.PROVINCE_CODE, "missing_col"),  # will fail
+        _col(TargetField.VALUE, "revenue"),  # should never execute
     )
     with pytest.raises(SourceColumnNotFoundError):
         await _svc()._execute_row(cfg, {"revenue": "100"})
@@ -233,10 +247,7 @@ async def test_missing_column_stops_row_execution():
 
 
 async def test_transformation_failure_propagates():
-    cfg = _cfg(
-        _col(TargetField.VALUE, "revenue",
-             ops=[TransformationOperation.PARSE_NUMBER])
-    )
+    cfg = _cfg(_col(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]))
     row = {"revenue": "not_a_number"}
     with pytest.raises(TransformationExecutionError) as exc_info:
         await _svc()._execute_row(cfg, row)
@@ -246,9 +257,8 @@ async def test_transformation_failure_propagates():
 async def test_transformation_failure_stops_row():
     """A transformation failure on one field stops processing subsequent fields."""
     cfg = _cfg(
-        _col(TargetField.VALUE, "revenue",
-             ops=[TransformationOperation.PARSE_NUMBER]),  # will fail
-        _col(TargetField.REFERENCE_YEAR, "year"),           # should not execute
+        _col(TargetField.VALUE, "revenue", ops=[TransformationOperation.PARSE_NUMBER]),  # will fail
+        _col(TargetField.REFERENCE_YEAR, "year"),  # should not execute
     )
     row = {"revenue": "bad", "year": "2024"}
     with pytest.raises(TransformationExecutionError):
@@ -262,9 +272,11 @@ async def test_transformation_failure_stops_row():
 
 async def test_province_name_to_code_in_execute_row(db_session):
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE, "region",
-             ops=[TransformationOperation.TRIM,
-                  TransformationOperation.PROVINCE_NAME_TO_CODE])
+        _col(
+            TargetField.PROVINCE_CODE,
+            "region",
+            ops=[TransformationOperation.TRIM, TransformationOperation.PROVINCE_NAME_TO_CODE],
+        )
     )
     row = {"region": "  Lusaka  "}
     svc = MappingExecutionService(session=db_session)
@@ -274,8 +286,9 @@ async def test_province_name_to_code_in_execute_row(db_session):
 
 async def test_unknown_province_in_execute_row(db_session):
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE, "region",
-             ops=[TransformationOperation.PROVINCE_NAME_TO_CODE])
+        _col(
+            TargetField.PROVINCE_CODE, "region", ops=[TransformationOperation.PROVINCE_NAME_TO_CODE]
+        )
     )
     row = {"region": "Atlantis"}
     svc = MappingExecutionService(session=db_session)
@@ -306,8 +319,7 @@ async def test_empty_string_cell_stored():
 
 
 async def test_trim_on_empty_string_returns_empty():
-    cfg = _cfg(_col(TargetField.SOURCE_NAME, "notes",
-                    ops=[TransformationOperation.TRIM]))
+    cfg = _cfg(_col(TargetField.SOURCE_NAME, "notes", ops=[TransformationOperation.TRIM]))
     row = {"notes": ""}
     result = await _svc()._execute_row(cfg, row)
     assert result["source_name"] == ""
@@ -320,11 +332,11 @@ async def test_trim_on_empty_string_returns_empty():
 
 async def test_target_keys_match_field_names():
     cfg = _cfg(
-        _col(TargetField.PROVINCE_CODE,  "region"),
+        _col(TargetField.PROVINCE_CODE, "region"),
         _fix(TargetField.INDICATOR_CODE, "IND"),
-        _col(TargetField.VALUE,          "revenue"),
+        _col(TargetField.VALUE, "revenue"),
         _col(TargetField.REFERENCE_YEAR, "year"),
-        _fix(TargetField.DATASET_NAME,   "DS"),
+        _fix(TargetField.DATASET_NAME, "DS"),
     )
     row = {"region": "Lusaka", "revenue": "100", "year": "2024"}
     result = await _svc()._execute_row(cfg, row)

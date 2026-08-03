@@ -5,14 +5,13 @@ import json
 import uuid
 from typing import Any
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.universal_dataset import (
     UniversalDataset,
     UniversalDatasetColumn,
     UniversalDatasetRow,
     UniversalDatasetVersion,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class UniversalDatasetPersistenceService:
@@ -145,7 +144,9 @@ class UniversalDatasetPersistenceService:
         if all(isinstance(value, int) and not isinstance(value, bool) for value in filtered):
             return "integer"
 
-        if all(isinstance(value, (int, float)) and not isinstance(value, bool) for value in filtered):
+        if all(
+            isinstance(value, (int, float)) and not isinstance(value, bool) for value in filtered
+        ):
             return "decimal"
 
         return "string"

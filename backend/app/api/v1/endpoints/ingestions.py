@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.dependencies import require_data_manager_or_admin
 from app.db.session import get_db
 from app.models.user import User
@@ -14,6 +11,8 @@ from app.services.ingestion_inspection_service import (
     IngestionJobNotFoundError,
     InvalidInspectionPaginationError,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/ingestions", tags=["ingestions"])
 

@@ -21,24 +21,20 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
 
 import pytest
-from sqlalchemy import inspect, select
-from sqlalchemy.exc import IntegrityError
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
 from app.models.ingestion import DatasetRow, IngestionJob
 from app.repositories.dataset_row_repository import (
+    _INSERT_BATCH_SIZE,
     DatasetRowRepository,
     RowInsertMapping,
-    _INSERT_BATCH_SIZE,
-    _MAX_LIMIT,
-    _MIN_LIMIT,
 )
-
+from sqlalchemy.exc import IntegrityError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -65,6 +61,7 @@ async def _make_registry(db_session) -> DatasetRegistry:
 
 async def _make_job(db_session, registry: DatasetRegistry) -> IngestionJob:
     from app.repositories.ingestion_job_repository import IngestionJobRepository
+
     repo = IngestionJobRepository(db_session)
     return await repo.create(
         dataset_registry_id=registry.id,
@@ -190,9 +187,7 @@ async def test_create_many_does_not_add_rows_to_identity_map(db_session):
 
     # Count DatasetRow instances currently in the identity map
     row_instances_in_map = sum(
-        1
-        for obj in db_session.identity_map.values()
-        if isinstance(obj, DatasetRow)
+        1 for obj in db_session.identity_map.values() if isinstance(obj, DatasetRow)
     )
     assert row_instances_in_map == 0, (
         f"Expected 0 DatasetRow objects in identity map after Core INSERT, "

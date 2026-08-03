@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Tuple, Optional
 import math
+from dataclasses import dataclass, field
+from typing import Optional, Tuple
 
 from .semantic_types import DatasetDomain, SemanticType
 

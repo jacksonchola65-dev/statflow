@@ -1,11 +1,9 @@
 import time
+
 import pytest
-from uuid import uuid4
-
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.detectors.base import DetectorInput
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.semantic_types import SemanticType
-
 
 detector = RegexSemanticDetector()
 
@@ -13,7 +11,10 @@ detector = RegexSemanticDetector()
 def test_email_detection():
     inp = DetectorInput(column_name="c", values=("user@example.com",))
     out = detector.detect(inp)
-    assert any(cl.semantic_type == SemanticType.EMAIL and cl.confidence == pytest.approx(0.95) for cl in out.classifications)
+    assert any(
+        cl.semantic_type == SemanticType.EMAIL and cl.confidence == pytest.approx(0.95)
+        for cl in out.classifications
+    )
 
 
 def test_phone_detection():

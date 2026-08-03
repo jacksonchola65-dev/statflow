@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Tuple, Optional
 import math
+from dataclasses import dataclass
+from typing import Optional, Tuple
 
 
 def _ensure_tuple_of_str(t, name: str):
@@ -127,4 +127,6 @@ class ColumnFeatureContext:
         else:
             expected_card = self.unique_count / self.non_null_count
             if not math.isclose(self.cardinality_ratio, expected_card, rel_tol=0.0, abs_tol=1e-12):
-                raise ValueError("cardinality_ratio inconsistent with unique_count and non_null_count")
+                raise ValueError(
+                    "cardinality_ratio inconsistent with unique_count and non_null_count"
+                )

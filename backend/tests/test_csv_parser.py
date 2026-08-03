@@ -8,17 +8,16 @@ No database connections are made.
 
 References: REQ-2.2, REQ-2.6, REQ-2.7, REQ-3, REQ-4, REQ-12.1–REQ-12.8
 """
+
 from __future__ import annotations
 
 import textwrap
 from uuid import uuid4
 
 import pytest
-
 from app.utils.csv_parser import (
     MalformedCsvError,
     MissingColumnsError,
-    ParseResult,
     parse_and_validate,
 )
 
@@ -48,6 +47,7 @@ def _build_csv(*rows: str) -> bytes:
 # REQ-12.1
 # ---------------------------------------------------------------------------
 
+
 def test_valid_three_row_csv():
     """Valid CSV with 3 rows produces valid_rows=3, no errors, no duplicates."""
     csv_bytes = _build_csv(
@@ -55,9 +55,7 @@ def test_valid_three_row_csv():
         "LP,GDPC,2000.00,2020,MyDataset,National Bureau,",
         "CP,POP,500000,2021,MyDataset,National Bureau,",
     )
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
     assert len(result.valid_rows) == 3
     assert result.errors == []
     assert result.duplicate_row_numbers == []
@@ -68,6 +66,7 @@ def test_valid_three_row_csv():
 # REQ-2.2, REQ-12.3
 # ---------------------------------------------------------------------------
 
+
 def test_missing_required_column_raises():
     """CSV without dataset_name column must raise MissingColumnsError."""
     csv_bytes = textwrap.dedent("""\
@@ -76,9 +75,7 @@ def test_missing_required_column_raises():
     """).encode("utf-8")
 
     with pytest.raises(MissingColumnsError) as exc_info:
-        parse_and_validate(
-            csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-        )
+        parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert "dataset_name" in exc_info.value.missing
 
@@ -88,13 +85,12 @@ def test_missing_required_column_raises():
 # REQ-2.6
 # ---------------------------------------------------------------------------
 
+
 def test_blank_dataset_name_produces_row_error():
     """A row with a blank dataset_name cell must produce a row-level error."""
     csv_bytes = _build_csv("CP,GDPC,1000,2020,,SomeSource,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert len(result.valid_rows) == 0
     assert any(e.column == "dataset_name" for e in result.errors)
@@ -105,6 +101,7 @@ def test_blank_dataset_name_produces_row_error():
 # REQ-2.7
 # ---------------------------------------------------------------------------
 
+
 def test_new_dataset_blank_source_name_produces_row_error():
     """
     When dataset_name is not in existing_dataset_names, source_name must
@@ -112,9 +109,7 @@ def test_new_dataset_blank_source_name_produces_row_error():
     """
     csv_bytes = _build_csv("CP,GDPC,1000,2020,BrandNewDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert len(result.valid_rows) == 0
     assert any(e.column == "source_name" for e in result.errors)
@@ -125,6 +120,7 @@ def test_new_dataset_blank_source_name_produces_row_error():
 # REQ-2.7
 # ---------------------------------------------------------------------------
 
+
 def test_existing_dataset_blank_source_name_is_valid():
     """
     When dataset_name matches an existing Dataset, source_name is NOT
@@ -132,9 +128,7 @@ def test_existing_dataset_blank_source_name_is_valid():
     """
     csv_bytes = _build_csv("CP,GDPC,1000,2020,ExistingDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert len(result.valid_rows) == 1
     assert result.errors == []
@@ -145,13 +139,12 @@ def test_existing_dataset_blank_source_name_is_valid():
 # REQ-3.1, REQ-12.4
 # ---------------------------------------------------------------------------
 
+
 def test_unknown_province_code_produces_row_error():
     """An unknown province_code must produce a row error citing the raw value."""
     csv_bytes = _build_csv("XX,GDPC,1000,2020,ExistingDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert len(result.valid_rows) == 0
     province_errors = [e for e in result.errors if e.column == "province_code"]
@@ -166,13 +159,12 @@ def test_unknown_province_code_produces_row_error():
 # REQ-3.2, REQ-12.5
 # ---------------------------------------------------------------------------
 
+
 def test_unknown_indicator_code_produces_row_error():
     """An unknown indicator_code must produce a row-level error."""
     csv_bytes = _build_csv("CP,UNKNOWN_IND,1000,2020,ExistingDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert any(e.column == "indicator_code" for e in result.errors)
     assert len(result.valid_rows) == 0
@@ -183,13 +175,12 @@ def test_unknown_indicator_code_produces_row_error():
 # REQ-3.3, REQ-12.6
 # ---------------------------------------------------------------------------
 
+
 def test_non_numeric_value_produces_row_error():
     """A non-numeric string in the value column must produce a row error."""
     csv_bytes = _build_csv("CP,GDPC,abc,2020,ExistingDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert any(e.column == "value" for e in result.errors)
     assert len(result.valid_rows) == 0
@@ -200,13 +191,12 @@ def test_non_numeric_value_produces_row_error():
 # REQ-3.4, REQ-12.7
 # ---------------------------------------------------------------------------
 
+
 def test_reference_year_below_minimum_produces_row_error():
     """reference_year=1800 is below 1900 and must produce a row-level error."""
     csv_bytes = _build_csv("CP,GDPC,1000,1800,ExistingDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert any(e.column == "reference_year" for e in result.errors)
     assert len(result.valid_rows) == 0
@@ -217,13 +207,12 @@ def test_reference_year_below_minimum_produces_row_error():
 # REQ-3.4, REQ-12.7
 # ---------------------------------------------------------------------------
 
+
 def test_reference_year_above_maximum_produces_row_error():
     """reference_year=2101 is above 2100 and must produce a row-level error."""
     csv_bytes = _build_csv("CP,GDPC,1000,2101,ExistingDataset,,")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert any(e.column == "reference_year" for e in result.errors)
     assert len(result.valid_rows) == 0
@@ -233,6 +222,7 @@ def test_reference_year_above_maximum_produces_row_error():
 # Test 11 — Intra-file duplicate natural key → duplicate_row_numbers populated
 # REQ-4.1, REQ-4.2, REQ-12.8
 # ---------------------------------------------------------------------------
+
 
 def test_intra_file_duplicate_natural_key():
     """
@@ -245,9 +235,7 @@ def test_intra_file_duplicate_natural_key():
         "CP,GDPC,9999,2020,ExistingDataset,,",  # same natural key, different value
     )
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     # First occurrence stays valid; second is a duplicate
     assert len(result.valid_rows) == 1
@@ -260,20 +248,20 @@ def test_intra_file_duplicate_natural_key():
 # REQ-12.2
 # ---------------------------------------------------------------------------
 
+
 def test_binary_content_raises_malformed_csv_error():
     """Raw binary bytes that cannot be decoded as UTF-8 must raise MalformedCsvError."""
     binary_bytes = bytes(range(256))  # contains non-UTF-8 byte sequences
 
     with pytest.raises(MalformedCsvError):
-        parse_and_validate(
-            binary_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-        )
+        parse_and_validate(binary_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
 
 # ---------------------------------------------------------------------------
 # Test 13 — 101 invalid rows → len(errors) == 101 (no truncation in parser)
 # REQ-6.6, REQ-6.6b (truncation is service layer responsibility)
 # ---------------------------------------------------------------------------
+
 
 def test_101_invalid_rows_are_all_reported_by_parser():
     """
@@ -287,9 +275,7 @@ def test_101_invalid_rows_are_all_reported_by_parser():
     csv_content = "\n".join([header, *rows])
     csv_bytes = csv_content.encode("utf-8")
 
-    result = parse_and_validate(
-        csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES
-    )
+    result = parse_and_validate(csv_bytes, PROVINCE_MAP, INDICATOR_MAP, EXISTING_DATASET_NAMES)
 
     assert len(result.errors) == 101
     assert len(result.valid_rows) == 0

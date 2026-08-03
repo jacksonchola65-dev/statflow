@@ -1,10 +1,9 @@
 import uuid
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.data_point import DataPoint
 from app.repositories.data_point_repository import DataPointRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DataPointService:

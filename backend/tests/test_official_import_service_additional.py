@@ -2,23 +2,34 @@
 
 from __future__ import annotations
 
+import asyncio
 import sys
 import uuid
-import asyncio
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from dataclasses import dataclass
 from typing import Optional
 
 import pytest
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
 from app.models.ingestion import IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
+from app.services.ingestion_persistence_service import (
+    IngestionPersistenceError,
+    IngestionPersistenceResult,
+)
+from app.services.ingestion_profiling_service import (
+    InferredColumnType,
+    IngestionProfileResult,
+    IngestionProfilingError,
+    ProfiledColumn,
+    ProfiledRow,
+)
 from app.services.official_import_service import (
     ImportData,
     ImportResult,
@@ -26,18 +37,9 @@ from app.services.official_import_service import (
     OfficialDataImporter,
     OfficialImportError,
     OfficialImportService,
+)
+from app.services.official_import_service import (
     import_data as import_data_wrapper,
-)
-from app.services.ingestion_persistence_service import (
-    IngestionPersistenceError,
-    IngestionPersistenceResult,
-)
-from app.services.ingestion_profiling_service import (
-    IngestionProfilingError,
-    IngestionProfileResult,
-    ProfiledColumn,
-    ProfiledRow,
-    InferredColumnType,
 )
 
 
@@ -188,7 +190,9 @@ async def test_profiling_exception_propagates(db_session):
     profiling = StubProfiling(recorder=EventRecorder(), result=IngestionProfilingError("bad data"))
     persistence = StubPersistence(recorder=EventRecorder(), result=None)
 
-    service = OfficialImportService(db_session, profiling_service=profiling, persistence_service=persistence)
+    service = OfficialImportService(
+        db_session, profiling_service=profiling, persistence_service=persistence
+    )
 
     with pytest.raises(IngestionProfilingError):
         await service.import_data(importer=importer, dataset_registry=registry)
@@ -204,9 +208,13 @@ async def test_persistence_exception_propagates(db_session):
     importer = CountingImporter(importer_data)
 
     profiling = StubProfiling(recorder=EventRecorder(), result=_make_profile())
-    persistence = StubPersistence(recorder=EventRecorder(), result=IngestionPersistenceError("db fail"))
+    persistence = StubPersistence(
+        recorder=EventRecorder(), result=IngestionPersistenceError("db fail")
+    )
 
-    service = OfficialImportService(db_session, profiling_service=profiling, persistence_service=persistence)
+    service = OfficialImportService(
+        db_session, profiling_service=profiling, persistence_service=persistence
+    )
 
     with pytest.raises(IngestionPersistenceError):
         await service.import_data(importer=importer, dataset_registry=registry)
@@ -238,7 +246,9 @@ async def test_cancellederror_propagates(db_session):
 def test_no_repository_imports_in_module():
     # Assert source file does not import app.repositories to guard architecture
     import inspect
+
     import app.services.official_import_service as mod
+
     src = inspect.getsource(mod)
     assert "from app.repositories" not in src
 
@@ -273,8 +283,9 @@ async def test_import_data_wrapper_delegates(monkeypatch, db_session):
             )
 
     registry = await _make_registry(db_session)
-    result = await import_data_wrapper(db_session, importer=SimpleImporter(), dataset_registry=registry)
+    result = await import_data_wrapper(
+        db_session, importer=SimpleImporter(), dataset_registry=registry
+    )
 
     assert result.source == ImportSource.PACRA
     assert result.original_filename == "delegate.csv"
-

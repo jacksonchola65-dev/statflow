@@ -1,12 +1,10 @@
-from typing import Sequence, Tuple, Iterable, Dict, Set
 from collections import defaultdict
-import time
+from typing import Dict, Iterable, Sequence, Set, Tuple
 
-from .semantic_models import SemanticClassification
-from .domain_models import DomainScore, DomainEvidence
+from .domain_models import DomainEvidence, DomainScore
 from .domain_signatures import DOMAIN_SIGNATURES
+from .semantic_models import SemanticClassification
 from .semantic_types import DatasetDomain, SemanticType
-
 
 # Precompute domain grouping and total weights for performance and determinism
 _DOMAIN_TO_SIGS: Dict[DatasetDomain, list[DomainEvidence]] = defaultdict(list)
@@ -82,7 +80,14 @@ class DomainScoringEngine:
                     contribution = float(s.weight) * float(best_conf)
                     raw_score += contribution
                     desc = f"type={st.value}; confidence={best_conf:.4f}; weight={float(s.weight):.4f}; supporting_columns={supporting_cols}"
-                    matched_evidence.append(DomainEvidence(domain=domain, semantic_type=st, weight=float(s.weight), description=desc))
+                    matched_evidence.append(
+                        DomainEvidence(
+                            domain=domain,
+                            semantic_type=st,
+                            weight=float(s.weight),
+                            description=desc,
+                        )
+                    )
 
             # Apply dataset-wide evidence rules
             # require at least 2 distinct matched semantic types
@@ -101,7 +106,11 @@ class DomainScoringEngine:
                         normalized = 1.0
 
             # If evidence rules not met, normalized remains 0.0 but matched_evidence still returned
-            results.append(DomainScore(domain=domain, score=float(normalized), evidence=tuple(matched_evidence)))
+            results.append(
+                DomainScore(
+                    domain=domain, score=float(normalized), evidence=tuple(matched_evidence)
+                )
+            )
 
         # Sort results by descending score then domain value
         results.sort(key=lambda d: (-float(d.score), d.domain.value))

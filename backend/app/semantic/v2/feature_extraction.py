@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from typing import Optional, Tuple
-from app.semantic.v2.feature_models import LightValueFeatures, ExtendedValueFeatures, ColumnFeatureContext
+
+from app.semantic.v2.feature_models import (
+    ColumnFeatureContext,
+    LightValueFeatures,
+)
 
 
 class FeatureExtractionPipeline:
@@ -34,7 +38,7 @@ class FeatureExtractionPipeline:
             cleaned = raw.strip()
             lowered = cleaned.lower()
 
-            is_empty = (cleaned == "")
+            is_empty = cleaned == ""
 
             parsed_number: Optional[float] = None
             is_integer = False

@@ -1,8 +1,9 @@
-import pytest
 from collections import defaultdict
+
+import pytest
+from app.semantic.domain_models import DomainEvidence
 from app.semantic.domain_signatures import DOMAIN_SIGNATURES
 from app.semantic.semantic_types import DatasetDomain, SemanticType
-from app.semantic.domain_models import DomainEvidence
 
 
 def test_registry_immutable_and_tuple():
@@ -12,7 +13,20 @@ def test_registry_immutable_and_tuple():
 
 
 def test_all_domains_present_and_min_signatures():
-    required = {DatasetDomain.HEALTHCARE, DatasetDomain.FINANCE, DatasetDomain.EDUCATION, DatasetDomain.AGRICULTURE, DatasetDomain.GOVERNMENT, DatasetDomain.RETAIL, DatasetDomain.MANUFACTURING, DatasetDomain.INSURANCE, DatasetDomain.TELECOM, DatasetDomain.ENERGY, DatasetDomain.HR, DatasetDomain.RESEARCH}
+    required = {
+        DatasetDomain.HEALTHCARE,
+        DatasetDomain.FINANCE,
+        DatasetDomain.EDUCATION,
+        DatasetDomain.AGRICULTURE,
+        DatasetDomain.GOVERNMENT,
+        DatasetDomain.RETAIL,
+        DatasetDomain.MANUFACTURING,
+        DatasetDomain.INSURANCE,
+        DatasetDomain.TELECOM,
+        DatasetDomain.ENERGY,
+        DatasetDomain.HR,
+        DatasetDomain.RESEARCH,
+    }
     by_domain = defaultdict(list)
     for s in DOMAIN_SIGNATURES:
         assert isinstance(s, DomainEvidence)
@@ -29,7 +43,7 @@ def test_weights_and_types_valid():
         assert isinstance(s.semantic_type, SemanticType)
         assert isinstance(s.domain, DatasetDomain)
         assert s.weight > 0 and s.weight <= 1.0
-        assert s.weight == s.weight and s.weight != float('inf')
+        assert s.weight == s.weight and s.weight != float("inf")
         key = (s.domain, s.semantic_type)
         assert key not in pairs
         pairs.add(key)

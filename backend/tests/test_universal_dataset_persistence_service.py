@@ -3,9 +3,6 @@ import json
 import uuid
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.universal_dataset import (
     UniversalDataset,
     UniversalDatasetColumn,
@@ -16,6 +13,8 @@ from app.models.user import User, UserRole
 from app.services.universal_dataset_persistence_service import (
     UniversalDatasetPersistenceService,
 )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _create_owner(db_session: AsyncSession) -> User:
@@ -31,7 +30,9 @@ async def _create_owner(db_session: AsyncSession) -> User:
     return owner
 
 
-async def test_create_dataset_from_rows_persists_dataset_version_columns_and_rows(db_session: AsyncSession) -> None:
+async def test_create_dataset_from_rows_persists_dataset_version_columns_and_rows(
+    db_session: AsyncSession,
+) -> None:
     owner = await _create_owner(db_session)
     service = UniversalDatasetPersistenceService(db_session)
 
@@ -60,7 +61,9 @@ async def test_create_dataset_from_rows_persists_dataset_version_columns_and_row
     assert version.column_count == 3
 
     columns_result = await db_session.execute(
-        select(UniversalDatasetColumn).where(UniversalDatasetColumn.dataset_version_id == version.id)
+        select(UniversalDatasetColumn).where(
+            UniversalDatasetColumn.dataset_version_id == version.id
+        )
     )
     columns = columns_result.scalars().all()
     assert len(columns) == 3
@@ -111,7 +114,9 @@ async def test_create_dataset_from_rows_rejects_empty_rows(db_session: AsyncSess
         )
 
 
-async def test_create_dataset_from_rows_uses_deterministic_row_hashes_and_row_numbers(db_session: AsyncSession) -> None:
+async def test_create_dataset_from_rows_uses_deterministic_row_hashes_and_row_numbers(
+    db_session: AsyncSession,
+) -> None:
     owner = await _create_owner(db_session)
     service = UniversalDatasetPersistenceService(db_session)
 
@@ -133,7 +138,9 @@ async def test_create_dataset_from_rows_uses_deterministic_row_hashes_and_row_nu
     persisted_rows = persisted_rows_result.scalars().all()
 
     for row_obj in persisted_rows:
-        normalized = json.dumps(row_obj.data_json, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+        normalized = json.dumps(
+            row_obj.data_json, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
         expected_hash = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
         assert row_obj.row_hash == expected_hash
 
@@ -160,7 +167,9 @@ async def test_create_dataset_from_rows_rolls_back_on_row_failure(db_session: As
     assert count == 0
 
 
-async def test_create_dataset_from_rows_rolls_back_on_column_failure(db_session: AsyncSession) -> None:
+async def test_create_dataset_from_rows_rolls_back_on_column_failure(
+    db_session: AsyncSession,
+) -> None:
     owner = await _create_owner(db_session)
     service = UniversalDatasetPersistenceService(db_session)
 
@@ -180,7 +189,9 @@ async def test_create_dataset_from_rows_rolls_back_on_column_failure(db_session:
     assert count == 0
 
 
-async def test_create_dataset_from_rows_stores_owner_and_version_metadata(db_session: AsyncSession) -> None:
+async def test_create_dataset_from_rows_stores_owner_and_version_metadata(
+    db_session: AsyncSession,
+) -> None:
     owner = await _create_owner(db_session)
     service = UniversalDatasetPersistenceService(db_session)
 

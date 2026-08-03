@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
+from app.models.ingestion import DatasetColumn, IngestionJob, IngestionStatus
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.ingestion import DatasetColumn, IngestionJob, IngestionStatus
-from .exceptions import IncompleteIngestionJobError, InvalidIdentifierError, UnknownIngestionJobError
+from .exceptions import (
+    IncompleteIngestionJobError,
+    InvalidIdentifierError,
+    UnknownIngestionJobError,
+)
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,6 @@ from __future__ import annotations
 from app.domain.analytics.contracts import AggregationFunction
 from app.models.ingestion import InferredColumnType
 
-
 _DIMENSION_ELIGIBLE_TYPES: frozenset[InferredColumnType] = frozenset(
     {
         InferredColumnType.TEXT,

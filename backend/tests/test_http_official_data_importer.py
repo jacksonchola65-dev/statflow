@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import socket
-from types import SimpleNamespace
 
 import httpx
 import pytest
-
 from app.services.http_official_data_importer import (
     EmptyHttpImportResponseError,
     HttpImportContentTypeError,

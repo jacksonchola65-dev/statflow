@@ -1,13 +1,21 @@
 import time
-from uuid import uuid4
 
 import pytest
-
-from app.semantic.analytics_role_models import AnalyticsRoleProfile, Aggregation, DimensionCandidate, DimensionType, MeasureCandidate
+from app.semantic.analytics_role_models import (
+    Aggregation,
+    AnalyticsRoleProfile,
+    DimensionCandidate,
+    DimensionType,
+    MeasureCandidate,
+)
 from app.semantic.entity_models import EntityCandidate, EntityKeyCandidate, RelationshipCandidate
 from app.semantic.semantic_models import SemanticClassification, SemanticEvidence
-from app.semantic.semantic_profile_builder import ColumnClassification, DomainDetectionResult, SemanticProfileBuilder
-from app.semantic.semantic_profile_models import SemanticColumnProfile, SemanticProfile
+from app.semantic.semantic_profile_builder import (
+    ColumnClassification,
+    DomainDetectionResult,
+    SemanticProfileBuilder,
+)
+from app.semantic.semantic_profile_models import SemanticColumnProfile
 from app.semantic.semantic_types import DatasetDomain, SemanticType
 
 
@@ -20,7 +28,13 @@ def make_classification(semantic_type, confidence=0.8):
 
 
 def make_entity():
-    return EntityCandidate(name="Person", semantic_types=(SemanticType.PERSON,), source_columns=("id",), confidence=0.9, evidence=(SemanticEvidence(source="t", score=0.9),))
+    return EntityCandidate(
+        name="Person",
+        semantic_types=(SemanticType.PERSON,),
+        source_columns=("id",),
+        confidence=0.9,
+        evidence=(SemanticEvidence(source="t", score=0.9),),
+    )
 
 
 def make_key():
@@ -75,14 +89,28 @@ def test_complete_profile_assembly():
     measure = make_measure("id")
     dimension = make_dimension("id")
     roles = AnalyticsRoleProfile(measure_candidates=(measure,), dimension_candidates=(dimension,))
-    columns = (ColumnClassification(column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)),)
+    columns = (
+        ColumnClassification(
+            column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)
+        ),
+    )
 
-    profile = SemanticProfileBuilder.compose(domain, (entity,), (relationship,), (key,), roles, columns)
+    profile = SemanticProfileBuilder.compose(
+        domain, (entity,), (relationship,), (key,), roles, columns
+    )
 
     assert profile.domain == DatasetDomain.GENERAL
     assert profile.entities == (entity,)
     assert profile.relationships == (relationship,)
-    assert profile.columns == (SemanticColumnProfile(column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),), key_candidates=(key,), measure_candidates=(measure,), dimension_candidates=(dimension,),),)
+    assert profile.columns == (
+        SemanticColumnProfile(
+            column_name="id",
+            classifications=(make_classification(SemanticType.IDENTIFIER),),
+            key_candidates=(key,),
+            measure_candidates=(measure,),
+            dimension_candidates=(dimension,),
+        ),
+    )
     assert profile.analytics_roles == roles
 
 
@@ -99,7 +127,9 @@ def test_empty_profile():
 def test_columns_without_roles():
     domain = DomainDetectionResult(domain=DatasetDomain.GENERAL)
     columns = (
-        ColumnClassification(column_name="x", classifications=(make_classification(SemanticType.TEXT),)),
+        ColumnClassification(
+            column_name="x", classifications=(make_classification(SemanticType.TEXT),)
+        ),
     )
     profile = SemanticProfileBuilder.compose(domain, (), (), (), AnalyticsRoleProfile(), columns)
     assert profile.columns[0].measure_candidates == ()
@@ -125,7 +155,11 @@ def test_multiple_keys_on_one_column():
         (),
         (key1, key2),
         AnalyticsRoleProfile(),
-        (ColumnClassification(column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)),),
+        (
+            ColumnClassification(
+                column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)
+            ),
+        ),
     )
     assert profile.columns[0].key_candidates == (key1, key2)
 
@@ -141,7 +175,11 @@ def test_measures_and_dimensions_on_same_column():
         (),
         (),
         roles,
-        (ColumnClassification(column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)),),
+        (
+            ColumnClassification(
+                column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)
+            ),
+        ),
     )
     assert profile.columns[0].measure_candidates == (measure,)
     assert profile.columns[0].dimension_candidates == (dimension,)
@@ -150,8 +188,12 @@ def test_measures_and_dimensions_on_same_column():
 def test_ordering_preserved():
     domain = DomainDetectionResult(domain=DatasetDomain.GENERAL)
     columns = (
-        ColumnClassification(column_name="a", classifications=(make_classification(SemanticType.TEXT),)),
-        ColumnClassification(column_name="b", classifications=(make_classification(SemanticType.EMAIL),)),
+        ColumnClassification(
+            column_name="a", classifications=(make_classification(SemanticType.TEXT),)
+        ),
+        ColumnClassification(
+            column_name="b", classifications=(make_classification(SemanticType.EMAIL),)
+        ),
     )
     profile = SemanticProfileBuilder.compose(domain, (), (), (), AnalyticsRoleProfile(), columns)
     assert [c.column_name for c in profile.columns] == ["a", "b"]
@@ -192,7 +234,11 @@ def test_input_immutability():
     )
     keys = (make_key(),)
     roles = AnalyticsRoleProfile()
-    columns = (ColumnClassification(column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)),)
+    columns = (
+        ColumnClassification(
+            column_name="id", classifications=(make_classification(SemanticType.IDENTIFIER),)
+        ),
+    )
     original_entities = entities
     original_relationships = relationships
     original_keys = keys
@@ -240,7 +286,12 @@ def test_semantic_profile_builder_performance():
     measures = tuple(make_measure(f"c{i}") for i in range(100))
     dimensions = tuple(make_dimension(f"c{i}") for i in range(100))
     roles = AnalyticsRoleProfile(measure_candidates=measures, dimension_candidates=dimensions)
-    columns = tuple(ColumnClassification(column_name=f"c{i}", classifications=(make_classification(SemanticType.TEXT),)) for i in range(100))
+    columns = tuple(
+        ColumnClassification(
+            column_name=f"c{i}", classifications=(make_classification(SemanticType.TEXT),)
+        )
+        for i in range(100)
+    )
 
     for _ in range(5):
         SemanticProfileBuilder.compose(domain, entities, relationships, keys, roles, columns)

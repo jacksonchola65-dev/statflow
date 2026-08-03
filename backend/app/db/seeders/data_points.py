@@ -7,17 +7,16 @@ all 10 Zambian provinces. Values are illustrative and are not official statistic
 Natural key: dataset_id + indicator_id + province_id + reference_year
 (enforced by the partial unique index uix_data_points_province_level).
 """
+
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Optional
-
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.data_point import DataPoint
 from app.models.dataset import Dataset
 from app.models.indicator import Indicator
 from app.models.province import Province
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class DataPointSeedError(RuntimeError):
@@ -47,7 +46,6 @@ DEMO_DATA: list[DataPointRecord] = [
     DataPointRecord("NR", "POP_TOTAL", Decimal("1527000")),
     DataPointRecord("SO", "POP_TOTAL", Decimal("1915000")),
     DataPointRecord("WE", "POP_TOTAL", Decimal("991000")),
-
     # ── LITERACY_RATE (%) ──────────────────────────────────
     DataPointRecord("CP", "LITERACY_RATE", Decimal("72.4")),
     DataPointRecord("CB", "LITERACY_RATE", Decimal("83.1")),
@@ -59,7 +57,6 @@ DEMO_DATA: list[DataPointRecord] = [
     DataPointRecord("NR", "LITERACY_RATE", Decimal("63.7")),
     DataPointRecord("SO", "LITERACY_RATE", Decimal("69.0")),
     DataPointRecord("WE", "LITERACY_RATE", Decimal("55.4")),
-
     # ── LIFE_EXPECTANCY (years) ────────────────────────────
     DataPointRecord("CP", "LIFE_EXPECTANCY", Decimal("57.8")),
     DataPointRecord("CB", "LIFE_EXPECTANCY", Decimal("59.2")),
@@ -71,7 +68,6 @@ DEMO_DATA: list[DataPointRecord] = [
     DataPointRecord("NR", "LIFE_EXPECTANCY", Decimal("55.0")),
     DataPointRecord("SO", "LIFE_EXPECTANCY", Decimal("57.2")),
     DataPointRecord("WE", "LIFE_EXPECTANCY", Decimal("52.9")),
-
     # ── GDP_PER_CAPITA (USD) ───────────────────────────────
     DataPointRecord("CP", "GDP_PER_CAPITA", Decimal("1420")),
     DataPointRecord("CB", "GDP_PER_CAPITA", Decimal("2180")),
@@ -83,7 +79,6 @@ DEMO_DATA: list[DataPointRecord] = [
     DataPointRecord("NR", "GDP_PER_CAPITA", Decimal("890")),
     DataPointRecord("SO", "GDP_PER_CAPITA", Decimal("1150")),
     DataPointRecord("WE", "GDP_PER_CAPITA", Decimal("680")),
-
     # ── MAIZE_PRODUCTION (metric tonnes) ──────────────────
     DataPointRecord("CP", "MAIZE_PRODUCTION", Decimal("485000")),
     DataPointRecord("CB", "MAIZE_PRODUCTION", Decimal("312000")),
@@ -95,7 +90,6 @@ DEMO_DATA: list[DataPointRecord] = [
     DataPointRecord("NR", "MAIZE_PRODUCTION", Decimal("423000")),
     DataPointRecord("SO", "MAIZE_PRODUCTION", Decimal("578000")),
     DataPointRecord("WE", "MAIZE_PRODUCTION", Decimal("89000")),
-
     # ── POVERTY_RATE (%) ───────────────────────────────────
     DataPointRecord("CP", "POVERTY_RATE", Decimal("55.2")),
     DataPointRecord("CB", "POVERTY_RATE", Decimal("39.8")),
@@ -143,9 +137,7 @@ async def seed_demo_data_points(session: AsyncSession) -> dict[str, int]:
     indicator_map: dict[str, Indicator] = {}
     missing_indicators: list[str] = []
     for code in indicator_codes:
-        ind_result = await session.execute(
-            select(Indicator).where(Indicator.code == code)
-        )
+        ind_result = await session.execute(select(Indicator).where(Indicator.code == code))
         ind = ind_result.scalar_one_or_none()
         if ind is None:
             missing_indicators.append(code)
@@ -154,8 +146,7 @@ async def seed_demo_data_points(session: AsyncSession) -> dict[str, int]:
 
     if missing_indicators:
         raise DataPointSeedError(
-            f"Indicators not found: {missing_indicators}. "
-            "Run the indicator seeder first."
+            f"Indicators not found: {missing_indicators}. Run the indicator seeder first."
         )
 
     # ── Build province code → Province map ────────────────
@@ -163,9 +154,7 @@ async def seed_demo_data_points(session: AsyncSession) -> dict[str, int]:
     province_map: dict[str, Province] = {}
     missing_provinces: list[str] = []
     for code in province_codes:
-        prov_result = await session.execute(
-            select(Province).where(Province.code == code)
-        )
+        prov_result = await session.execute(select(Province).where(Province.code == code))
         prov = prov_result.scalar_one_or_none()
         if prov is None:
             missing_provinces.append(code)
@@ -174,8 +163,7 @@ async def seed_demo_data_points(session: AsyncSession) -> dict[str, int]:
 
     if missing_provinces:
         raise DataPointSeedError(
-            f"Provinces not found: {missing_provinces}. "
-            "Run the province seeder first."
+            f"Provinces not found: {missing_provinces}. Run the province seeder first."
         )
 
     # ── Upsert data points ────────────────────────────────

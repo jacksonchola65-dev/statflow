@@ -1,6 +1,6 @@
 import pytest
-from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
 from app.semantic.detectors.base import DetectorInput
+from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
 from app.semantic.semantic_types import SemanticType
 
 detector = DictionarySemanticDetector()
@@ -12,12 +12,18 @@ def run_det(column_name):
 
 def test_exact_match():
     out = run_det("email")
-    assert any(c.semantic_type == SemanticType.EMAIL and c.confidence == pytest.approx(0.95) for c in out.classifications)
+    assert any(
+        c.semantic_type == SemanticType.EMAIL and c.confidence == pytest.approx(0.95)
+        for c in out.classifications
+    )
 
 
 def test_alias_match():
     out = run_det("e-mail")
-    assert any(c.semantic_type == SemanticType.EMAIL and c.confidence == pytest.approx(0.95) for c in out.classifications)
+    assert any(
+        c.semantic_type == SemanticType.EMAIL and c.confidence == pytest.approx(0.95)
+        for c in out.classifications
+    )
 
 
 def test_case_insensitive_and_whitespace_normalization():
@@ -27,7 +33,10 @@ def test_case_insensitive_and_whitespace_normalization():
 
 def test_underscore_and_hyphen_normalization():
     out = run_det("postal_code")
-    assert any(c.semantic_type == SemanticType.POSTAL_CODE and c.confidence == pytest.approx(0.95) for c in out.classifications)
+    assert any(
+        c.semantic_type == SemanticType.POSTAL_CODE and c.confidence == pytest.approx(0.95)
+        for c in out.classifications
+    )
     out2 = run_det("postal-code")
     assert any(c.semantic_type == SemanticType.POSTAL_CODE for c in out2.classifications)
 

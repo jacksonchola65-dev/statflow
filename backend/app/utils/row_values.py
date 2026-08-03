@@ -25,7 +25,7 @@ Usage:
 from __future__ import annotations
 
 import math
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 from typing import Any
 
 
@@ -95,15 +95,13 @@ def _serialize_scalar(key: str, value: Any) -> Any:
     if isinstance(value, float):
         if math.isnan(value) or math.isinf(value):
             raise RowValuesError(
-                f"Column '{key}': float value must be finite; "
-                f"NaN and infinity are not permitted."
+                f"Column '{key}': float value must be finite; NaN and infinity are not permitted."
             )
         return value
     if isinstance(value, Decimal):
         if not value.is_finite():
             raise RowValuesError(
-                f"Column '{key}': Decimal value must be finite; "
-                f"NaN and infinity are not permitted."
+                f"Column '{key}': Decimal value must be finite; NaN and infinity are not permitted."
             )
         # Convert to fixed-point string with full precision and trailing zeros.
         return _format_decimal_to_string(value)
@@ -126,17 +124,11 @@ def serialize_row_values(raw: dict[str, Any]) -> dict[str, Any]:
     Returns a new dict with converted values.
     """
     if not isinstance(raw, dict):
-        raise RowValuesError(
-            f"row values must be a dict (JSON object); "
-            f"got {type(raw).__name__}."
-        )
+        raise RowValuesError(f"row values must be a dict (JSON object); got {type(raw).__name__}.")
     result: dict[str, Any] = {}
     for key, value in raw.items():
         if not isinstance(key, str) or not key.strip():
-            raise RowValuesError(
-                f"Row values dict key must be a non-empty string; "
-                f"got {key!r}."
-            )
+            raise RowValuesError(f"Row values dict key must be a non-empty string; got {key!r}.")
         result[key] = _serialize_scalar(key, value)
     return result
 

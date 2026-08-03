@@ -22,11 +22,12 @@ import pytest
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 from app.services.file_inspection_service import (
-    CachedInspection,
     _INSPECTION_STORE,
+    CachedInspection,
     _InspectionTokenEntry,
 )
 from app.services.mapping_execution_service import (
@@ -34,7 +35,6 @@ from app.services.mapping_execution_service import (
     InspectionOwnershipError,
     MappingExecutionService,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -121,7 +121,7 @@ def test_get_inspection_returns_cached_for_valid_owner(cleanup_tokens):
 def test_get_inspection_raises_ownership_error_for_wrong_owner(cleanup_tokens):
     """Valid token + different owner → InspectionOwnershipError."""
     real_owner = uuid.uuid4()
-    attacker  = uuid.uuid4()
+    attacker = uuid.uuid4()
     token = str(uuid.uuid4())
     cleanup_tokens.append(token)
 

@@ -14,11 +14,10 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.import_template import ImportTemplate
 from app.repositories.import_template_repository import ImportTemplateRepository
-from app.schemas.ingestion_mapping import ImportTemplateCreateRequest
+from app.schemas.ingestion_mapping import ImportTemplateCreateRequest, ImportTemplateUpdateRequest
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class ImportTemplateService:
@@ -32,9 +31,7 @@ class ImportTemplateService:
         payload: ImportTemplateCreateRequest,
     ) -> ImportTemplate:
         if await self._repo.name_exists(owner_id, payload.name):
-            raise ValueError(
-                f"Import template with name '{payload.name}' already exists."
-            )
+            raise ValueError(f"Import template with name '{payload.name}' already exists.")
 
         return await self._repo.create(
             owner_id=owner_id,
@@ -64,16 +61,16 @@ class ImportTemplateService:
         self,
         template_id: uuid.UUID,
         owner_id: uuid.UUID,
-        payload: 'ImportTemplateUpdateRequest',
+        payload: "ImportTemplateUpdateRequest",
     ) -> ImportTemplate:
         template = await self._repo.get_by_id(template_id, owner_id)
         if template is None:
             raise LookupError(f"Import template with id {template_id} not found.")
 
-        if payload.name and await self._repo.name_exists(owner_id, payload.name, exclude_id=template.id):
-            raise ValueError(
-                f"Import template with name '{payload.name}' already exists."
-            )
+        if payload.name and await self._repo.name_exists(
+            owner_id, payload.name, exclude_id=template.id
+        ):
+            raise ValueError(f"Import template with name '{payload.name}' already exists.")
 
         return await self._repo.update(
             template=template,
@@ -81,7 +78,9 @@ class ImportTemplateService:
             description=payload.description,
             source_format=payload.source_format,
             original_headers=payload.original_headers,
-            mapping_config=payload.mapping_config.model_dump() if payload.mapping_config is not None else None,
+            mapping_config=payload.mapping_config.model_dump()
+            if payload.mapping_config is not None
+            else None,
         )
 
     async def deactivate_template(

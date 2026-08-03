@@ -2,15 +2,14 @@ import hashlib
 import json
 
 import pytest
-from sqlalchemy.exc import IntegrityError
-
-from app.models.user import User, UserRole
 from app.models.universal_dataset import (
     UniversalDataset,
     UniversalDatasetColumn,
     UniversalDatasetRow,
     UniversalDatasetVersion,
 )
+from app.models.user import User, UserRole
+from sqlalchemy.exc import IntegrityError
 
 
 async def test_universal_dataset_models_persist_with_relationships(db_session) -> None:
@@ -83,7 +82,9 @@ async def test_universal_dataset_row_models_persist_with_relationships(db_sessio
     db_session.add(owner)
     await db_session.flush()
 
-    dataset = UniversalDataset(owner_id=owner.id, name="Rows Dataset", source_filename="rows.csv", status="draft")
+    dataset = UniversalDataset(
+        owner_id=owner.id, name="Rows Dataset", source_filename="rows.csv", status="draft"
+    )
     db_session.add(dataset)
     await db_session.flush()
 
@@ -131,7 +132,12 @@ async def test_version_number_is_unique_per_dataset(db_session) -> None:
     db_session.add(owner)
     await db_session.flush()
 
-    dataset = UniversalDataset(owner_id=owner.id, name="Duplicate Version Dataset", source_filename="dup.csv", status="draft")
+    dataset = UniversalDataset(
+        owner_id=owner.id,
+        name="Duplicate Version Dataset",
+        source_filename="dup.csv",
+        status="draft",
+    )
     db_session.add(dataset)
     await db_session.flush()
 
@@ -170,7 +176,12 @@ async def test_row_number_is_unique_per_dataset_version(db_session) -> None:
     db_session.add(owner)
     await db_session.flush()
 
-    dataset = UniversalDataset(owner_id=owner.id, name="Duplicate Row Number Dataset", source_filename="rows.csv", status="draft")
+    dataset = UniversalDataset(
+        owner_id=owner.id,
+        name="Duplicate Row Number Dataset",
+        source_filename="rows.csv",
+        status="draft",
+    )
     db_session.add(dataset)
     await db_session.flush()
 
@@ -186,7 +197,9 @@ async def test_row_number_is_unique_per_dataset_version(db_session) -> None:
     await db_session.flush()
 
     first = UniversalDatasetRow(dataset_version_id=version.id, row_number=1, data_json={"value": 1})
-    second = UniversalDatasetRow(dataset_version_id=version.id, row_number=1, data_json={"value": 2})
+    second = UniversalDatasetRow(
+        dataset_version_id=version.id, row_number=1, data_json={"value": 2}
+    )
     db_session.add_all([first, second])
 
     with pytest.raises(IntegrityError):
@@ -206,7 +219,12 @@ async def test_column_name_is_unique_per_dataset_version(db_session) -> None:
     db_session.add(owner)
     await db_session.flush()
 
-    dataset = UniversalDataset(owner_id=owner.id, name="Duplicate Column Dataset", source_filename="columns.csv", status="draft")
+    dataset = UniversalDataset(
+        owner_id=owner.id,
+        name="Duplicate Column Dataset",
+        source_filename="columns.csv",
+        status="draft",
+    )
     db_session.add(dataset)
     await db_session.flush()
 

@@ -12,11 +12,9 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.data_source import DataSource
 from app.repositories.data_source_repository import DataSourceRepository
-
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Domain exceptions
@@ -64,9 +62,7 @@ class DataSourceService:
         is_active: bool = True,
     ) -> DataSource:
         if await self._repo.name_exists(name):
-            raise DataSourceNameConflictError(
-                f"A data source named '{name}' already exists."
-            )
+            raise DataSourceNameConflictError(f"A data source named '{name}' already exists.")
         return await self._repo.create(
             name=name.strip(),
             description=description,
@@ -82,12 +78,8 @@ class DataSourceService:
             raise DataSourceNotFoundError(f"No data source found with id={source_id}.")
 
         new_name = fields.get("name")
-        if new_name is not None and await self._repo.name_exists(
-            new_name, exclude_id=source_id
-        ):
-            raise DataSourceNameConflictError(
-                f"A data source named '{new_name}' already exists."
-            )
+        if new_name is not None and await self._repo.name_exists(new_name, exclude_id=source_id):
+            raise DataSourceNameConflictError(f"A data source named '{new_name}' already exists.")
 
         updated = await self._repo.update(source_id, **fields)
         assert updated is not None

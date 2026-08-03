@@ -3,12 +3,9 @@ from __future__ import annotations
 import asyncio
 import sys
 import uuid
-from dataclasses import dataclass
-from typing import Optional
 
 import httpx
 import pytest
-
 from app.models.data_source import DatasetRegistry, FileFormat, SourceType
 from app.models.ingestion import IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
@@ -17,7 +14,6 @@ from app.repositories.dataset_registry_repository import DatasetRegistryReposito
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
 from app.services.http_official_data_importer import (
-    HttpImportError,
     HttpOfficialDataImporter,
     HttpOfficialImportConfig,
 )
@@ -34,7 +30,6 @@ from app.services.official_import_service import (
     OfficialImportService,
 )
 from app.services.zamstats_official_importer import ZamstatsOfficialDataImporter
-
 
 if sys.platform == "win32":
     import asyncio as _asyncio
@@ -82,7 +77,11 @@ async def test_end_to_end_official_import_executes_and_is_inspectable(db_session
         ),
         client=http_client,
     )
-    importer = ZamstatsOfficialDataImporter(adapter=adapter, url="https://example.com/zamstats.csv", source_reference="https://example.org/source")
+    importer = ZamstatsOfficialDataImporter(
+        adapter=adapter,
+        url="https://example.com/zamstats.csv",
+        source_reference="https://example.org/source",
+    )
     service = OfficialImportService(
         db_session,
         profiling_service=IngestionProfilingService(),
@@ -90,7 +89,9 @@ async def test_end_to_end_official_import_executes_and_is_inspectable(db_session
     )
     registry = await _make_registry(db_session)
 
-    result = await service.import_data(importer=importer, dataset_registry=registry, created_by_user_id=None)
+    result = await service.import_data(
+        importer=importer, dataset_registry=registry, created_by_user_id=None
+    )
 
     assert result.source == ImportSource.ZAMSTATS
     assert result.original_filename == "zamstats.csv"
@@ -98,7 +99,9 @@ async def test_end_to_end_official_import_executes_and_is_inspectable(db_session
     assert result.columns_imported == 3
     assert result.final_status == IngestionStatus.COMPLETED
 
-    inspection = await IngestionInspectionService(db_session).get_inspection(result.ingestion_job_id)
+    inspection = await IngestionInspectionService(db_session).get_inspection(
+        result.ingestion_job_id
+    )
     assert inspection.job.id == result.ingestion_job_id
     assert inspection.job.original_filename == "zamstats.csv"
     assert len(inspection.columns) == 3
@@ -125,7 +128,11 @@ async def test_download_failure_leaves_no_persisted_data(db_session):
         client=http_client,
     )
     importer = ZamstatsOfficialDataImporter(adapter=adapter, url="https://example.com/zamstats.csv")
-    service = OfficialImportService(db_session, profiling_service=IngestionProfilingService(), persistence_service=IngestionPersistenceService(db_session))
+    service = OfficialImportService(
+        db_session,
+        profiling_service=IngestionProfilingService(),
+        persistence_service=IngestionPersistenceService(db_session),
+    )
     registry = await _make_registry(db_session)
 
     with pytest.raises(OfficialImportError):
@@ -143,10 +150,20 @@ async def test_profiling_failure_leaves_no_persisted_data(db_session):
             raise RuntimeError("boom")
 
     importer = ZamstatsOfficialDataImporter(
-        adapter=FakeAdapter(result=ImportData(source=ImportSource.ZAMSTATS, original_filename="zamstats.csv", content=b"value\n1\n")),
+        adapter=FakeAdapter(
+            result=ImportData(
+                source=ImportSource.ZAMSTATS,
+                original_filename="zamstats.csv",
+                content=b"value\n1\n",
+            )
+        ),
         url="https://example.org/zamstats.csv",
     )
-    service = OfficialImportService(db_session, profiling_service=FailingProfilingService(), persistence_service=IngestionPersistenceService(db_session))
+    service = OfficialImportService(
+        db_session,
+        profiling_service=FailingProfilingService(),
+        persistence_service=IngestionPersistenceService(db_session),
+    )
     registry = await _make_registry(db_session)
 
     with pytest.raises(RuntimeError):
@@ -159,8 +176,14 @@ async def test_cancellation_during_download_propagates(db_session):
         async def import_data(self) -> ImportData:
             raise asyncio.CancelledError()
 
-    importer = ZamstatsOfficialDataImporter(adapter=CancelAdapter(), url="https://example.org/zamstats.csv")
-    service = OfficialImportService(db_session, profiling_service=IngestionProfilingService(), persistence_service=IngestionPersistenceService(db_session))
+    importer = ZamstatsOfficialDataImporter(
+        adapter=CancelAdapter(), url="https://example.org/zamstats.csv"
+    )
+    service = OfficialImportService(
+        db_session,
+        profiling_service=IngestionProfilingService(),
+        persistence_service=IngestionPersistenceService(db_session),
+    )
     registry = await _make_registry(db_session)
 
     with pytest.raises(asyncio.CancelledError):

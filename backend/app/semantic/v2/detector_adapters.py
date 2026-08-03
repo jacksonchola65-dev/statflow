@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from app.semantic.detectors.base import DetectorInput, DetectorResult
-from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.detectors.dictionary_detector import DictionarySemanticDetector
+from app.semantic.detectors.regex_detector import RegexSemanticDetector
 from app.semantic.detectors.value_sampling_detector import ValueSamplingDetector
 from app.semantic.v2.semantic_context import SemanticContext
-from app.semantic.v2.feature_models import ColumnFeatureContext, LightValueFeatures
 
 
 class RegexDetectorAdapter:

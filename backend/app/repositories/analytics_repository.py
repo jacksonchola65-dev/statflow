@@ -3,11 +3,10 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.data_point import DataPoint
 from app.models.province import Province
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @dataclass

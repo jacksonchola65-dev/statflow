@@ -45,7 +45,6 @@ from decimal import Decimal, InvalidOperation
 from app.models.data_source import FileFormat
 from app.models.ingestion import InferredColumnType
 
-
 # ---------------------------------------------------------------------------
 # Domain exceptions (pure Python -- no FastAPI)
 # ---------------------------------------------------------------------------
@@ -95,9 +94,9 @@ class ColumnLimitExceededError(TooManyColumnsError):
 # Supported formats / magic bytes
 # ---------------------------------------------------------------------------
 
-_CSV_EXTENSIONS  = {".csv"}
+_CSV_EXTENSIONS = {".csv"}
 _XLSX_EXTENSIONS = {".xlsx"}
-_XLSX_MAGIC      = b"PK\x03\x04"   # ZIP/XLSX magic bytes
+_XLSX_MAGIC = b"PK\x03\x04"  # ZIP/XLSX magic bytes
 
 
 # ---------------------------------------------------------------------------
@@ -116,12 +115,13 @@ class ParsedDataset:
       CSV  -> all str
       XLSX -> str / int / float / bool / date / datetime / None
     """
-    original_column_names: list[str]    # original headers, str, order preserved
-    rows: list[list[object]]            # data rows; each maps 1-to-1 with headers
-    row_count: int                      # len(rows)
-    column_count: int                   # len(original_column_names)
-    detected_file_format: FileFormat    # FileFormat.CSV or FileFormat.XLSX
-    worksheet_name: str | None          # first worksheet name (XLSX only; None for CSV)
+
+    original_column_names: list[str]  # original headers, str, order preserved
+    rows: list[list[object]]  # data rows; each maps 1-to-1 with headers
+    row_count: int  # len(rows)
+    column_count: int  # len(original_column_names)
+    detected_file_format: FileFormat  # FileFormat.CSV or FileFormat.XLSX
+    worksheet_name: str | None  # first worksheet name (XLSX only; None for CSV)
 
 
 # ---------------------------------------------------------------------------
@@ -139,8 +139,7 @@ def validate_file_size(content: bytes, max_file_bytes: int) -> None:
         raise EmptyDatasetError("Uploaded file is empty (zero bytes).")
     if len(content) > max_file_bytes:
         raise FileTooLargeError(
-            f"File size ({len(content):,} bytes) exceeds the limit of "
-            f"{max_file_bytes:,} bytes."
+            f"File size ({len(content):,} bytes) exceeds the limit of {max_file_bytes:,} bytes."
         )
 
 
@@ -157,7 +156,7 @@ def detect_format(filename: str, content: bytes) -> FileFormat:
     Accepts uppercase extensions via .lower().
     """
     name = filename.lower().strip()
-    ext  = "." + name.rsplit(".", 1)[-1] if "." in name else ""
+    ext = "." + name.rsplit(".", 1)[-1] if "." in name else ""
 
     if ext in _XLSX_EXTENSIONS:
         if content[:4] != _XLSX_MAGIC:
@@ -190,10 +189,10 @@ def detect_format(filename: str, content: bytes) -> FileFormat:
 # ---------------------------------------------------------------------------
 
 # MVP safety limits (parser constants; marked TODO: move to Settings in a later task)
-_XLSX_MAX_UNCOMPRESSED_TOTAL_BYTES  = 100 * 1024 * 1024   # 100 MB total uncompressed
-_XLSX_MAX_UNCOMPRESSED_MEMBER_BYTES =  50 * 1024 * 1024   # 50 MB per member
-_XLSX_MAX_MEMBER_COUNT              = 1_000                # max ZIP entries
-_XLSX_MAX_COMPRESSION_RATIO         = 100                  # max ratio per member
+_XLSX_MAX_UNCOMPRESSED_TOTAL_BYTES = 100 * 1024 * 1024  # 100 MB total uncompressed
+_XLSX_MAX_UNCOMPRESSED_MEMBER_BYTES = 50 * 1024 * 1024  # 50 MB per member
+_XLSX_MAX_MEMBER_COUNT = 1_000  # max ZIP entries
+_XLSX_MAX_COMPRESSION_RATIO = 100  # max ratio per member
 
 
 def _xlsx_zip_preflight(content: bytes) -> None:
@@ -319,7 +318,7 @@ def parse_csv(
             f"File has {len(headers)} columns; the limit is {max_columns}."
         )
 
-    expected  = len(headers)
+    expected = len(headers)
     rows: list[list[object]] = []
     row_number = 0
 
@@ -415,7 +414,7 @@ def parse_xlsx(
         if not wb.worksheets:
             raise InvalidExcelWorkbookError("Workbook has no worksheets.")
 
-        ws = wb.worksheets[0]           # first worksheet; more explicit than .active
+        ws = wb.worksheets[0]  # first worksheet; more explicit than .active
         worksheet_name: str | None = ws.title
 
         rows_iter = ws.iter_rows(values_only=True)
@@ -428,8 +427,7 @@ def parse_xlsx(
 
         # Convert each header cell to str; None -> ""
         raw_headers: list[str] = [
-            str(cell) if cell is not None else ""
-            for cell in raw_header_tuple
+            str(cell) if cell is not None else "" for cell in raw_header_tuple
         ]
 
         # Trim trailing empty headers to get logical column width
@@ -559,6 +557,7 @@ def is_missing_value(value: object) -> bool:
         return value.strip() == ""
     try:
         import pandas as pd  # noqa: PLC0415
+
         if isinstance(value, type(pd.NaT)) or value is pd.NA:
             return True
     except ImportError:
@@ -666,9 +665,9 @@ def normalize_column_names(original_names: Sequence[object]) -> list[str]:
 # Boolean tokens -- strictly {"true","false","yes","no"} only.
 # Numeric aliases ("1","0") and single-letter aliases are intentionally excluded
 # so that numeric columns infer INTEGER, not BOOLEAN.
-_BOOL_TRUE  = {"true", "yes"}
+_BOOL_TRUE = {"true", "yes"}
 _BOOL_FALSE = {"false", "no"}
-_BOOL_ALL   = _BOOL_TRUE | _BOOL_FALSE
+_BOOL_ALL = _BOOL_TRUE | _BOOL_FALSE
 
 # Unambiguous date/datetime patterns
 _RE_DATE = re.compile(
@@ -680,7 +679,7 @@ _RE_DATETIME = re.compile(
     r"(?::\d{2})?(?:Z|[+-]\d{2}:\d{2})?$"
 )
 _RE_LEADING_ZERO = re.compile(r"^0\d+$")
-_RE_CURRENCY     = re.compile(r"[£$€¥₹₦]")
+_RE_CURRENCY = re.compile(r"[£$€¥₹₦]")
 _INFINITY_STRINGS = {"inf", "-inf", "infinity", "-infinity", "nan"}
 
 
@@ -764,11 +763,11 @@ def infer_column_type(values: Iterable[object]) -> InferredColumnType:
     str_values = [str(v).strip() for v in non_missing]
 
     for test_fn, col_type in [
-        (_is_boolean,  InferredColumnType.BOOLEAN),
-        (_is_integer,  InferredColumnType.INTEGER),
-        (_is_decimal,  InferredColumnType.DECIMAL),
+        (_is_boolean, InferredColumnType.BOOLEAN),
+        (_is_integer, InferredColumnType.INTEGER),
+        (_is_decimal, InferredColumnType.DECIMAL),
         (_is_datetime, InferredColumnType.DATETIME),
-        (_is_date,     InferredColumnType.DATE),
+        (_is_date, InferredColumnType.DATE),
     ]:
         if all(test_fn(v) for v in str_values):
             return col_type
@@ -781,7 +780,7 @@ def infer_column_type(values: Iterable[object]) -> InferredColumnType:
 # ---------------------------------------------------------------------------
 
 _SAMPLE_MAX_LEN = 200
-_SAMPLE_COUNT   = 5
+_SAMPLE_COUNT = 5
 
 
 @dataclass
@@ -797,11 +796,11 @@ class ColumnProfile:
 
 def profile_column(original_name: str, normalized_name: str, values: list) -> ColumnProfile:
     """Compute profiling statistics for a single column."""
-    missing     = sum(1 for v in values if is_missing_value(v))
+    missing = sum(1 for v in values if is_missing_value(v))
     non_missing = [v for v in values if not is_missing_value(v)]
-    unique      = len(set(str(v) for v in non_missing))
-    nullable    = missing > 0
-    inferred    = infer_column_type(values)
+    unique = len(set(str(v) for v in non_missing))
+    nullable = missing > 0
+    inferred = infer_column_type(values)
 
     seen_strs: set[str] = set()
     samples: list = []

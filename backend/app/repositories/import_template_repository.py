@@ -14,10 +14,9 @@ from __future__ import annotations
 
 import uuid
 
+from app.models.import_template import ImportTemplate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.import_template import ImportTemplate
 
 
 class ImportTemplateRepository:
@@ -47,7 +46,9 @@ class ImportTemplateRepository:
         await self._session.flush()
         return template
 
-    async def list_by_owner(self, owner_id: uuid.UUID, include_inactive: bool = False) -> list[ImportTemplate]:
+    async def list_by_owner(
+        self, owner_id: uuid.UUID, include_inactive: bool = False
+    ) -> list[ImportTemplate]:
         query = select(ImportTemplate).where(ImportTemplate.owner_id == owner_id)
         if not include_inactive:
             query = query.where(ImportTemplate.is_active.is_(True))

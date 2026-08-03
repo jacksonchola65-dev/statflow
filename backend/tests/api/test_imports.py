@@ -26,16 +26,15 @@ import io
 import uuid
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
-
 
 # ---------------------------------------------------------------------------
 # Seed indicators once for this test module (provinces already seeded by
 # the shared conftest; categories seeded too).
 # NOT autouse — only pulled in by tests that explicitly request it.
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def seed_indicators_for_import_tests():
@@ -57,6 +56,7 @@ def seed_indicators_for_import_tests():
     asyncio.run(_run())
     yield
 
+
 # ---------------------------------------------------------------------------
 # CSV builders
 # ---------------------------------------------------------------------------
@@ -64,19 +64,14 @@ def seed_indicators_for_import_tests():
 HEADER = "province_code,indicator_code,value,reference_year,dataset_name,source_name\n"
 
 
-def _valid_csv(province_code="CP", indicator_code="POVERTY_RATE",
-               dataset="TestDS", source="Test Source") -> bytes:
-    return (
-        HEADER
-        + f"{province_code},{indicator_code},55.2,2023,{dataset},{source}\n"
-    ).encode()
+def _valid_csv(
+    province_code="CP", indicator_code="POVERTY_RATE", dataset="TestDS", source="Test Source"
+) -> bytes:
+    return (HEADER + f"{province_code},{indicator_code},55.2,2023,{dataset},{source}\n").encode()
 
 
 def _csv_with_error(province_code="UNKNOWN_PROV") -> bytes:
-    return (
-        HEADER
-        + f"{province_code},POVERTY_RATE,55.2,2023,TestDS,Test Source\n"
-    ).encode()
+    return (HEADER + f"{province_code},POVERTY_RATE,55.2,2023,TestDS,Test Source\n").encode()
 
 
 def _missing_columns_csv() -> bytes:
@@ -88,6 +83,7 @@ def _missing_columns_csv() -> bytes:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _upload(content: bytes, filename: str = "test.csv"):
     return {"file": (filename, io.BytesIO(content), "text/csv")}
 
@@ -95,6 +91,7 @@ def _upload(content: bytes, filename: str = "test.csv"):
 # ---------------------------------------------------------------------------
 # Preview endpoint tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_preview_valid_csv_returns_200(authed_client):
@@ -216,7 +213,9 @@ async def test_inspect_csv_returns_200_and_inspection_token(authed_client):
 
 @pytest.mark.asyncio
 async def test_inspect_csv_duplicate_headers_returns_422(authed_client):
-    csv_content = b"province_code,province_code,value,reference_year,dataset_name\nCP,CP,1,2020,DS\n"
+    csv_content = (
+        b"province_code,province_code,value,reference_year,dataset_name\nCP,CP,1,2020,DS\n"
+    )
     resp = await authed_client.post(
         "/api/v1/imports/files/inspect",
         files={"file": ("duplicate.csv", io.BytesIO(csv_content), "text/csv")},
@@ -320,6 +319,7 @@ async def test_create_import_template_and_list_templates(authed_client):
 # Confirm endpoint tests
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.asyncio
 async def test_confirm_missing_token_returns_404(authed_client):
     resp = await authed_client.post(
@@ -350,15 +350,17 @@ async def test_confirm_validation_errors_blocked_returns_422(authed_client):
 
 
 @pytest.mark.asyncio
-async def test_confirm_success_returns_201(authed_client, db_session, seed_indicators_for_import_tests):
+async def test_confirm_success_returns_201(
+    authed_client, db_session, seed_indicators_for_import_tests
+):
     """
     A fully valid preview should confirm successfully with HTTP 201.
     We use seeded province CP and indicator POVERTY_RATE from the test DB.
     """
     # First get a valid province code and indicator code from the test DB
-    from sqlalchemy import select
-    from app.models.province import Province
     from app.models.indicator import Indicator
+    from app.models.province import Province
+    from sqlalchemy import select
 
     prov_result = await db_session.execute(select(Province).limit(1))
     prov = prov_result.scalars().first()
@@ -404,14 +406,16 @@ async def test_confirm_success_returns_201(authed_client, db_session, seed_indic
 
 
 @pytest.mark.asyncio
-async def test_confirm_conflict_returns_409(authed_client, db_session, seed_indicators_for_import_tests):
+async def test_confirm_conflict_returns_409(
+    authed_client, db_session, seed_indicators_for_import_tests
+):
     """
     Import the same row twice: first import succeeds; second preview
     detects a conflict and confirm returns 409.
     """
-    from sqlalchemy import select
-    from app.models.province import Province
     from app.models.indicator import Indicator
+    from app.models.province import Province
+    from sqlalchemy import select
 
     prov_result = await db_session.execute(select(Province).limit(1))
     prov = prov_result.scalars().first()

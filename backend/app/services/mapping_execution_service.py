@@ -28,9 +28,6 @@ from dataclasses import dataclass, field
 from datetime import datetime as _datetime
 from decimal import Decimal, InvalidOperation
 
-from pydantic import ValidationError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.schemas.ingestion_mapping import (
     ColumnMapping,
     MappingConfiguration,
@@ -49,6 +46,7 @@ from app.services.mapped_preview_service import (
     CachedMappedPreview,
     _store_mapped_preview_token,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
 
 SUPPORTED_MAPPING_VERSION = 1
 
@@ -106,9 +104,7 @@ class TransformationExecutionError(MappingExecutionError):
         self.operation = operation
         self.raw_value = raw_value
         self.reason = reason
-        super().__init__(
-            f"Transformation '{operation}' failed on value {raw_value!r}: {reason}"
-        )
+        super().__init__(f"Transformation '{operation}' failed on value {raw_value!r}: {reason}")
 
 
 # ---------------------------------------------------------------------------
@@ -304,13 +300,15 @@ class MappingExecutionService:
                     d = Decimal(cleaned)
                     if not d.is_finite():
                         raise TransformationExecutionError(
-                            "parse_number", value,
+                            "parse_number",
+                            value,
                             f"Result is not a finite number: {cleaned!r}.",
                         )
                     return d
                 except InvalidOperation:
                     raise TransformationExecutionError(
-                        "parse_number", value,
+                        "parse_number",
+                        value,
                         f"Cannot convert {cleaned!r} to a number.",
                     )
             return value
@@ -354,8 +352,8 @@ class MappingExecutionService:
         Case-insensitive, whitespace-tolerant lookup against Province.name.
         Returns the province code string (e.g. "LK" for "Lusaka").
         """
-        from sqlalchemy import func, select
         from app.models.province import Province
+        from sqlalchemy import func, select
 
         if value is None:
             return None  # type: ignore[return-value]
@@ -373,9 +371,7 @@ class MappingExecutionService:
                 "province_name_to_code", value, "Cannot look up an empty province name."
             )
 
-        stmt = select(Province).where(
-            func.lower(func.trim(Province.name)) == cleaned.lower()
-        )
+        stmt = select(Province).where(func.lower(func.trim(Province.name)) == cleaned.lower())
         result = await self._session.execute(stmt)
         rows = result.scalars().all()
 
@@ -694,9 +690,7 @@ class MappingExecutionService:
 
         missing = _REQUIRED_TARGETS - seen_targets.keys()
         if missing:
-            errors.append(
-                f"Missing required target field(s): {sorted(t.value for t in missing)}."
-            )
+            errors.append(f"Missing required target field(s): {sorted(t.value for t in missing)}.")
 
         for idx, m in enumerate(mapping_config.mappings):
             if m.source_type == MappingSourceType.COLUMN:

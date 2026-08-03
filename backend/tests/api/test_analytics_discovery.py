@@ -4,18 +4,16 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.api.v1.endpoints.analytics import get_dataset_discovery_service
-from app.domain.analytics.discovery import DatasetDiscoveryService
 from app.models.data_source import FileFormat, SourceType
-from app.models.ingestion import IngestionStatus, InferredColumnType
+from app.models.ingestion import InferredColumnType, IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _make_dataset(
@@ -27,7 +25,9 @@ async def _make_dataset(
     rows: list[dict] | None = None,
     dataset_name: str = "Analytics Dataset",
 ) -> uuid.UUID:
-    source = await DataSourceRepository(db_session).create(name=f"Analytics Source {uuid.uuid4().hex[:8]}", is_active=True)
+    source = await DataSourceRepository(db_session).create(
+        name=f"Analytics Source {uuid.uuid4().hex[:8]}", is_active=True
+    )
     await db_session.flush()
 
     registry = await DatasetRegistryRepository(db_session).create(
@@ -98,7 +98,9 @@ async def _make_dataset(
 
 
 @pytest.mark.asyncio
-async def test_list_analytics_datasets_authenticated(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_list_analytics_datasets_authenticated(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     await _make_dataset(db_session)
 
     response = await authed_client.get("/api/v1/analytics/datasets")
@@ -119,14 +121,16 @@ async def test_list_analytics_datasets_unauthenticated(client: AsyncClient) -> N
 
 
 @pytest.mark.asyncio
-async def test_list_pagination_metadata(authed_client: AsyncClient, db_session: AsyncSession) -> None:
-    first_id = await _make_dataset(
+async def test_list_pagination_metadata(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
+    _ = await _make_dataset(
         db_session,
         dataset_name="First Dataset",
         row_count=1,
         rows=[{"row_number": 0, "values": {"region": "A", "population": 1}}],
     )
-    second_id = await _make_dataset(
+    _ = await _make_dataset(
         db_session,
         dataset_name="Second Dataset",
         row_count=1,
@@ -158,7 +162,9 @@ async def test_invalid_limit_and_offset_return_422(authed_client: AsyncClient) -
 
 
 @pytest.mark.asyncio
-async def test_get_analytics_dataset_details_returns_200(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_analytics_dataset_details_returns_200(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(db_session)
     response = await authed_client.get(f"/api/v1/analytics/datasets/{job_id}")
     assert response.status_code == 200
@@ -170,20 +176,26 @@ async def test_get_analytics_dataset_details_returns_200(authed_client: AsyncCli
 
 
 @pytest.mark.asyncio
-async def test_get_analytics_dataset_details_unknown_returns_404(authed_client: AsyncClient) -> None:
+async def test_get_analytics_dataset_details_unknown_returns_404(
+    authed_client: AsyncClient,
+) -> None:
     response = await authed_client.get(f"/api/v1/analytics/datasets/{uuid.uuid4()}")
     assert response.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_get_analytics_dataset_details_incomplete_returns_409(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_analytics_dataset_details_incomplete_returns_409(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(db_session, status=IngestionStatus.PENDING)
     response = await authed_client.get(f"/api/v1/analytics/datasets/{job_id}")
     assert response.status_code == 409
 
 
 @pytest.mark.asyncio
-async def test_get_schema_orders_columns(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_schema_orders_columns(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(
         db_session,
         column_specs=[
@@ -230,7 +242,9 @@ async def test_get_schema_orders_columns(authed_client: AsyncClient, db_session:
 
 
 @pytest.mark.asyncio
-async def test_get_dimensions_returns_valid_identifiers(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_dimensions_returns_valid_identifiers(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(
         db_session,
         column_specs=[
@@ -265,7 +279,9 @@ async def test_get_dimensions_returns_valid_identifiers(authed_client: AsyncClie
 
 
 @pytest.mark.asyncio
-async def test_get_measures_returns_supported_aggregations(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_measures_returns_supported_aggregations(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(
         db_session,
         column_specs=[
@@ -298,7 +314,9 @@ async def test_get_measures_returns_supported_aggregations(authed_client: AsyncC
 
 
 @pytest.mark.asyncio
-async def test_get_preview_default_and_maximum_limit(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_preview_default_and_maximum_limit(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(
         db_session,
         rows=[{"row_number": i, "values": {"region": f"R{i}", "population": i}} for i in range(15)],
@@ -318,7 +336,9 @@ async def test_get_preview_default_and_maximum_limit(authed_client: AsyncClient,
 
 
 @pytest.mark.asyncio
-async def test_get_preview_empty_dataset_returns_empty_rows(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_preview_empty_dataset_returns_empty_rows(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(
         db_session,
         rows=[],
@@ -332,7 +352,9 @@ async def test_get_preview_empty_dataset_returns_empty_rows(authed_client: Async
 
 
 @pytest.mark.asyncio
-async def test_get_statistics_returns_persisted_counts(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_get_statistics_returns_persisted_counts(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(db_session)
     response = await authed_client.get(f"/api/v1/analytics/datasets/{job_id}/statistics")
     assert response.status_code == 200
@@ -345,7 +367,9 @@ async def test_get_statistics_returns_persisted_counts(authed_client: AsyncClien
 
 
 @pytest.mark.asyncio
-async def test_internal_database_fields_absent(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_internal_database_fields_absent(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(db_session)
     response = await authed_client.get(f"/api/v1/analytics/datasets/{job_id}")
     assert response.status_code == 200
@@ -357,7 +381,9 @@ async def test_internal_database_fields_absent(authed_client: AsyncClient, db_se
 
 
 @pytest.mark.asyncio
-async def test_database_errors_are_sanitized(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_database_errors_are_sanitized(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     app = authed_client._transport.app
 
     class BrokenService:
@@ -367,12 +393,16 @@ async def test_database_errors_are_sanitized(authed_client: AsyncClient, db_sess
     app.dependency_overrides[get_dataset_discovery_service] = lambda: BrokenService()
     response = await authed_client.get("/api/v1/analytics/datasets")
     assert response.status_code == 500
-    assert response.json()["detail"] == "An unexpected error occurred while retrieving dataset list."
+    assert (
+        response.json()["detail"] == "An unexpected error occurred while retrieving dataset list."
+    )
     assert "database connection failed" not in response.text
 
 
 @pytest.mark.asyncio
-async def test_preview_limit_exceeds_maximum_returns_422(authed_client: AsyncClient, db_session: AsyncSession) -> None:
+async def test_preview_limit_exceeds_maximum_returns_422(
+    authed_client: AsyncClient, db_session: AsyncSession
+) -> None:
     job_id = await _make_dataset(db_session)
     response = await authed_client.get(f"/api/v1/analytics/datasets/{job_id}/preview?limit=100")
     assert response.status_code == 422

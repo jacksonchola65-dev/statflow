@@ -1,6 +1,5 @@
-import os
-from types import SimpleNamespace
 import uuid
+from types import SimpleNamespace
 
 from app.services.file_inspection_service import FileInspectionService
 

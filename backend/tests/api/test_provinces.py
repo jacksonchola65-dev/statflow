@@ -1,7 +1,6 @@
 import pytest
 from httpx import AsyncClient
 
-
 EXPECTED_PROVINCE_COUNT = 10
 
 EXPECTED_PROVINCES_ALPHA = [

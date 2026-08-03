@@ -1,11 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Sequence, Tuple, Iterable, List, Dict
 import math
+from dataclasses import dataclass, field
+from typing import Dict, Iterable, List, Tuple
 
+from .entity_models import EntityCandidate, EntityKeyCandidate, RelationshipCandidate
 from .semantic_models import SemanticClassification, SemanticEvidence
 from .semantic_types import SemanticType
-from .entity_models import EntityCandidate, EntityKeyCandidate, RelationshipCandidate
-
 
 KEY_TYPES = {SemanticType.IDENTIFIER, SemanticType.INTEGER, SemanticType.TEXT}
 
@@ -114,7 +113,7 @@ class RelationshipDetector:
             return tuple()
 
         # Normalize entity names and build map
-        norm_entities = [ _normalize_name(e.name) for e in entities ]
+        norm_entities = [_normalize_name(e.name) for e in entities]
         norm_entities_map = {n: i for i, n in enumerate(norm_entities)}
 
         # Map entity to its keys
@@ -127,9 +126,17 @@ class RelationshipDetector:
 
         # Preprocess keys: for each entity index, sort keys per preference
         for idx, klist in ent_to_keys.items():
+
             def key_pref(k: EntityKeyCandidate):
                 is_ident = 0 if k.semantic_type == SemanticType.IDENTIFIER else 1
-                return (is_ident, -float(k.confidence), float(k.null_ratio), -float(k.uniqueness_ratio), k.column_name.lower())
+                return (
+                    is_ident,
+                    -float(k.confidence),
+                    float(k.null_ratio),
+                    -float(k.uniqueness_ratio),
+                    k.column_name.lower(),
+                )
+
             # sort so best key is first
             klist.sort(key=key_pref)
 
@@ -148,11 +155,17 @@ class RelationshipDetector:
             if not isinstance(col, RelationshipColumnInput):
                 raise TypeError("columns must contain RelationshipColumnInput instances")
             # select highest eligible classification
-            eligible = [c for c in col.classifications if c.semantic_type in KEY_TYPES and float(c.confidence) >= 0.60]
+            eligible = [
+                c
+                for c in col.classifications
+                if c.semantic_type in KEY_TYPES and float(c.confidence) >= 0.60
+            ]
             if not eligible:
                 continue
             # pick top by confidence then semantic_type.value
-            eligible_sorted = sorted(eligible, key=lambda c: (-float(c.confidence), c.semantic_type.value))
+            eligible_sorted = sorted(
+                eligible, key=lambda c: (-float(c.confidence), c.semantic_type.value)
+            )
             src_cl = eligible_sorted[0]
             if float(col.null_ratio) > 0.50:
                 continue
@@ -228,8 +241,22 @@ class RelationshipDetector:
                     chosen = (b_target_idx, b_src_idx)
                 elif a_ok and b_ok:
                     # prefer candidate where source matched by source_columns
-                    a_src_by_cols = any(sc.strip().lower() == col.column_name.strip().lower() for sc in entities[a_src_idx].source_columns) if a_src_idx is not None else False
-                    b_src_by_cols = any(sc.strip().lower() == col.column_name.strip().lower() for sc in entities[b_src_idx].source_columns) if b_src_idx is not None else False
+                    a_src_by_cols = (
+                        any(
+                            sc.strip().lower() == col.column_name.strip().lower()
+                            for sc in entities[a_src_idx].source_columns
+                        )
+                        if a_src_idx is not None
+                        else False
+                    )
+                    b_src_by_cols = (
+                        any(
+                            sc.strip().lower() == col.column_name.strip().lower()
+                            for sc in entities[b_src_idx].source_columns
+                        )
+                        if b_src_idx is not None
+                        else False
+                    )
                     if a_src_by_cols and not b_src_by_cols:
                         chosen = (a_target_idx, a_src_idx)
                     elif b_src_by_cols and not a_src_by_cols:
@@ -265,7 +292,9 @@ class RelationshipDetector:
                     if begins or in_source_cols:
                         src_candidates.append((idx_e, in_source_cols))
                 if src_candidates:
-                    src_candidates.sort(key=lambda t: (0 if t[1] else 1, -len(norm_entities[t[0]]), t[0]))
+                    src_candidates.sort(
+                        key=lambda t: (0 if t[1] else 1, -len(norm_entities[t[0]]), t[0])
+                    )
                     src_idx = src_candidates[0][0]
 
             # Both target and source must be resolved (already set above)
@@ -325,7 +354,12 @@ class RelationshipDetector:
                 evidence=tuple(evs),
             )
 
-            key = (rel.source_entity.lower(), rel.target_entity.lower(), rel.source_column.lower(), rel.target_column.lower())
+            key = (
+                rel.source_entity.lower(),
+                rel.target_entity.lower(),
+                rel.source_column.lower(),
+                rel.target_column.lower(),
+            )
             # duplicate suppression
             existing_idx = None
             for i, k in enumerate(seen):
@@ -343,6 +377,14 @@ class RelationshipDetector:
                 rels.append(rel)
 
         # final sort
-        rels.sort(key=lambda r: (-float(r.confidence), r.source_entity.lower(), r.target_entity.lower(), r.source_column.lower(), r.target_column.lower()))
+        rels.sort(
+            key=lambda r: (
+                -float(r.confidence),
+                r.source_entity.lower(),
+                r.target_entity.lower(),
+                r.source_column.lower(),
+                r.target_column.lower(),
+            )
+        )
 
         return tuple(rels)

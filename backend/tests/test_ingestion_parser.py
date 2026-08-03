@@ -19,13 +19,11 @@ Covers:
 from __future__ import annotations
 
 import csv
-import datetime
 import io
 import zipfile
 
 import openpyxl
 import pytest
-
 from app.models.data_source import FileFormat
 from app.utils.ingestion_parser import (
     ColumnLimitExceededError,
@@ -77,11 +75,15 @@ def _make_xlsx(headers: list[str], rows: list[list], sheet_name: str = "Sheet1")
     return buf.getvalue()
 
 
-def _csv_parse(content: bytes, max_rows: int = _DEFAULT_MAX_ROWS, max_columns: int = _DEFAULT_MAX_COLS) -> ParsedDataset:
+def _csv_parse(
+    content: bytes, max_rows: int = _DEFAULT_MAX_ROWS, max_columns: int = _DEFAULT_MAX_COLS
+) -> ParsedDataset:
     return parse_csv(content, max_rows=max_rows, max_columns=max_columns)
 
 
-def _xlsx_parse(content: bytes, max_rows: int = _DEFAULT_MAX_ROWS, max_columns: int = _DEFAULT_MAX_COLS) -> ParsedDataset:
+def _xlsx_parse(
+    content: bytes, max_rows: int = _DEFAULT_MAX_ROWS, max_columns: int = _DEFAULT_MAX_COLS
+) -> ParsedDataset:
     return parse_xlsx(content, max_rows=max_rows, max_columns=max_columns)
 
 
@@ -124,7 +126,8 @@ def test_unsupported_extension_rejected():
     content = b"some bytes"
     with pytest.raises(UnsupportedFormatError):
         parse_ingestion_file(
-            "file.pdf", content,
+            "file.pdf",
+            content,
             max_file_bytes=_DEFAULT_MAX_BYTES,
             max_rows=_DEFAULT_MAX_ROWS,
             max_columns=_DEFAULT_MAX_COLS,
@@ -135,7 +138,8 @@ def test_uppercase_csv_extension():
     """file.CSV (uppercase) is treated as CSV (case-insensitive)."""
     content = _make_csv(["Name"], [["Alice"]])
     result = parse_ingestion_file(
-        "file.CSV", content,
+        "file.CSV",
+        content,
         max_file_bytes=_DEFAULT_MAX_BYTES,
         max_rows=_DEFAULT_MAX_ROWS,
         max_columns=_DEFAULT_MAX_COLS,
@@ -147,7 +151,8 @@ def test_uppercase_xlsx_extension():
     """file.XLSX (uppercase) is treated as XLSX (case-insensitive)."""
     content = _make_xlsx(["Name"], [["Alice"]])
     result = parse_ingestion_file(
-        "file.XLSX", content,
+        "file.XLSX",
+        content,
         max_file_bytes=_DEFAULT_MAX_BYTES,
         max_rows=_DEFAULT_MAX_ROWS,
         max_columns=_DEFAULT_MAX_COLS,
@@ -160,7 +165,8 @@ def test_no_extension_rejected():
     content = _make_csv(["Name"], [["Alice"]])
     with pytest.raises(UnsupportedFormatError):
         parse_ingestion_file(
-            "file", content,
+            "file",
+            content,
             max_file_bytes=_DEFAULT_MAX_BYTES,
             max_rows=_DEFAULT_MAX_ROWS,
             max_columns=_DEFAULT_MAX_COLS,
@@ -172,7 +178,8 @@ def test_xlsx_renamed_csv_rejected():
     xlsx_content = _make_xlsx(["Name"], [["Alice"]])
     with pytest.raises(UnsupportedFormatError):
         parse_ingestion_file(
-            "file.csv", xlsx_content,
+            "file.csv",
+            xlsx_content,
             max_file_bytes=_DEFAULT_MAX_BYTES,
             max_rows=_DEFAULT_MAX_ROWS,
             max_columns=_DEFAULT_MAX_COLS,
@@ -184,7 +191,8 @@ def test_csv_renamed_xlsx_rejected():
     csv_content = _make_csv(["Name"], [["Alice"]])
     with pytest.raises((UnsupportedFormatError, InvalidExcelWorkbookError)):
         parse_ingestion_file(
-            "file.xlsx", csv_content,
+            "file.xlsx",
+            csv_content,
             max_file_bytes=_DEFAULT_MAX_BYTES,
             max_rows=_DEFAULT_MAX_ROWS,
             max_columns=_DEFAULT_MAX_COLS,
@@ -195,7 +203,8 @@ def test_empty_content_via_dispatcher_raises():
     """Empty bytes via parse_ingestion_file raises EmptyDatasetError."""
     with pytest.raises(EmptyDatasetError):
         parse_ingestion_file(
-            "file.csv", b"",
+            "file.csv",
+            b"",
             max_file_bytes=_DEFAULT_MAX_BYTES,
             max_rows=_DEFAULT_MAX_ROWS,
             max_columns=_DEFAULT_MAX_COLS,
@@ -207,7 +216,8 @@ def test_oversized_content_via_dispatcher_raises():
     content = b"x" * 101
     with pytest.raises(FileTooLargeError):
         parse_ingestion_file(
-            "file.csv", content,
+            "file.csv",
+            content,
             max_file_bytes=100,
             max_rows=_DEFAULT_MAX_ROWS,
             max_columns=_DEFAULT_MAX_COLS,
@@ -277,9 +287,9 @@ def test_csv_blank_lines_skipped():
     writer = csv.writer(buf)
     writer.writerow(["A", "B"])
     writer.writerow(["1", "2"])
-    writer.writerow(["", ""])   # blank line
+    writer.writerow(["", ""])  # blank line
     writer.writerow(["3", "4"])
-    writer.writerow(["", ""])   # trailing blank
+    writer.writerow(["", ""])  # trailing blank
     content = buf.getvalue().encode("utf-8")
     result = _csv_parse(content)
     assert result.row_count == 2
@@ -446,7 +456,7 @@ def test_xlsx_second_worksheet_ignored():
 def test_xlsx_no_usable_rows_rejected():
     """Completely empty workbook raises EmptyDatasetError or InvalidExcelWorkbookError."""
     wb = openpyxl.Workbook()
-    ws = wb.active
+    _ = wb.active  # Use _ to avoid unused-variable warning
     # Leave worksheet entirely empty
     buf = io.BytesIO()
     wb.save(buf)
@@ -509,7 +519,7 @@ def test_xlsx_missing_trailing_cells_padded():
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.append(["A", "B", "C"])
-    ws.append(["x", "y"])   # only 2 cells for 3-column header
+    ws.append(["x", "y"])  # only 2 cells for 3-column header
     buf = io.BytesIO()
     wb.save(buf)
     content = buf.getvalue()
@@ -583,6 +593,7 @@ def test_xlsx_column_limit_plus_one_fails():
 def test_xlsx_native_types_preserved():
     """int, float, bool, date, datetime cells keep their Python types (not str)."""
     import datetime as dt
+
     the_date = dt.date(2024, 3, 15)
     the_dt = dt.datetime(2024, 3, 15, 12, 30, 0)
 
@@ -658,6 +669,7 @@ def test_exceptions_do_not_contain_raw_content():
 def test_exceptions_do_not_expose_paths():
     """Verify no filesystem path appears in exception messages."""
     import os
+
     bad = b"\xff\xfe not valid utf8"
     try:
         _csv_parse(bad)
@@ -679,9 +691,7 @@ def test_parser_does_not_raise_http_exception():
     try:
         _csv_parse(bad_csv)
     except Exception as exc:
-        assert not isinstance(exc, fastapi.HTTPException), (
-            f"Parser raised HTTPException: {exc}"
-        )
+        assert not isinstance(exc, fastapi.HTTPException), f"Parser raised HTTPException: {exc}"
 
 
 def test_parser_exceptions_are_subclasses_of_ingestion_parse_error():
@@ -846,7 +856,7 @@ def test_xlsx_preflight_rejects_high_compression_ratio():
     Uses highly compressible repeated-byte content. The test is skipped if the
     platform's zlib implementation cannot achieve ratio > 100 for safety.
     """
-    raw = b"A" * 200_000   # highly compressible
+    raw = b"A" * 200_000  # highly compressible
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as zf:
         zf.writestr("xl/data.xml", raw)
@@ -889,10 +899,10 @@ def test_csv_blank_row_does_not_count_toward_row_limit():
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(["A", "B"])
-    writer.writerow(["1", "2"])   # data row 1
-    writer.writerow(["", ""])     # blank — skipped
-    writer.writerow(["3", "4"])   # data row 2
-    writer.writerow(["", ""])     # blank — skipped
+    writer.writerow(["1", "2"])  # data row 1
+    writer.writerow(["", ""])  # blank — skipped
+    writer.writerow(["3", "4"])  # data row 2
+    writer.writerow(["", ""])  # blank — skipped
     content = buf.getvalue().encode("utf-8")
     result = _csv_parse(content, max_rows=2)
     assert result.row_count == 2
@@ -927,7 +937,7 @@ def test_xlsx_header_with_internal_blank_preserves_column_position():
     wb = openpyxl.Workbook()
     ws = wb.active
     ws["A1"] = "A"
-    ws["B1"] = None   # internal blank
+    ws["B1"] = None  # internal blank
     ws["C1"] = "C"
     ws["A2"] = "x"
     ws["B2"] = "y"

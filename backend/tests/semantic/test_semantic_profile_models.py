@@ -1,7 +1,13 @@
-import pytest
 from uuid import uuid4
 
-from app.semantic.analytics_role_models import AnalyticsRoleProfile, Aggregation, DimensionCandidate, DimensionType, MeasureCandidate
+import pytest
+from app.semantic.analytics_role_models import (
+    Aggregation,
+    AnalyticsRoleProfile,
+    DimensionCandidate,
+    DimensionType,
+    MeasureCandidate,
+)
 from app.semantic.entity_models import EntityKeyCandidate
 from app.semantic.semantic_models import (
     SemanticClassification,
@@ -78,7 +84,9 @@ def test_valid_complete_profile():
         relationship_type="self",
         confidence=0.5,
     )
-    roles = AnalyticsRoleProfile(measure_candidates=(make_measure("age"),), dimension_candidates=(make_dimension("age_dim"),))
+    roles = AnalyticsRoleProfile(
+        measure_candidates=(make_measure("age"),), dimension_candidates=(make_dimension("age_dim"),)
+    )
     profile = SemanticProfile(
         domain=DatasetDomain.GENERAL,
         entities=(entity,),
@@ -124,7 +132,10 @@ def test_tuple_enforcement():
 def test_ordering_preserved():
     col = SemanticColumnProfile(
         column_name="x",
-        classifications=(make_classification(SemanticType.TEXT), make_classification(SemanticType.EMAIL)),
+        classifications=(
+            make_classification(SemanticType.TEXT),
+            make_classification(SemanticType.EMAIL),
+        ),
     )
     assert [c.semantic_type for c in col.classifications] == [SemanticType.TEXT, SemanticType.EMAIL]
 
@@ -136,7 +147,9 @@ def test_equality():
 
 
 def test_serialization_via_repr_and_equality():
-    col = SemanticColumnProfile(column_name="x", classifications=(make_classification(SemanticType.TEXT),))
+    col = SemanticColumnProfile(
+        column_name="x", classifications=(make_classification(SemanticType.TEXT),)
+    )
     serialized = repr(col)
     assert "SemanticColumnProfile" in serialized
     assert "column_name='x'" in serialized

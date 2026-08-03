@@ -1,11 +1,10 @@
-from dataclasses import dataclass, field
-from typing import Tuple, Sequence, Iterable
 import math
+from dataclasses import dataclass, field
+from typing import Iterable, Sequence, Tuple
 
 from .analytics_role_models import DimensionCandidate, DimensionType
-from .semantic_models import SemanticClassification, SemanticEvidence
+from .semantic_models import SemanticClassification
 from .semantic_types import SemanticType
-
 
 _DIMENSION_TYPE_MAP = {
     SemanticType.DATE: DimensionType.TEMPORAL,
@@ -70,7 +69,9 @@ class DimensionColumnInput:
                 raise TypeError("classifications must contain SemanticClassification instances")
         object.__setattr__(self, "classifications", cls)
 
-        object.__setattr__(self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio"))
+        object.__setattr__(
+            self, "cardinality_ratio", _finite_ratio(self.cardinality_ratio, "cardinality_ratio")
+        )
         object.__setattr__(self, "null_ratio", _finite_ratio(self.null_ratio, "null_ratio"))
 
 
@@ -96,7 +97,8 @@ class DimensionDetector:
                 continue
 
             eligible = [
-                c for c in col.classifications
+                c
+                for c in col.classifications
                 if isinstance(c, SemanticClassification)
                 and c.semantic_type not in _IGNORED_TYPES
                 and c.semantic_type in _DIMENSION_TYPE_MAP

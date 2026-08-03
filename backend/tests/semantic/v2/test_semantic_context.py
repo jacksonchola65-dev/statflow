@@ -1,9 +1,8 @@
 import dataclasses
-import pytest
 
-from app.semantic.v2.semantic_context import SemanticContext, RegexIndex, DictionaryIndex
-from app.semantic.v2.feature_models import LightValueFeatures
-from app.semantic.v2.feature_models import ColumnFeatureContext
+import pytest
+from app.semantic.v2.feature_models import ColumnFeatureContext, LightValueFeatures
+from app.semantic.v2.semantic_context import DictionaryIndex, RegexIndex, SemanticContext
 
 
 def make_col(name: str, values):
@@ -35,7 +34,15 @@ def test_empty_context():
 
 
 def test_single_column_and_lookup():
-    v = LightValueFeatures(raw_value="a", cleaned_value="a", lowered_value="a", is_empty=False, is_integer=False, is_decimal=False, parsed_number=None)
+    v = LightValueFeatures(
+        raw_value="a",
+        cleaned_value="a",
+        lowered_value="a",
+        is_empty=False,
+        is_integer=False,
+        is_decimal=False,
+        parsed_number=None,
+    )
     col = make_col("c1", (v,))
     ctx = SemanticContext(columns=(col,))
     assert ctx.column_count == 1
@@ -44,11 +51,31 @@ def test_single_column_and_lookup():
 
 
 def test_multiple_columns_and_ordering():
-    v1 = LightValueFeatures(raw_value="a", cleaned_value="a", lowered_value="a", is_empty=False, is_integer=False, is_decimal=False, parsed_number=None)
-    v2 = LightValueFeatures(raw_value="b", cleaned_value="b", lowered_value="b", is_empty=False, is_integer=False, is_decimal=False, parsed_number=None)
+    v1 = LightValueFeatures(
+        raw_value="a",
+        cleaned_value="a",
+        lowered_value="a",
+        is_empty=False,
+        is_integer=False,
+        is_decimal=False,
+        parsed_number=None,
+    )
+    v2 = LightValueFeatures(
+        raw_value="b",
+        cleaned_value="b",
+        lowered_value="b",
+        is_empty=False,
+        is_integer=False,
+        is_decimal=False,
+        parsed_number=None,
+    )
     c1 = make_col("one", (v1,))
     c2 = make_col("two", (v2,))
-    ctx = SemanticContext(columns=(c1, c2), regex_index=RegexIndex(patterns=("p",)), dictionary_index=DictionaryIndex(entries=("e",)))
+    ctx = SemanticContext(
+        columns=(c1, c2),
+        regex_index=RegexIndex(patterns=("p",)),
+        dictionary_index=DictionaryIndex(entries=("e",)),
+    )
     assert ctx.get_column_by_name("two").column_name == "two"
     assert ctx.columns[0].column_name == "one"
     assert ctx.column_count == 2
@@ -57,7 +84,15 @@ def test_multiple_columns_and_ordering():
 
 
 def test_duplicate_name_rejected():
-    v = LightValueFeatures(raw_value="a", cleaned_value="a", lowered_value="a", is_empty=False, is_integer=False, is_decimal=False, parsed_number=None)
+    v = LightValueFeatures(
+        raw_value="a",
+        cleaned_value="a",
+        lowered_value="a",
+        is_empty=False,
+        is_integer=False,
+        is_decimal=False,
+        parsed_number=None,
+    )
     c1 = make_col("dup", (v,))
     c2 = make_col("dup", (v,))
     with pytest.raises(ValueError):
@@ -65,7 +100,15 @@ def test_duplicate_name_rejected():
 
 
 def test_immutability_and_determinism():
-    v = LightValueFeatures(raw_value="a", cleaned_value="a", lowered_value="a", is_empty=False, is_integer=False, is_decimal=False, parsed_number=None)
+    v = LightValueFeatures(
+        raw_value="a",
+        cleaned_value="a",
+        lowered_value="a",
+        is_empty=False,
+        is_integer=False,
+        is_decimal=False,
+        parsed_number=None,
+    )
     c = make_col("x", (v,))
     ctx1 = SemanticContext(columns=(c,))
     ctx2 = SemanticContext(columns=(c,))

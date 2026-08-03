@@ -1,8 +1,5 @@
-from dataclasses import dataclass
-from typing import Tuple, Any, List
 import re
-import math
-from time import perf_counter
+from typing import List
 
 from app.semantic.detectors.base import DetectorInput, DetectorResult, SemanticDetector
 from app.semantic.semantic_models import SemanticClassification
@@ -13,7 +10,10 @@ _PATTERNS = (
     (SemanticType.EMAIL, re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")),
     (SemanticType.PHONE, re.compile(r"^\+?\d[\d \-\(\)]{6,}\d$")),
     (SemanticType.URL, re.compile(r"^(https?://)?[A-Za-z0-9.-]+\.[A-Za-z]{2,}(/.*)?$")),
-    (SemanticType.DATETIME, re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+\-]\d{2}:\d{2})?$")),
+    (
+        SemanticType.DATETIME,
+        re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+\-]\d{2}:\d{2})?$"),
+    ),
     (SemanticType.DATE, re.compile(r"^\d{4}-\d{2}-\d{2}$")),
     (SemanticType.TIME, re.compile(r"^\d{2}:\d{2}(?::\d{2})?$")),
     (SemanticType.LATITUDE, re.compile(r"^-?\d{1,2}\.\d+$")),
@@ -90,10 +90,16 @@ class RegexSemanticDetector(SemanticDetector):
                             partial_found = True
 
                 if exact_found:
-                    classifications.append(SemanticClassification(semantic_type=sem_type, confidence=0.95))
+                    classifications.append(
+                        SemanticClassification(semantic_type=sem_type, confidence=0.95)
+                    )
                 elif partial_found:
-                    classifications.append(SemanticClassification(semantic_type=sem_type, confidence=0.60))
+                    classifications.append(
+                        SemanticClassification(semantic_type=sem_type, confidence=0.60)
+                    )
 
-            results.append(DetectorResult(detector_name=self.NAME, classifications=tuple(classifications)))
+            results.append(
+                DetectorResult(detector_name=self.NAME, classifications=tuple(classifications))
+            )
 
         return results

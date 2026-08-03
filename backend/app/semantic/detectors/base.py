@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Tuple, Any, Optional
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Optional, Tuple
 
 from app.semantic.semantic_models import SemanticClassification
 

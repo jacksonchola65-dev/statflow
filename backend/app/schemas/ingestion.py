@@ -22,11 +22,9 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from app.models.data_source import FileFormat
 from app.models.ingestion import InferredColumnType, IngestionStatus
-
+from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
 # Pagination
@@ -37,9 +35,7 @@ class PaginationResponse(BaseModel):
     """Standard pagination metadata."""
 
     page: int = Field(ge=1, description="Current page number (1-indexed)")
-    page_size: int = Field(
-        ge=1, le=10_000, description="Number of items per page"
-    )
+    page_size: int = Field(ge=1, le=10_000, description="Number of items per page")
     total_items: int = Field(ge=0, description="Total number of items")
     total_pages: int = Field(ge=0, description="Total number of pages")
     has_next: bool = Field(description="Whether a next page exists")

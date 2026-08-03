@@ -25,7 +25,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, List, Optional
 
+from app.db.base import Base
+from app.models.data_source import FileFormat  # reuse existing enum
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     CheckConstraint,
@@ -34,7 +37,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -42,9 +44,6 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from app.db.base import Base
-from app.models.data_source import FileFormat  # reuse existing enum
 
 if TYPE_CHECKING:
     from app.models.data_source import DatasetRegistry
@@ -57,19 +56,19 @@ if TYPE_CHECKING:
 
 
 class IngestionStatus(str, enum.Enum):
-    PENDING    = "PENDING"
+    PENDING = "PENDING"
     PROCESSING = "PROCESSING"
-    COMPLETED  = "COMPLETED"
-    FAILED     = "FAILED"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
 
 
 class InferredColumnType(str, enum.Enum):
-    INTEGER  = "INTEGER"
-    DECIMAL  = "DECIMAL"
-    BOOLEAN  = "BOOLEAN"
-    DATE     = "DATE"
+    INTEGER = "INTEGER"
+    DECIMAL = "DECIMAL"
+    BOOLEAN = "BOOLEAN"
+    DATE = "DATE"
     DATETIME = "DATETIME"
-    TEXT     = "TEXT"
+    TEXT = "TEXT"
 
 
 # ---------------------------------------------------------------------------
@@ -119,15 +118,9 @@ class IngestionJob(Base):
     row_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     column_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    started_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    completed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
-    failed_at: Mapped[Optional[datetime]] = mapped_column(
-        DateTime(timezone=True), nullable=True
-    )
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # FK → users; nullable so ingestion history survives soft-deleted or hard-deleted users
@@ -202,11 +195,7 @@ class IngestionJob(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<IngestionJob id={self.id} "
-            f"status={self.status} "
-            f"file={self.original_filename!r}>"
-        )
+        return f"<IngestionJob id={self.id} status={self.status} file={self.original_filename!r}>"
 
 
 # ---------------------------------------------------------------------------
@@ -316,9 +305,7 @@ class DatasetColumn(Base):
 
     def __repr__(self) -> str:
         return (
-            f"<DatasetColumn id={self.id} "
-            f"name={self.normalized_name!r} "
-            f"type={self.inferred_type}>"
+            f"<DatasetColumn id={self.id} name={self.normalized_name!r} type={self.inferred_type}>"
         )
 
 
@@ -413,7 +400,4 @@ class DatasetRow(Base):
     )
 
     def __repr__(self) -> str:
-        return (
-            f"<DatasetRow job={self.ingestion_job_id} "
-            f"row={self.row_number}>"
-        )
+        return f"<DatasetRow job={self.ingestion_job_id} row={self.row_number}>"

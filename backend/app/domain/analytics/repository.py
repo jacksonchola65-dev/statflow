@@ -2,13 +2,35 @@ from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import Boolean, Date, DateTime, Integer, Numeric, String, bindparam, cast, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.domain.analytics.contracts import AnalyticsQuery, AnalyticsResult, AnalyticsResultColumn, AnalyticsResultRole, AggregationFunction
-from app.domain.analytics.exceptions import AnalyticsQueryError, InvalidAggregationError, InvalidExecutionPlanError, InvalidIdentifierError
-from app.domain.analytics.planner import AnalyticsExecutionPlan, ResolvedDimension, ResolvedMeasure, ResolvedFilter
+from app.domain.analytics.contracts import (
+    AggregationFunction,
+    AnalyticsResult,
+    AnalyticsResultColumn,
+    AnalyticsResultRole,
+)
+from app.domain.analytics.exceptions import (
+    InvalidAggregationError,
+    InvalidExecutionPlanError,
+    InvalidIdentifierError,
+)
+from app.domain.analytics.planner import (
+    AnalyticsExecutionPlan,
+    ResolvedFilter,
+    ResolvedMeasure,
+)
 from app.models.ingestion import DatasetColumn, DatasetRow, InferredColumnType
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Integer,
+    Numeric,
+    bindparam,
+    cast,
+    func,
+    select,
+)
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class AnalyticsRepository:
@@ -31,7 +53,9 @@ class AnalyticsRepository:
         output_labels: list[str] = []
 
         for resolved_dimension in plan.resolved_dimensions:
-            identifier = resolved_dimension.dimension.alias or resolved_dimension.dimension.column_name
+            identifier = (
+                resolved_dimension.dimension.alias or resolved_dimension.dimension.column_name
+            )
             expression = self._build_column_expression(resolved_dimension.metadata)
             selected_columns.append(expression.label(identifier))
             output_identifiers.append(identifier)
@@ -40,7 +64,9 @@ class AnalyticsRepository:
             output_labels.append(identifier)
 
         for resolved_measure in plan.resolved_measures:
-            identifier = resolved_measure.measure.alias or resolved_measure.measure.aggregation.value.lower()
+            identifier = (
+                resolved_measure.measure.alias or resolved_measure.measure.aggregation.value.lower()
+            )
             expression = self._build_measure_expression(resolved_measure)
             selected_columns.append(expression.label(identifier))
             output_identifiers.append(identifier)
@@ -48,20 +74,43 @@ class AnalyticsRepository:
             output_aggregations.append(resolved_measure.measure.aggregation)
             output_labels.append(identifier)
 
-        query = select(*selected_columns).select_from(DatasetRow).where(DatasetRow.ingestion_job_id == plan.ingestion_job_id)
+        query = (
+            select(*selected_columns)
+            .select_from(DatasetRow)
+            .where(DatasetRow.ingestion_job_id == plan.ingestion_job_id)
+        )
 
         if plan.resolved_filters:
-            query = query.where(*[self._build_filter_expression(filter_clause) for filter_clause in plan.resolved_filters])
+            query = query.where(
+                *[
+                    self._build_filter_expression(filter_clause)
+                    for filter_clause in plan.resolved_filters
+                ]
+            )
 
         if plan.resolved_dimensions:
-            grouping_expressions = [self._build_column_expression(dimension.metadata) for dimension in plan.resolved_dimensions]
+            grouping_expressions = [
+                self._build_column_expression(dimension.metadata)
+                for dimension in plan.resolved_dimensions
+            ]
             query = query.group_by(*grouping_expressions)
 
         for resolved_sort in plan.resolved_sorts:
-            expression = next((column for column in selected_columns if getattr(column, "name", None) == resolved_sort.identifier), None)
+            expression = next(
+                (
+                    column
+                    for column in selected_columns
+                    if getattr(column, "name", None) == resolved_sort.identifier
+                ),
+                None,
+            )
             if expression is None:
                 raise InvalidIdentifierError(f"unknown sort target: {resolved_sort.identifier}")
-            query = query.order_by(expression.asc() if resolved_sort.sort_clause.direction.value == "ASCENDING" else expression.desc())
+            query = query.order_by(
+                expression.asc()
+                if resolved_sort.sort_clause.direction.value == "ASCENDING"
+                else expression.desc()
+            )
 
         query = query.limit(plan.limit).offset(plan.offset)
 
@@ -75,8 +124,12 @@ class AnalyticsRepository:
             output_rows.append(mapping)
 
         columns = [
-            AnalyticsResultColumn(identifier=identifier, label=label, role=role, aggregation=aggregation)
-            for identifier, label, role, aggregation in zip(output_identifiers, output_labels, output_roles, output_aggregations)
+            AnalyticsResultColumn(
+                identifier=identifier, label=label, role=role, aggregation=aggregation
+            )
+            for identifier, label, role, aggregation in zip(
+                output_identifiers, output_labels, output_roles, output_aggregations
+            )
         ]
 
         return AnalyticsResult(

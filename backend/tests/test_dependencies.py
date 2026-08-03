@@ -16,8 +16,10 @@ Strategy
 from __future__ import annotations
 
 import sys
+
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 
 import uuid
@@ -26,8 +28,6 @@ from datetime import datetime, timedelta, timezone
 import jwt as _jwt
 import pytest
 import pytest_asyncio
-from httpx import AsyncClient
-
 from app.core.config import settings
 from app.core.dependencies import (
     get_current_user,
@@ -41,8 +41,8 @@ from app.services.auth_service import AuthService
 # ---------------------------------------------------------------------------
 # Test router — registered on the app at fixture setup time
 # ---------------------------------------------------------------------------
-
 from fastapi import APIRouter, Depends
+from httpx import AsyncClient
 
 test_router = APIRouter()
 
@@ -151,9 +151,7 @@ async def test_missing_cookie_returns_401(auth_client):
 @pytest.mark.asyncio
 async def test_malformed_token_returns_401(auth_client):
     """Cookie present but value is not a JWT → 401."""
-    resp = await auth_client.get(
-        "/test/me", cookies={settings.AUTH_COOKIE_NAME: "not-a-jwt"}
-    )
+    resp = await auth_client.get("/test/me", cookies={settings.AUTH_COOKIE_NAME: "not-a-jwt"})
     assert resp.status_code == 401
 
 
@@ -162,9 +160,7 @@ async def test_expired_token_returns_401(db_session, auth_client):
     """Cookie holds an expired token → 401."""
     user = await _make_user(db_session)
     expired = _expired_token(user.id, user.role)
-    resp = await auth_client.get(
-        "/test/me", cookies={settings.AUTH_COOKIE_NAME: expired}
-    )
+    resp = await auth_client.get("/test/me", cookies={settings.AUTH_COOKIE_NAME: expired})
     assert resp.status_code == 401
 
 
@@ -172,9 +168,7 @@ async def test_expired_token_returns_401(db_session, auth_client):
 async def test_token_for_missing_user_returns_401(auth_client):
     """JWT sub references a UUID not in the DB → 401."""
     phantom_id = uuid.uuid4()
-    resp = await auth_client.get(
-        "/test/me", cookies=_auth_cookie(phantom_id, UserRole.VIEWER)
-    )
+    resp = await auth_client.get("/test/me", cookies=_auth_cookie(phantom_id, UserRole.VIEWER))
     assert resp.status_code == 401
 
 
@@ -192,9 +186,7 @@ async def test_db_role_is_authoritative(db_session, auth_client):
     user = await _make_user(db_session, role=UserRole.VIEWER)
     # Mint a token that falsely claims ADMIN role
     spoofed_cookie = {
-        settings.AUTH_COOKIE_NAME: create_access_token(
-            user_id=user.id, role=UserRole.ADMIN
-        )
+        settings.AUTH_COOKIE_NAME: create_access_token(user_id=user.id, role=UserRole.ADMIN)
     }
     resp = await auth_client.get("/test/admin-only", cookies=spoofed_cookie)
     assert resp.status_code == 403

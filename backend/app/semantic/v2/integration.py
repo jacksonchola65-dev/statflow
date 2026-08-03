@@ -1,24 +1,37 @@
 """Controlled integration helpers for running fused native v2 semantic pipeline
 from FileInspectionService without changing public APIs.
 """
+
 from __future__ import annotations
 
 import os
 from typing import Iterable
 
-from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
-from app.semantic.v2.semantic_context import SemanticContext
-from app.semantic.v2.native_detection_pipeline import NativeDetectionPipeline
-from app.semantic.consensus_engine import ConsensusEngine
-from app.semantic.semantic_profile_builder import ColumnClassification, DomainDetectionResult, SemanticProfileBuilder
-from app.semantic.entity_candidate_detector import EntityColumnInput, EntityCandidateDetector
-from app.semantic.entity_key_detector import EntityKeyColumnInput, EntityKeyDetectionInput, EntityKeyDetector
-from app.semantic.relationship_detector import RelationshipColumnInput, RelationshipDetectionInput, RelationshipDetector
-from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
-from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
 from app.semantic.analytics_role_service import AnalyticsRoleService
+from app.semantic.consensus_engine import ConsensusEngine
+from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
+from app.semantic.entity_candidate_detector import EntityCandidateDetector, EntityColumnInput
+from app.semantic.entity_key_detector import (
+    EntityKeyColumnInput,
+    EntityKeyDetectionInput,
+    EntityKeyDetector,
+)
+from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
+from app.semantic.relationship_detector import (
+    RelationshipColumnInput,
+    RelationshipDetectionInput,
+    RelationshipDetector,
+)
+from app.semantic.semantic_profile_builder import (
+    ColumnClassification,
+    DomainDetectionResult,
+    SemanticProfileBuilder,
+)
 from app.semantic.semantic_serialization import to_dict as semantic_to_dict
 from app.semantic.semantic_types import DatasetDomain
+from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
+from app.semantic.v2.native_detection_pipeline import NativeDetectionPipeline
+from app.semantic.v2.semantic_context import SemanticContext
 
 
 def compose_semantic_profile_from_columns(columns: Iterable) -> dict:
@@ -49,10 +62,16 @@ def compose_semantic_profile_from_columns(columns: Iterable) -> dict:
             merged = ConsensusEngine.merge(list(res_list))
             batch_classifications.append(tuple(merged))
 
-        col_classifications = [ColumnClassification(column_name=c.name, classifications=tuple(classifications)) for c, classifications in zip(columns, batch_classifications)]
+        col_classifications = [
+            ColumnClassification(column_name=c.name, classifications=tuple(classifications))
+            for c, classifications in zip(columns, batch_classifications)
+        ]
 
         # Entities, keys, relationships, measures, dimensions, analytics
-        entity_inputs = tuple(EntityColumnInput(column_name=cc.column_name, classifications=cc.classifications) for cc in col_classifications)
+        entity_inputs = tuple(
+            EntityColumnInput(column_name=cc.column_name, classifications=cc.classifications)
+            for cc in col_classifications
+        )
         entities = EntityCandidateDetector.discover(entity_inputs)
 
         ek_inputs = []
@@ -64,20 +83,59 @@ def compose_semantic_profile_from_columns(columns: Iterable) -> dict:
             sample_size = len(samples)
             unique_ratio = (len(set(samples)) / sample_size) if sample_size > 0 else 0.0
             null_ratio = 1.0 if sc.nullable else 0.0
-            cls = tuple(next((cc.classifications for cc in col_classifications if cc.column_name == sc.name), ()))
-            ek_inputs.append(EntityKeyColumnInput(column_name=sc.name, classifications=cls, uniqueness_ratio=unique_ratio, null_ratio=null_ratio))
-            rel_inputs.append(RelationshipColumnInput(column_name=sc.name, classifications=cls, uniqueness_ratio=unique_ratio, null_ratio=null_ratio))
-            measure_inputs.append(MeasureColumnInput(column_name=sc.name, classifications=cls, cardinality_ratio=unique_ratio, null_ratio=null_ratio))
-            dimension_inputs.append(DimensionColumnInput(column_name=sc.name, classifications=cls, cardinality_ratio=unique_ratio, null_ratio=null_ratio))
+            cls = tuple(
+                next(
+                    (cc.classifications for cc in col_classifications if cc.column_name == sc.name),
+                    (),
+                )
+            )
+            ek_inputs.append(
+                EntityKeyColumnInput(
+                    column_name=sc.name,
+                    classifications=cls,
+                    uniqueness_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                )
+            )
+            rel_inputs.append(
+                RelationshipColumnInput(
+                    column_name=sc.name,
+                    classifications=cls,
+                    uniqueness_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                )
+            )
+            measure_inputs.append(
+                MeasureColumnInput(
+                    column_name=sc.name,
+                    classifications=cls,
+                    cardinality_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                )
+            )
+            dimension_inputs.append(
+                DimensionColumnInput(
+                    column_name=sc.name,
+                    classifications=cls,
+                    cardinality_ratio=unique_ratio,
+                    null_ratio=null_ratio,
+                )
+            )
 
-        keys = EntityKeyDetector.discover(EntityKeyDetectionInput(entities=entities, columns=tuple(ek_inputs)))
-        rels = RelationshipDetector.discover(RelationshipDetectionInput(entities=entities, keys=keys, columns=tuple(rel_inputs)))
+        keys = EntityKeyDetector.discover(
+            EntityKeyDetectionInput(entities=entities, columns=tuple(ek_inputs))
+        )
+        rels = RelationshipDetector.discover(
+            RelationshipDetectionInput(entities=entities, keys=keys, columns=tuple(rel_inputs))
+        )
         measures = MeasureDetector.discover(tuple(measure_inputs))
         dimensions = DimensionDetector.discover(tuple(dimension_inputs))
         analytics_roles = AnalyticsRoleService.compose(measures, dimensions)
 
         domain_result = DomainDetectionResult(domain=DatasetDomain.GENERAL)
-        profile = SemanticProfileBuilder.compose(domain_result, entities, rels, keys, analytics_roles, tuple(col_classifications))
+        profile = SemanticProfileBuilder.compose(
+            domain_result, entities, rels, keys, analytics_roles, tuple(col_classifications)
+        )
         return semantic_to_dict(profile)
     except Exception:
         # Best-effort: do not let semantics break inspection

@@ -11,7 +11,6 @@ from typing import Mapping
 from urllib.parse import unquote, urljoin, urlsplit
 
 import httpx
-
 from app.services.official_import_service import ImportData, ImportSource
 
 logger = logging.getLogger(__name__)
@@ -282,9 +281,13 @@ class HttpOfficialDataImporter:
             raise UnsafeImportUrlError("Localhost URLs are not allowed")
 
         try:
-            address_infos = socket.getaddrinfo(hostname, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM)
+            address_infos = socket.getaddrinfo(
+                hostname, None, family=socket.AF_UNSPEC, type=socket.SOCK_STREAM
+            )
         except socket.gaierror as exc:
-            raise UnsafeImportUrlError(f"Unable to resolve hostname {self._safe_host(url)}") from exc
+            raise UnsafeImportUrlError(
+                f"Unable to resolve hostname {self._safe_host(url)}"
+            ) from exc
 
         for family, _, _, _, sockaddr in address_infos:
             if family == socket.AF_INET6 and len(sockaddr) >= 1:
@@ -297,7 +300,13 @@ class HttpOfficialDataImporter:
                 address = ip_address(candidate)
             except ValueError:
                 continue
-            if address.is_loopback or address.is_link_local or address.is_private or address.is_multicast or address.is_unspecified:
+            if (
+                address.is_loopback
+                or address.is_link_local
+                or address.is_private
+                or address.is_multicast
+                or address.is_unspecified
+            ):
                 raise UnsafeImportUrlError(f"Unsafe destination address for {self._safe_host(url)}")
 
         return str(parsed.geturl())

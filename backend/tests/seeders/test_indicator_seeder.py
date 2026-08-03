@@ -5,10 +5,8 @@ Each test that runs the indicator seeder must ensure the required categories
 exist. We re-seed categories at the start of each test and clean up both
 indicators and any test-created categories at the end.
 """
-import pytest
-from sqlalchemy import delete, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
+import pytest
 from app.db.seeders.categories import seed_categories
 from app.db.seeders.indicators import (
     REQUIRED_CATEGORY_CODES,
@@ -18,7 +16,8 @@ from app.db.seeders.indicators import (
 )
 from app.models.category import Category
 from app.models.indicator import Indicator
-
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -34,15 +33,14 @@ async def _ensure_categories(session: AsyncSession) -> None:
 
 
 async def _delete_seeded_indicators(session: AsyncSession) -> None:
-    await session.execute(
-        delete(Indicator).where(Indicator.code.in_(SEEDED_INDICATOR_CODES))
-    )
+    await session.execute(delete(Indicator).where(Indicator.code.in_(SEEDED_INDICATOR_CODES)))
     await session.commit()
 
 
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 async def test_first_run_creates_10_indicators(db_session: AsyncSession) -> None:
@@ -99,9 +97,7 @@ async def test_changed_field_is_updated(db_session: AsyncSession) -> None:
     await _delete_seeded_indicators(db_session)
     await seed_indicators(db_session)
 
-    result = await db_session.execute(
-        select(Indicator).where(Indicator.code == "GDP_PER_CAPITA")
-    )
+    result = await db_session.execute(select(Indicator).where(Indicator.code == "GDP_PER_CAPITA"))
     gdp = result.scalar_one()
     gdp.unit = "OLD_UNIT"
     await db_session.commit()
@@ -109,9 +105,7 @@ async def test_changed_field_is_updated(db_session: AsyncSession) -> None:
     update_result = await seed_indicators(db_session)
     assert update_result["updated"] >= 1
 
-    result = await db_session.execute(
-        select(Indicator).where(Indicator.code == "GDP_PER_CAPITA")
-    )
+    result = await db_session.execute(select(Indicator).where(Indicator.code == "GDP_PER_CAPITA"))
     gdp_after = result.scalar_one()
     assert gdp_after.unit == "USD"
 
@@ -141,9 +135,7 @@ async def test_missing_category_raises_clear_error(db_session: AsyncSession) -> 
     await _delete_seeded_indicators(db_session)
 
     # Delete all required categories temporarily
-    await db_session.execute(
-        delete(Category).where(Category.code.in_(SEEDED_CATEGORY_CODES))
-    )
+    await db_session.execute(delete(Category).where(Category.code.in_(SEEDED_CATEGORY_CODES)))
     await db_session.commit()
 
     with pytest.raises(CategoryNotFoundError) as exc_info:

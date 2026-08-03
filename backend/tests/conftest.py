@@ -7,6 +7,7 @@ import sys
 
 if sys.platform == "win32":
     import asyncio as _asyncio
+
     _asyncio.set_event_loop_policy(_asyncio.WindowsSelectorEventLoopPolicy())
 # ---------------------------------------------------------------------------
 
@@ -29,31 +30,29 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 import sqlalchemy as sa
-from fastapi import Depends
+from app.db.session import get_db
+from app.main import create_app
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-
-from app.db.session import get_db
-from app.main import create_app
-
+from sqlalchemy.pool import NullPool
 
 # ---------------------------------------------------------------------------
 # Session-scoped synchronous fixture: runs once, uses its own event loop.
 # Drops+creates tables and seeds provinces before any tests run.
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_database():
     """Drop/create tables and seed provinces and categories once for the whole session."""
     from app.core.config import settings
     from app.db.base import Base
-    from app.db.seeders.provinces import seed_provinces
     from app.db.seeders.categories import seed_categories
+    from app.db.seeders.provinces import seed_provinces
 
     async def _run():
         engine = create_async_engine(
@@ -89,6 +88,7 @@ def setup_test_database():
 # Function-scoped async fixtures — each runs in the same per-test event loop.
 # NullPool means the connection is discarded (not returned to pool) on close.
 # ---------------------------------------------------------------------------
+
 
 @pytest_asyncio.fixture
 async def db_session(setup_test_database) -> AsyncGenerator[AsyncSession, None]:
@@ -157,6 +157,7 @@ async def admin_user(db_session: AsyncSession):
     there are no cross-test email collisions.
     """
     import uuid as _uuid
+
     from app.models.user import UserRole
     from app.services.auth_service import AuthService
 
@@ -181,7 +182,7 @@ async def authed_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient,
     business logic rather than authentication/CSRF behavior.
     """
     import uuid as _uuid
-    from app.core.config import settings
+
     from app.core.dependencies import get_current_user, validate_csrf
     from app.models.user import UserRole
     from app.services.auth_service import AuthService

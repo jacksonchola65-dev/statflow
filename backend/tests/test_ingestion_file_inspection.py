@@ -14,11 +14,9 @@ import io
 import uuid
 from datetime import datetime, timedelta, timezone
 
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -299,7 +297,11 @@ async def test_missing_multipart_file(authed_client: AsyncClient) -> None:
 
 async def test_expired_inspection_token(authed_client: AsyncClient) -> None:
     """Retrieve with expired token → 404 IMPORT_INSPECTION_EXPIRED."""
-    from app.services.file_inspection_service import _INSPECTION_STORE, _InspectionTokenEntry, CachedInspection
+    from app.services.file_inspection_service import (
+        _INSPECTION_STORE,
+        CachedInspection,
+        _InspectionTokenEntry,
+    )
 
     # Insert a pre-expired token directly
     fake_token = str(uuid.uuid4())

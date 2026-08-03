@@ -14,10 +14,6 @@ Routes:
 from __future__ import annotations
 
 import uuid
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import (
     get_current_user,
@@ -39,6 +35,8 @@ from app.services.data_source_service import (
     DataSourceNotFoundError,
     DataSourceService,
 )
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/data-sources", tags=["data-sources"])
 

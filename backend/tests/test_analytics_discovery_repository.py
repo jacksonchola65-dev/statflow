@@ -5,16 +5,15 @@ import uuid
 from datetime import datetime, timezone
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.domain.analytics.discovery import DatasetDiscoveryRepository
 from app.models.data_source import FileFormat, SourceType
-from app.models.ingestion import IngestionStatus, InferredColumnType
+from app.models.ingestion import InferredColumnType, IngestionStatus
 from app.repositories.data_source_repository import DataSourceRepository
 from app.repositories.dataset_column_repository import DatasetColumnRepository
 from app.repositories.dataset_registry_repository import DatasetRegistryRepository
 from app.repositories.dataset_row_repository import DatasetRowRepository
 from app.repositories.ingestion_job_repository import IngestionJobRepository
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _create_job(
@@ -26,7 +25,9 @@ async def _create_job(
     columns: list[dict] | None = None,
     rows: list[dict] | None = None,
 ) -> uuid.UUID:
-    source = await DataSourceRepository(db_session).create(name=f"Repo Source {uuid.uuid4().hex[:8]}", is_active=True)
+    source = await DataSourceRepository(db_session).create(
+        name=f"Repo Source {uuid.uuid4().hex[:8]}", is_active=True
+    )
     await db_session.flush()
 
     registry = await DatasetRegistryRepository(db_session).create(

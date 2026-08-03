@@ -1,13 +1,13 @@
-import pytest
 from uuid import uuid4
 
-from app.semantic.semantic_types import DatasetDomain, SemanticType, ColumnRole
+import pytest
 from app.semantic.semantic_models import (
     SemanticColumn,
     SemanticEntity,
-    SemanticRelationship,
     SemanticProfile,
+    SemanticRelationship,
 )
+from app.semantic.semantic_types import ColumnRole, DatasetDomain, SemanticType
 
 
 def test_enums_exist_and_have_members():
@@ -34,8 +34,12 @@ def test_models_are_immutable_and_defaults():
 def test_relationship_and_profile_structures():
     e1 = SemanticEntity(id=uuid4(), name="A", semantic_type=SemanticType.ORGANIZATION)
     e2 = SemanticEntity(id=uuid4(), name="B", semantic_type=SemanticType.ORGANIZATION)
-    rel = SemanticRelationship(source_entity_id=e1.id, target_entity_id=e2.id, relationship_type="owns", confidence=0.75)
-    profile = SemanticProfile(dataset_domain=DatasetDomain.FINANCE, entities=(e1, e2), relationships=(rel,))
+    rel = SemanticRelationship(
+        source_entity_id=e1.id, target_entity_id=e2.id, relationship_type="owns", confidence=0.75
+    )
+    profile = SemanticProfile(
+        dataset_domain=DatasetDomain.FINANCE, entities=(e1, e2), relationships=(rel,)
+    )
     assert profile.dataset_domain == DatasetDomain.FINANCE
     assert profile.entities[0].name == "A"
     assert profile.relationships[0].relationship_type == "owns"
