@@ -2,7 +2,17 @@
 target-version = "py312"
 line-length = 100
 indent-width = 4
-extend-exclude = ["migrations", "alembic", "venv", ".venv"]
+extend-exclude = [
+    "migrations",
+    "alembic",
+    "venv",
+    ".venv",
+    "manual_verify.py",
+    "backend/temp_*.py",
+    "backend/tmp_*.py",
+    "backend/*debug*.py",
+    "backend/*manual*.py",
+]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I"]
