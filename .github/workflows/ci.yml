@@ -48,8 +48,36 @@ jobs:
           pip install -r backend/requirements.txt
       - name: Run Ruff checks
         run: |
-          python -m ruff check .
-          python -m ruff format --check .
+          set +e
+          {
+            echo "python --version"
+            python --version
+            echo "python -m ruff --version"
+            python -m ruff --version
+            echo "pwd"
+            pwd
+            echo "ls -la"
+            ls -la .
+            echo "python -m ruff check . --output-format=full"
+            python -m ruff check . --output-format=full
+            ruff_check_rc=$?
+            echo "python -m ruff format --check ."
+            python -m ruff format --check .
+            ruff_format_rc=$?
+            if [ $ruff_check_rc -ne 0 ]; then
+              exit $ruff_check_rc
+            fi
+            exit $ruff_format_rc
+          } > ruff-ci.log 2>&1
+      - name: Upload Ruff diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruff-ci-diagnostics
+          path: |
+            ruff-ci.log
+            pyproject.toml
+          if-no-files-found: warn
       - name: Run MyPy checks
         run: |
           python -m mypy backend/app
