@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import List
+from collections.abc import Sequence
+from typing import Protocol
 
 from app.semantic.detectors.base import DetectorResult
 from app.semantic.v2.native_detectors import (
@@ -12,10 +13,14 @@ from app.semantic.v2.native_detectors import (
 from app.semantic.v2.semantic_context import SemanticContext
 
 
+class SupportsDetect(Protocol):
+    def detect(self, column: object) -> DetectorResult | None: ...
+
+
 class NativeDetectionPipeline:
-    def __init__(self, detectors: List = None):
+    def __init__(self, detectors: Sequence[SupportsDetect] | None = None) -> None:
         if detectors is None:
-            self._detectors = [
+            self._detectors: list[SupportsDetect] = [
                 RegexSemanticDetectorV2(),
                 DictionarySemanticDetectorV2(),
                 ValueSamplingDetectorV2(),
@@ -23,12 +28,12 @@ class NativeDetectionPipeline:
         else:
             self._detectors = list(detectors)
 
-    def run(self, context: SemanticContext, fused: bool = False) -> List[List[DetectorResult]]:
+    def run(self, context: SemanticContext, fused: bool = False) -> list[list[DetectorResult]]:
         # return list per column of DetectorResult in detector order (only non-empty classifications)
         if not self._detectors:
             return [[] for _ in context.columns]
 
-        results: List[List[DetectorResult]] = [[] for _ in context.columns]
+        results: list[list[DetectorResult]] = [[] for _ in context.columns]
         if fused:
             evaluator = NativeColumnEvaluator()
             for idx, col in enumerate(context.columns):

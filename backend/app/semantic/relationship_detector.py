@@ -148,7 +148,7 @@ class RelationshipDetector:
                 source_column_map.setdefault(key, []).append(idx_e)
 
         rels: List[RelationshipCandidate] = []
-        seen = []  # for duplicate suppression: store tuples of lowercased fields
+        seen: list[tuple[str, str, str, str]] = []
 
         for col in cols:
             # validate
@@ -354,7 +354,7 @@ class RelationshipDetector:
                 evidence=tuple(evs),
             )
 
-            key = (
+            rel_key = (
                 rel.source_entity.lower(),
                 rel.target_entity.lower(),
                 rel.source_column.lower(),
@@ -362,18 +362,18 @@ class RelationshipDetector:
             )
             # duplicate suppression
             existing_idx = None
-            for i, k in enumerate(seen):
-                if k == key:
+            for i, seen_key in enumerate(seen):
+                if seen_key == rel_key:
                     existing_idx = i
                     break
             if existing_idx is not None:
                 # compare with existing rel in rels
                 if rel.confidence > rels[existing_idx].confidence:
                     rels[existing_idx] = rel
-                    seen[existing_idx] = key
+                    seen[existing_idx] = rel_key
                 # on equal confidence keep first-seen (do nothing)
             else:
-                seen.append(key)
+                seen.append(rel_key)
                 rels.append(rel)
 
         # final sort

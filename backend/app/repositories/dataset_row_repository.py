@@ -72,10 +72,11 @@ BULK DELETE:
 from __future__ import annotations
 
 import uuid
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 from app.models.ingestion import DatasetRow
 from sqlalchemy import delete, func, insert, select
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # ---------------------------------------------------------------------------
@@ -248,4 +249,5 @@ class DatasetRowRepository:
             .where(DatasetRow.ingestion_job_id == ingestion_job_id)
             .execution_options(synchronize_session=False)
         )
-        return result.rowcount
+        cursor_result = cast(CursorResult[Any], result)
+        return int(cursor_result.rowcount or 0)

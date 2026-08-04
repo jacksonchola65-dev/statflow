@@ -50,7 +50,10 @@ def _format_decimal_to_string(d: Decimal) -> str:
 
     Assumes the Decimal is already validated as finite.
     """
-    sign, digits, exponent = d.as_tuple()
+    decimal_tuple = d.as_tuple()
+    sign: int = int(decimal_tuple[0])
+    digits: tuple[int, ...] = tuple(decimal_tuple[1])
+    exponent: int = int(decimal_tuple[2])
 
     # Handle empty digits (shouldn't happen for finite values, but be defensive)
     if not digits:

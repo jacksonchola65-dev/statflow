@@ -179,16 +179,17 @@ class HttpOfficialDataImporter:
 
     async def _read_response_body(self, response: httpx.Response) -> bytes:
         content_length = response.headers.get("content-length")
+        parsed_length: int | None = None
         if content_length is not None:
             try:
                 parsed_length = int(content_length)
             except ValueError:
                 parsed_length = None
-            else:
-                if parsed_length > self._config.maximum_response_bytes:
-                    raise HttpImportResponseTooLargeError(
-                        f"Response exceeds configured size for {self._safe_host(str(response.url))}"
-                    )
+
+        if parsed_length is not None and parsed_length > self._config.maximum_response_bytes:
+            raise HttpImportResponseTooLargeError(
+                f"Response exceeds configured size for {self._safe_host(str(response.url))}"
+            )
 
         chunks: list[bytes] = []
         total_bytes = 0

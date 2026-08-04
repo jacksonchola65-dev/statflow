@@ -31,6 +31,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.elements import BindParameter
 
 
 class AnalyticsRepository:
@@ -191,7 +192,7 @@ class AnalyticsRepository:
         raise InvalidAggregationError("unsupported filter operator")
 
     def _build_column_expression(self, metadata: DatasetColumn) -> Any:
-        json_key = bindparam(
+        json_key: BindParameter[Any] = bindparam(
             f"analytics_key_{metadata.normalized_name}",
             value=metadata.normalized_name,
             literal_execute=True,

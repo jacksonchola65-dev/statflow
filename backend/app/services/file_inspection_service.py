@@ -17,7 +17,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, cast
 
 from app.schemas.ingestion_mapping import (
     ColumnMapping,
@@ -233,9 +233,9 @@ def _decode_bytes(raw_bytes: bytes) -> str:
 def _detect_dialect(text: str) -> csv.Dialect:
     sample = text[:4096]
     try:
-        return csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        return cast(csv.Dialect, csv.Sniffer().sniff(sample, delimiters=",;\t|"))
     except csv.Error:
-        return csv.excel  # type: ignore[return-value]
+        return csv.excel()
 
 
 def _normalize_header(header: str) -> str:
@@ -343,9 +343,9 @@ def _infer_column_type(values: list[str]) -> SourceColumnType:
     return SourceColumnType.MIXED
 
 
-def _collect_samples(rows: list[list[str]], max_samples: int) -> list[str]:
+def _collect_samples(values: list[str], max_samples: int) -> list[str]:
     samples: list[str] = []
-    for value in rows:
+    for value in values:
         if value != "" and len(samples) < max_samples:
             samples.append(value)
         if len(samples) >= max_samples:

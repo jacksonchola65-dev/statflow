@@ -35,7 +35,7 @@ class ResolvedDimension:
 @dataclass(frozen=True)
 class ResolvedMeasure:
     measure: Measure
-    metadata: DatasetColumn
+    metadata: DatasetColumn | None
 
 
 @dataclass(frozen=True)
@@ -79,24 +79,24 @@ class AnalyticsQueryPlanner:
 
         resolved_dimensions: list[ResolvedDimension] = []
         for dimension in query.dimensions:
-            resolved = await self._resolve_dimension(
+            resolved_dimension = await self._resolve_dimension(
                 query.dataset_reference.ingestion_job_id, dimension
             )
-            resolved_dimensions.append(resolved)
+            resolved_dimensions.append(resolved_dimension)
 
         resolved_measures: list[ResolvedMeasure] = []
         for measure in query.measures:
-            resolved = await self._resolve_measure(
+            resolved_measure = await self._resolve_measure(
                 query.dataset_reference.ingestion_job_id, measure
             )
-            resolved_measures.append(resolved)
+            resolved_measures.append(resolved_measure)
 
         resolved_filters: list[ResolvedFilter] = []
         for filter_clause in query.filters:
-            resolved = await self._resolve_filter(
+            resolved_filter = await self._resolve_filter(
                 query.dataset_reference.ingestion_job_id, filter_clause
             )
-            resolved_filters.append(resolved)
+            resolved_filters.append(resolved_filter)
 
         declared_identifiers = {dimension.column_name for dimension in query.dimensions}
         for dimension in query.dimensions:
@@ -155,36 +155,43 @@ class AnalyticsQueryPlanner:
         return ResolvedDimension(dimension=dimension, metadata=resolved.metadata)
 
     async def _resolve_measure(self, ingestion_job_id, measure: Measure) -> ResolvedMeasure:
-        resolved = (
+        resolved_identifier = (
             await self._metadata_resolver.resolve_column(ingestion_job_id, measure.column_name)
             if measure.column_name
             else None
         )
         if measure.aggregation in {AggregationFunction.COUNT}:
             if measure.column_name is None:
-                return ResolvedMeasure(measure=measure, metadata=None)  # type: ignore[arg-type]
-            if resolved is not None and not is_aggregation_supported(
-                resolved.metadata.inferred_type, measure.aggregation
+                return ResolvedMeasure(measure=measure, metadata=None)
+            if resolved_identifier is not None and not is_aggregation_supported(
+                resolved_identifier.metadata.inferred_type, measure.aggregation
             ):
                 raise InvalidAggregationError(
                     f"aggregation {measure.aggregation.value} is not supported for column {measure.column_name}"
                 )
-            return ResolvedMeasure(measure=measure, metadata=resolved.metadata)  # type: ignore[arg-type]
+            return ResolvedMeasure(
+                measure=measure,
+                metadata=resolved_identifier.metadata if resolved_identifier is not None else None,
+            )
         if measure.aggregation == AggregationFunction.COUNT_DISTINCT:
-            if resolved is None:
+            if resolved_identifier is None:
                 raise InvalidIdentifierError("COUNT_DISTINCT requires a column")
-            if not is_aggregation_supported(resolved.metadata.inferred_type, measure.aggregation):
+            if not is_aggregation_supported(
+                resolved_identifier.metadata.inferred_type, measure.aggregation
+            ):
                 raise InvalidAggregationError(
                     f"aggregation {measure.aggregation.value} is not supported for column {measure.column_name}"
                 )
-            return ResolvedMeasure(measure=measure, metadata=resolved.metadata)
-        if resolved is None:
+            return ResolvedMeasure(measure=measure, metadata=resolved_identifier.metadata)
+        if resolved_identifier is None:
             raise InvalidIdentifierError("this aggregation requires a column")
-        if not is_aggregation_supported(resolved.metadata.inferred_type, measure.aggregation):
+        if not is_aggregation_supported(
+            resolved_identifier.metadata.inferred_type, measure.aggregation
+        ):
             raise InvalidAggregationError(
                 f"aggregation {measure.aggregation.value} is not supported for column {measure.column_name}"
             )
-        return ResolvedMeasure(measure=measure, metadata=resolved.metadata)
+        return ResolvedMeasure(measure=measure, metadata=resolved_identifier.metadata)
 
     async def _resolve_filter(
         self, ingestion_job_id, filter_clause: FilterClause

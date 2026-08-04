@@ -35,6 +35,7 @@ import io
 import uuid
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
+from typing import cast
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -169,9 +170,9 @@ def _detect_dialect(text: str) -> csv.Dialect:
     """
     sample = text[:_SNIFF_BYTES]
     try:
-        return csv.Sniffer().sniff(sample, delimiters=",;\t|")
+        return cast(csv.Dialect, csv.Sniffer().sniff(sample, delimiters=",;\t|"))
     except csv.Error:
-        return csv.excel  # type: ignore[return-value]
+        return csv.excel()
 
 
 def _normalise_header(raw_headers: list[str]) -> list[str]:
@@ -336,12 +337,17 @@ def _validate_row(
         return None, errors
 
     # All fields valid — build the ParsedRow
+    assert province_id is not None
+    assert indicator_id is not None
+    assert parsed_value is not None
+    assert parsed_year is not None
+
     parsed_row = ParsedRow(
         row_number=row_number,
-        province_id=province_id,  # type: ignore[arg-type]  (not None here)
-        indicator_id=indicator_id,  # type: ignore[arg-type]
-        value=parsed_value,  # type: ignore[arg-type]
-        reference_year=parsed_year,  # type: ignore[arg-type]
+        province_id=province_id,
+        indicator_id=indicator_id,
+        value=parsed_value,
+        reference_year=parsed_year,
         dataset_name=raw_dataset,
         source_name=raw_source_name or None,
         source_url=raw_source_url,

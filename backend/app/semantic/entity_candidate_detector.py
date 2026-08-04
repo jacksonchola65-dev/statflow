@@ -75,11 +75,11 @@ class EntityCandidateDetector:
                 raise TypeError("each item must be EntityColumnInput")
 
         # For each column, collect matching entity-bearing classifications (>=0.60)
-        col_matches: List[List[Tuple[SemanticClassification]]] = []
+        col_matches: List[List[SemanticClassification]] = []
         col_candidate_flag: List[bool] = []
         derived_names: List[str] = []
         for col in cols:
-            matches = []
+            matches: List[SemanticClassification] = []
             for cl in col.classifications:
                 if cl.semantic_type in ENTITY_TYPES and float(cl.confidence) >= 0.60:
                     matches.append(cl)
