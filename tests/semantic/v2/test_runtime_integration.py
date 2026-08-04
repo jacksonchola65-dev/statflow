@@ -7,9 +7,12 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "backend"))
 
-from app.services.file_inspection_service import FileInspectionService
-from app.services.file_inspection_service import DetectorInput, SemanticDetectionPipeline
 from app.semantic.v2.feature_extraction import FeatureExtractionPipeline
+from app.services.file_inspection_service import (
+    DetectorInput,
+    FileInspectionService,
+    SemanticDetectionPipeline,
+)
 
 
 def _make_csv(headers, rows):
@@ -41,7 +44,9 @@ def _repr_csv_variants():
     variants = [
         _make_csv(["a", "b"], [["1", "2"], ["3", "4"]]),
         _make_csv(["text", "value"], [["foo", "100"], ["bar", "200"]]),
-        _make_csv(["email", "phone"], [["user@example.com", "+123456789"], ["x@y.com", "555-1234"]]),
+        _make_csv(
+            ["email", "phone"], [["user@example.com", "+123456789"], ["x@y.com", "555-1234"]]
+        ),
         _make_csv(["date", "value"], [["2020-01-01", "1"], ["2020-12-31", "2"]]),
         _make_csv(["mixed", "category"], [["100", "A"], ["foo", "A"], ["200", "B"]]),
         _make_csv(["null", "text"], [["", "one"], ["", "two"], ["", ""]]),
@@ -80,10 +85,24 @@ def test_explicit_v1_uses_v1(monkeypatch):
 
 def test_explicit_v2_uses_fused_native(monkeypatch):
     monkeypatch.setenv("SEMANTIC_ENGINE_VERSION", "v2")
-    monkeypatch.setattr(DetectorInput, "__init__", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("DetectorInput should not be created in v2 path")))
-    monkeypatch.setattr(SemanticDetectionPipeline, "__init__", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("v1 pipeline should not be constructed in v2 path")))
+    monkeypatch.setattr(
+        DetectorInput,
+        "__init__",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("DetectorInput should not be created in v2 path")
+        ),
+    )
+    monkeypatch.setattr(
+        SemanticDetectionPipeline,
+        "__init__",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("v1 pipeline should not be constructed in v2 path")
+        ),
+    )
     svc = FileInspectionService()
-    resp = svc.inspect_csv(b"email,phone\nuser@example.com,12345\n", "f.csv", "text/csv", uuid.uuid4())
+    resp = svc.inspect_csv(
+        b"email,phone\nuser@example.com,12345\n", "f.csv", "text/csv", uuid.uuid4()
+    )
     assert isinstance(resp.semantic_profile, dict)
     assert resp.semantic_profile != {}
 
@@ -118,6 +137,7 @@ def test_v2_feature_extraction_and_context_construction(monkeypatch):
     monkeypatch.setattr(FeatureExtractionPipeline, "extract", staticmethod(spy_extract))
 
     from app.semantic.v2.integration import SemanticContext as IntegrationContext
+
     original_context_init = IntegrationContext.__init__
 
     def spy_context_init(self, *args, **kwargs):
