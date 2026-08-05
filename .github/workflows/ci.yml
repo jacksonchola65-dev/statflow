@@ -110,17 +110,61 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install frontend dependencies
         run: |
+          set +e
           cd frontend
-          npm ci
+          {
+            echo "node --version"
+            node --version
+            echo "npm --version"
+            npm --version
+            echo "pwd"
+            pwd
+            echo "npm ci"
+            npm ci
+          } 2>&1 | tee frontend-ci.log
+          npm_ci_rc=${PIPESTATUS[0]}
+          echo "npm ci exit code: $npm_ci_rc"
+          exit $npm_ci_rc
       - name: Run frontend lint
         run: |
+          set +e
           cd frontend
-          npm run lint
+          {
+            echo "npm run lint"
+            npm run lint
+          } 2>&1 | tee -a frontend-ci.log
+          npm_lint_rc=${PIPESTATUS[0]}
+          echo "npm run lint exit code: $npm_lint_rc"
+          exit $npm_lint_rc
       - name: Run frontend tests
         run: |
+          set +e
           cd frontend
-          npm test
+          {
+            echo "npm test"
+            npm test
+          } 2>&1 | tee -a frontend-ci.log
+          npm_test_rc=${PIPESTATUS[0]}
+          echo "npm test exit code: $npm_test_rc"
+          exit $npm_test_rc
       - name: Build frontend
         run: |
+          set +e
           cd frontend
-          npm run build
+          {
+            echo "npm run build"
+            npm run build
+          } 2>&1 | tee -a frontend-ci.log
+          npm_build_rc=${PIPESTATUS[0]}
+          echo "npm run build exit code: $npm_build_rc"
+          exit $npm_build_rc
+      - name: frontend-ci-diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-ci-diagnostics
+          path: |
+            frontend/frontend-ci.log
+            frontend/package.json
+            frontend/package-lock.json
+          if-no-files-found: error
