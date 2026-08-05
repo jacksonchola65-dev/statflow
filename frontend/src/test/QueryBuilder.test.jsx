@@ -110,10 +110,10 @@ describe('AnalyticsPage Query Builder Integration', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('Sales')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /sales/i })).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByText('Sales'))
+    fireEvent.click(screen.getByRole('button', { name: /sales/i }))
 
     await waitFor(() => {
       const queryTab = screen.getByText('Query Builder')
@@ -141,8 +141,8 @@ describe('AnalyticsPage Query Builder Integration', () => {
       </MemoryRouter>
     )
 
-    await waitFor(() => expect(screen.getByText('Sales')).toBeInTheDocument())
-    fireEvent.click(screen.getByText('Sales'))
+    await waitFor(() => expect(screen.getByRole('button', { name: /sales/i })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /sales/i }))
 
     await waitFor(() => {
       fireEvent.click(screen.getByText('Query Builder'))
@@ -157,4 +157,3 @@ describe('AnalyticsPage Query Builder Integration', () => {
     }, { timeout: 5000 })
   })
 })
-
