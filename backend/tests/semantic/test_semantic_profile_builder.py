@@ -256,6 +256,7 @@ def test_input_immutability():
     assert profile.columns[0].classifications == columns[0].classifications
 
 
+@pytest.mark.performance
 def test_semantic_profile_builder_performance():
     domain = DomainDetectionResult(domain=DatasetDomain.GENERAL)
     entities = tuple(make_entity() for _ in range(100))

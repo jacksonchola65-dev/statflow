@@ -1,6 +1,7 @@
 import copy
 import time
 
+import pytest
 from app.semantic.entity_candidate_detector import EntityCandidateDetector, EntityColumnInput
 from app.semantic.entity_key_detector import (
     EntityKeyColumnInput,
@@ -171,6 +172,7 @@ def test_retail_healthcare_education_hr_government_and_edge_cases():
         assert rel_cols == r_cols_copy
 
 
+@pytest.mark.performance
 def test_large_metadata_and_performance():
     # 100 entities, 100 keys, 100 relationship columns
     n = 100

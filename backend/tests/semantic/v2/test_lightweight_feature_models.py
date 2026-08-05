@@ -58,6 +58,7 @@ def test_immutability_and_validation():
         v.raw_value = "b"
 
 
+@pytest.mark.performance
 def test_performance_lightweight_and_extended():
     N_list = [100, 500, 1000]
     results = {}

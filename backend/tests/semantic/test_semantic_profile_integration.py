@@ -218,6 +218,7 @@ def test_semantic_profile_integration_scenarios_and_serialization():
         assert restored == model
 
 
+@pytest.mark.performance
 def test_full_pipeline_performance_and_behavior_large():
     # create 100 entity columns, 100 key cols, 100 rel cols
     n = 100

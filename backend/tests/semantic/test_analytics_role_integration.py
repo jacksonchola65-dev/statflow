@@ -1,6 +1,7 @@
 import time
 from typing import Sequence
 
+import pytest
 from app.semantic.analytics_role_models import Aggregation, AnalyticsRoleProfile, DimensionType
 from app.semantic.dimension_detector import DimensionColumnInput, DimensionDetector
 from app.semantic.measure_detector import MeasureColumnInput, MeasureDetector
@@ -404,6 +405,7 @@ def test_input_immutability_in_role_pipeline():
     assert profile.dimension_candidates[0].name == "region"
 
 
+@pytest.mark.performance
 def test_analytics_role_detection_performance():
     measure_columns = [
         MeasureColumnInput(

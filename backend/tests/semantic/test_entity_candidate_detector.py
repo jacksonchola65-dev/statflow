@@ -119,6 +119,7 @@ def test_deterministic_sorting_and_input_immutability():
     assert cols == cols_copy
 
 
+@pytest.mark.performance
 def test_performance_100_columns():
     types = [SemanticType.PERSON, SemanticType.ORGANIZATION, SemanticType.CITY]
     cols = []

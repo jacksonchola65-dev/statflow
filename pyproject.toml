@@ -33,3 +33,21 @@ follow_imports = "silent"
 disable_error_code = ["import-untyped"]
 show_error_codes = true
 exclude = '''(^backend/migrations/|^backend/.*/(temp|tmp|debug)[^/]*\.py$)'''
+
+[tool.coverage.run]
+source = ["backend/app"]
+omit = [
+    "backend/migrations/*",
+    "backend/db/seeders/*",
+    "backend/*temp*.py",
+    "backend/*tmp*.py",
+    "backend/*debug*.py",
+    "backend/tests/*",
+]
+branch = false
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+precision = 2
+fail_under = 85
