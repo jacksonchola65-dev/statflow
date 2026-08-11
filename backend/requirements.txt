@@ -7,18 +7,17 @@ pydantic==2.13.4
 pydantic-settings==2.10.1
 alembic==1.18.5
 python-dotenv==1.2.2
-python-multipart==0.0.20
+python-multipart==0.0.31
 # Authentication
 PyJWT[crypto]==2.13.0
 pwdlib[argon2]==0.3.0
 passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.5.0
 email-validator==2.3.0
 # File parsing
 openpyxl==3.1.5
 # Testing
-pytest==8.3.5
-pytest-asyncio==0.25.3
+pytest==9.0.3
+pytest-asyncio==1.4.0
 httpx==0.28.1
 ruff==0.12.0
 mypy==1.15.0
