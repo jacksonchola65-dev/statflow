@@ -12,7 +12,6 @@ from __future__ import annotations
 
 from alembic import op
 
-
 revision = "c9d8e7f6a5b4"
 down_revision = ("0a1b2c3d4e5f", "b3c4d5e6f7a8")
 branch_labels = None

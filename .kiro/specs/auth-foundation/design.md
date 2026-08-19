@@ -376,7 +376,7 @@ ADMIN_EMAIL: str = ""      # Required for seed; empty default is safe
 ADMIN_PASSWORD: str = ""   # Required for seed; empty default is safe
 ```
 
-**Local development**: add `JWT_SECRET_KEY=dev-only-secret` to `.env` (already in `.gitignore`).  
+**Local development**: add `JWT_SECRET_KEY=dev-only-secret` to `.env` (already in `.gitignore`).
 **Production**: generate with `openssl rand -hex 32` and inject via environment variable or secrets manager. Never commit.
 
 ---

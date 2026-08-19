@@ -466,7 +466,7 @@ function QueryBuilder({
     const issues = []
     if (!ingestionJobId) issues.push('No dataset selected.')
     if (measureRows.length === 0) issues.push('At least one measure is required.')
-    
+
     const numLimit = limit ? Number(limit) : QUERY_DEFAULT_LIMIT
     if (isNaN(numLimit)) issues.push('Limit must be a number.')
     else if (numLimit < QUERY_MIN_LIMIT) issues.push(`Limit must be at least ${QUERY_MIN_LIMIT}.`)

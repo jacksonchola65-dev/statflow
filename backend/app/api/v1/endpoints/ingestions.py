@@ -50,15 +50,15 @@ async def get_ingestion_inspection(
             page=page,
             page_size=page_size,
         )
-    except IngestionJobNotFoundError as exc:
+    except IngestionJobNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(exc),
+            detail="Inspection record not found.",
         )
-    except InvalidInspectionPaginationError as exc:
+    except InvalidInspectionPaginationError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(exc),
+            detail="Invalid inspection pagination parameters.",
         )
     except Exception:
         raise HTTPException(

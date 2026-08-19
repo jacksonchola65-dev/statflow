@@ -8,10 +8,9 @@ Creates the persisted dashboard table for user-owned analytics workspaces.
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "c7f8a9b0d1e2"
 down_revision = "b2c3d4e5f6a7"

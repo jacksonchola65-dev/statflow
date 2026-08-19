@@ -197,6 +197,7 @@ def test_deterministic_sorting():
     assert res[0].entity_name.lower() == "a"
 
 
+@pytest.mark.performance
 def test_performance_100x100():
     # 100 entities, 100 columns
     entities = tuple(EntityCandidate(name=f"ent_{i}") for i in range(100))

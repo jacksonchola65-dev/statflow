@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { captureApiError } from './errorTracking.js'
 
 /**
  * Shared Axios instance.
@@ -59,6 +60,7 @@ export function registerUnauthenticatedHandler(fn) {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    captureApiError(error)
     if (error?.response?.status === 401) {
       // Do not fire for the /auth/me startup probe (handled by AuthContext)
       // or when already on /login to avoid loops.

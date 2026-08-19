@@ -189,3 +189,64 @@ def test_singleton_exposes_ingestion_settings():
     assert isinstance(settings.INGESTION_MAX_FILE_BYTES, int)
     assert isinstance(settings.INGESTION_MAX_ROWS, int)
     assert isinstance(settings.INGESTION_MAX_COLUMNS, int)
+
+
+def _production_settings(**overrides) -> Settings:
+    values = {
+        "ENVIRONMENT": "production",
+        "JWT_SECRET_KEY": "x" * 32,
+        "ADMIN_PASSWORD": "a-strong-production-password",
+        "COOKIE_SECURE": True,
+        "CORS_ORIGINS": ["https://app.statflow.example"],
+    }
+    values.update(overrides)
+    return _settings(**values)
+
+
+def test_production_rejects_default_admin_password():
+    with pytest.raises(ValidationError, match="ADMIN_PASSWORD") as error:
+        _production_settings(ADMIN_PASSWORD="ChangeMe123!")
+    assert "ChangeMe123!" not in str(error.value)
+
+
+def test_production_rejects_insecure_cookie_setting():
+    with pytest.raises(ValidationError, match="COOKIE_SECURE"):
+        _production_settings(COOKIE_SECURE=False)
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "http://localhost",
+        "https://localhost:5173",
+        "http://127.0.0.1",
+        "https://127.0.0.1:8443",
+    ],
+)
+def test_production_rejects_loopback_cors_origins(origin):
+    with pytest.raises(ValidationError, match="CORS_ORIGINS"):
+        _production_settings(CORS_ORIGINS=[origin])
+
+
+def test_production_rejects_wildcard_cors_origin():
+    with pytest.raises(ValidationError, match="CORS_ORIGINS"):
+        _production_settings(CORS_ORIGINS=["*"])
+
+
+def test_production_accepts_valid_origin_and_secure_settings():
+    settings = _production_settings()
+    assert settings.ENVIRONMENT == "production"
+    assert settings.COOKIE_SECURE is True
+    assert settings.CORS_ORIGINS == ["https://app.statflow.example"]
+
+
+def test_hostname_containing_localhost_is_not_loopback():
+    settings = _production_settings(CORS_ORIGINS=["https://localhost.example.com"])
+    assert settings.CORS_ORIGINS == ["https://localhost.example.com"]
+
+
+def test_development_defaults_remain_allowed():
+    settings = _settings()
+    assert settings.COOKIE_SECURE is False
+    assert settings.CORS_ORIGINS == ["http://localhost:5173"]
+    assert settings.ADMIN_PASSWORD == "ChangeMe123!"

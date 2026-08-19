@@ -86,8 +86,8 @@ async def create_data_source(
             country=body.country,
             is_active=body.is_active,
         )
-    except DataSourceNameConflictError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except DataSourceNameConflictError:
+        raise HTTPException(status_code=409, detail="A data source with that name already exists.")
     return DataSourceResponse.model_validate(src)
 
 
@@ -105,8 +105,8 @@ async def update_data_source(
         src = await svc.update_source(source_id, **fields)
     except DataSourceNotFoundError:
         raise HTTPException(status_code=404, detail="Data source not found.")
-    except DataSourceNameConflictError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except DataSourceNameConflictError:
+        raise HTTPException(status_code=409, detail="A data source with that name already exists.")
     return DataSourceResponse.model_validate(src)
 
 
@@ -122,5 +122,7 @@ async def delete_data_source(
         await svc.delete_source(source_id)
     except DataSourceNotFoundError:
         raise HTTPException(status_code=404, detail="Data source not found.")
-    except DataSourceHasDatasetsError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except DataSourceHasDatasetsError:
+        raise HTTPException(
+            status_code=409, detail="This data source is still in use and cannot be deleted."
+        )

@@ -29,10 +29,9 @@ automatically with the table.
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "a1b2c3d4e5f6"
 down_revision = "f3a4b5c6d7e8"

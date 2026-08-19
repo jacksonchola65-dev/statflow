@@ -322,7 +322,7 @@ POST /api/v1/ingestion/inspect
   Body:    multipart/form-data
            file:                UploadFile  (required)
            dataset_registry_id: UUID        (optional form field)
-  
+
   200 OK → IngestionInspectResponse
   401    → unauthenticated
   403    → insufficient role or CSRF failure

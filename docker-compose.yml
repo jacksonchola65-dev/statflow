@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: statflow-postgres
+    # Local development only. Keep PostgreSQL private in production.
+    environment:
+      POSTGRES_DB: statflow
+      POSTGRES_USER: postgres
+      # Development placeholder credentials; never use these in production.
+      POSTGRES_PASSWORD: postgres
+    restart: unless-stopped
+    ports:
+      # Local development only; do not publish PostgreSQL in production.
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d statflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    mem_limit: 512m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  migrate:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: statflow-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    working_dir: /app/backend
+    environment:
+      PYTHONPATH: .
+      # Development placeholder credentials; never use these in production.
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/statflow
+    command: python -m alembic upgrade head
+    restart: "no"
+    mem_limit: 512m
+    cpus: 0.5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: statflow-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    ports:
+      - "8000:8000"
+    environment:
+      ENVIRONMENT: development
+      # Development placeholder credentials; never use these in production.
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/statflow
+      JWT_SECRET_KEY: 0123456789abcdef0123456789abcdef
+      COOKIE_SECURE: "false"
+      CORS_ORIGINS: "[\"http://localhost:8080\"]"
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    cpus: 1.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: statflow-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  postgres_data:

@@ -37,3 +37,24 @@ Thumbs.db
 # ── Logs ──────────────────────────────────────────────────
 *.log
 logs/
+
+# Generated validation and run reports
+coverage.xml
+backend/full_test_results.txt
+backend/test_results.txt
+backend/test_dashboard_persistence.out.txt
+frontend/audit*.json
+frontend/audit*.txt
+frontend/build*.txt
+frontend/lint*.txt
+frontend/test*.txt
+frontend/full-test*.txt
+pip-audit.json
+run-*.json
+run_list.json
+runs.json
+test-results/.last-run.json
+
+# ── Database backups ───────────────────────────────────────
+backups/
+*.dump

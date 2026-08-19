@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@sentry/react": "^10.70.0",
     "axios": "^1.18.1",
     "leaflet": "^1.9.4",
     "react": "^19.2.7",

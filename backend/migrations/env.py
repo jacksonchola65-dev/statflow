@@ -1,11 +1,9 @@
 import asyncio
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
-
-from alembic import context
 
 # ---------------------------------------------------------------------------
 # Alembic config object — gives access to values in alembic.ini
@@ -29,8 +27,8 @@ config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 # Individual model modules must be imported somewhere so their tables are
 # registered on Base.metadata — app/models/__init__.py is the right place.
 # ---------------------------------------------------------------------------
-from app.db.base import Base  # noqa: E402
 import app.models  # noqa: E402, F401  — ensures all models are registered
+from app.db.base import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

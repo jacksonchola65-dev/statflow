@@ -8,10 +8,9 @@ Creates the universal dataset rows table for persisted dataset rows.
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "b3c4d5e6f7a8"
 down_revision = "f9a1b2c3d4e5"

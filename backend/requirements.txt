@@ -8,6 +8,8 @@ pydantic-settings==2.10.1
 alembic==1.18.5
 python-dotenv==1.2.2
 python-multipart==0.0.31
+prometheus-client==0.22.1
+sentry-sdk[fastapi]==2.55.0
 # Authentication
 PyJWT[crypto]==2.13.0
 pwdlib[argon2]==0.3.0

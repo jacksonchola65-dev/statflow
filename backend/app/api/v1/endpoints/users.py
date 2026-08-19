@@ -104,8 +104,8 @@ async def create_user(
             status_code=409,
             detail="A user with that email already exists.",
         )
-    except PasswordPolicyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except PasswordPolicyError:
+        raise HTTPException(status_code=400, detail="Password does not meet the required policy.")
     return UserResponse.model_validate(user)
 
 
@@ -140,10 +140,12 @@ async def update_user(
             status_code=409,
             detail="A user with that email already exists.",
         )
-    except LastActiveAdminError as e:
-        raise HTTPException(status_code=409, detail=str(e))
-    except PasswordPolicyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except LastActiveAdminError:
+        raise HTTPException(
+            status_code=409, detail="This is the last active admin and cannot be changed."
+        )
+    except PasswordPolicyError:
+        raise HTTPException(status_code=400, detail="Password does not meet the required policy.")
     return UserResponse.model_validate(user)
 
 
@@ -168,7 +170,9 @@ async def delete_user(
         await svc.delete_user(user_id, acting_user_id=current_user.id)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found.")
-    except SelfDeletionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except LastActiveAdminError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except SelfDeletionError:
+        raise HTTPException(status_code=400, detail="You cannot delete your own account.")
+    except LastActiveAdminError:
+        raise HTTPException(
+            status_code=409, detail="This is the last active admin and cannot be deleted."
+        )

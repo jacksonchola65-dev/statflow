@@ -198,9 +198,9 @@ Add a CSV upload, preview, and import workflow to StatFlow. Backend: two new Fas
                                                                               11 (quality gates)
 ```
 
-Tasks 1 and 2 can start in parallel.  
-Tasks 3, 4, 6, and 9 can start only after their respective predecessors.  
-Tasks 7, 8, and 10 can run in parallel once their subjects are implemented.  
+Tasks 1 and 2 can start in parallel.
+Tasks 3, 4, 6, and 9 can start only after their respective predecessors.
+Tasks 7, 8, and 10 can run in parallel once their subjects are implemented.
 Task 11 must run last.
 
 ## Resolved Decisions

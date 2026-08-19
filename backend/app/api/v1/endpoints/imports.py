@@ -516,8 +516,10 @@ async def create_import_template(
     service = ImportTemplateService(db)
     try:
         template = await service.create_template(user.id, body)
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(
+            status_code=409, detail="Template could not be created with the provided configuration."
+        )
 
     return ImportTemplateResponse.model_validate(template)
 

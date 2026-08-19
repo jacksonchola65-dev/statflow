@@ -101,10 +101,10 @@ async def create_dataset(
             last_imported_at=body.last_imported_at,
             verification_status=body.verification_status,
         )
-    except DataSourceNotFoundForDatasetError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except DatasetNameConflictError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except DataSourceNotFoundForDatasetError:
+        raise HTTPException(status_code=404, detail="The referenced data source was not found.")
+    except DatasetNameConflictError:
+        raise HTTPException(status_code=409, detail="A dataset with that name already exists.")
     return DatasetRegistryResponse.model_validate(entry)
 
 
@@ -122,10 +122,10 @@ async def update_dataset(
         entry = await svc.update_dataset(entry_id, **fields)
     except DatasetNotFoundError:
         raise HTTPException(status_code=404, detail="Dataset not found.")
-    except DataSourceNotFoundForDatasetError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except DatasetNameConflictError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+    except DataSourceNotFoundForDatasetError:
+        raise HTTPException(status_code=404, detail="The referenced data source was not found.")
+    except DatasetNameConflictError:
+        raise HTTPException(status_code=409, detail="A dataset with that name already exists.")
     return DatasetRegistryResponse.model_validate(entry)
 
 

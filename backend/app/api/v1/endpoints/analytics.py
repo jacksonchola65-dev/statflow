@@ -25,6 +25,7 @@ from app.domain.analytics.exceptions import (
     AnalyticsQueryError,
     DatasetNotAnalyticsReadyError,
     IncompleteIngestionJobError,
+    InvalidIdentifierError,
     UnknownIngestionJobError,
 )
 from app.domain.analytics.service import AnalyticsService
@@ -74,8 +75,16 @@ async def query_analytics(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Ingestion job is not complete.",
         )
-    except AnalyticsQueryError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except InvalidIdentifierError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except AnalyticsQueryError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid analytics query.",
+        )
     except CancelledError:
         raise
     except Exception as exc:

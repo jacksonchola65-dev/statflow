@@ -10,10 +10,9 @@ metadata.
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "19e8b7d4c2f1"
 down_revision = "c7f8a9b0d1e2"

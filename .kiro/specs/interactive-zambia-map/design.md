@@ -37,15 +37,15 @@ No backend files are changed.
 **Required:** A Zambia administrative level-1 (province) GeoJSON with 10 features.
 
 Source used:
-- **geoBoundaries gbOpen** — `geoBoundaries-ZMB-ADM1.geojson` (CC BY 4.0)  
-  API: `https://www.geoboundaries.org/api/current/gbOpen/ZMB/ADM1/`  
-  Direct download: `https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ZMB/ADM1/geoBoundaries-ZMB-ADM1.geojson`  
-  License: Creative Commons Attribution 4.0 International (CC BY 4.0)  
-  Source: Zambia Data Hub via William & Mary geoLab  
+- **geoBoundaries gbOpen** — `geoBoundaries-ZMB-ADM1.geojson` (CC BY 4.0)
+  API: `https://www.geoboundaries.org/api/current/gbOpen/ZMB/ADM1/`
+  Direct download: `https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/ZMB/ADM1/geoBoundaries-ZMB-ADM1.geojson`
+  License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+  Source: Zambia Data Hub via William & Mary geoLab
 
 The file was downloaded and saved at `frontend/public/zambia-provinces.geojson`. It is not fetched at runtime from an external URL.
 
-**Attribution required in the UI:**  
+**Attribution required in the UI:**
 `Administrative boundaries: geoBoundaries, licensed under CC BY 4.0.`
 
 **Property used for name matching:** `shapeName` (geoBoundaries convention).

@@ -90,8 +90,8 @@ async def put_dashboard(
         )
     except DashboardNotFoundError:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
-    except DashboardOwnershipError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
+    except DashboardOwnershipError:
+        raise HTTPException(status_code=403, detail="You do not own this dashboard.")
     return DashboardResponse.model_validate(dashboard)
 
 
@@ -124,5 +124,5 @@ async def delete_dashboard(
         await svc.delete_dashboard(dashboard_id, current_user.id)
     except DashboardNotFoundError:
         raise HTTPException(status_code=404, detail="Dashboard not found.")
-    except DashboardOwnershipError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
+    except DashboardOwnershipError:
+        raise HTTPException(status_code=403, detail="You do not own this dashboard.")

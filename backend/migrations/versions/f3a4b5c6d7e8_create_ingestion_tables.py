@@ -36,8 +36,6 @@ Down migration drops both tables and both new enum types.
 from __future__ import annotations
 
 from alembic import op
-import sqlalchemy as sa
-
 
 revision = "f3a4b5c6d7e8"
 down_revision = "e2f3a4b5c6d7"

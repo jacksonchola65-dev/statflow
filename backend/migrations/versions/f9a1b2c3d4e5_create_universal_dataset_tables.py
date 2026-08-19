@@ -8,10 +8,9 @@ Creates the universal dataset tables for persisted datasets, versions, and colum
 """
 from __future__ import annotations
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
-
 
 revision = "f9a1b2c3d4e5"
 down_revision = "19e8b7d4c2f1"

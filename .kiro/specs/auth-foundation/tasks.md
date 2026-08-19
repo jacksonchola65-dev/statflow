@@ -209,38 +209,38 @@ Tasks 1, 2, and 12 can start in parallel once the spec is approved.
 ## Risks and Open Questions
 
 ### R1 — Token storage: `localStorage` vs `httpOnly` cookie
-**Risk**: `localStorage` is vulnerable to XSS. A malicious script can steal the token.  
-**Current decision**: Use `localStorage` for MVP simplicity.  
+**Risk**: `localStorage` is vulnerable to XSS. A malicious script can steal the token.
+**Current decision**: Use `localStorage` for MVP simplicity.
 **CTO decision required**: Should this MVP use `httpOnly` cookies (eliminates XSS risk but requires CSRF protection and changes the API contract) or is `localStorage` acceptable for the initial internal deployment?
 
 ### R2 — JWT library choice: `python-jose` vs `PyJWT`
-**Risk**: `python-jose` has had CVEs; `PyJWT` is more actively maintained as of 2024.  
-**Current decision**: `python-jose[cryptography]` is listed as the default (to match common FastAPI examples). `PyJWT` is a valid alternative.  
+**Risk**: `python-jose` has had CVEs; `PyJWT` is more actively maintained as of 2024.
+**Current decision**: `python-jose[cryptography]` is listed as the default (to match common FastAPI examples). `PyJWT` is a valid alternative.
 **CTO decision required**: Confirm library preference before Task 2.
 
 ### R3 — Role change latency (token cache)
-**Risk**: If an admin changes a user's role, the change does not take effect until the user's current token expires (up to 60 minutes).  
-**Current decision**: The design re-loads the user from the DB on every request (REQ-3, correctness property #3), so role changes take effect immediately. The role in the token is informational only.  
+**Risk**: If an admin changes a user's role, the change does not take effect until the user's current token expires (up to 60 minutes).
+**Current decision**: The design re-loads the user from the DB on every request (REQ-3, correctness property #3), so role changes take effect immediately. The role in the token is informational only.
 **Status**: No CTO decision needed — design is already safe.
 
 ### R4 — Protecting existing endpoints breaks existing tests
-**Risk**: Task 10 adds auth headers to every existing endpoint, which will break tests that don't inject a valid token.  
-**Mitigation**: Task 10 includes updating existing test fixtures to inject a mock authenticated user. All existing tests must still pass after Task 10.  
+**Risk**: Task 10 adds auth headers to every existing endpoint, which will break tests that don't inject a valid token.
+**Mitigation**: Task 10 includes updating existing test fixtures to inject a mock authenticated user. All existing tests must still pass after Task 10.
 **CTO decision required**: Should existing tests be updated as part of this spec, or should the auth dependency be added in a way that is opt-out for the test environment (e.g., an `DISABLE_AUTH=true` flag)?
 
 ### R5 — Admin password in environment variable
-**Risk**: Developers may commit weak passwords in local `.env` files. The `.env` file is in `.gitignore` but history may leak it.  
-**Mitigation**: Document clearly in README. Add `.env` validation that rejects empty `ADMIN_PASSWORD` in non-development environments.  
+**Risk**: Developers may commit weak passwords in local `.env` files. The `.env` file is in `.gitignore` but history may leak it.
+**Mitigation**: Document clearly in README. Add `.env` validation that rejects empty `ADMIN_PASSWORD` in non-development environments.
 **Status**: Informational. No CTO decision required for MVP.
 
 ### R6 — No refresh token in this MVP
-**Risk**: Users are logged out after 60 minutes and must re-authenticate.  
-**Current decision**: Accepted for MVP.  
+**Risk**: Users are logged out after 60 minutes and must re-authenticate.
+**Current decision**: Accepted for MVP.
 **CTO decision required**: Is the 60-minute expiry acceptable for the initial deployment, or should we implement a refresh-token flow?
 
 ### R7 — No password reset in this MVP
-**Risk**: If an admin loses their password, only another admin can reset it (or the database must be updated directly).  
-**Current decision**: Out of scope for MVP. Admin can change passwords via the `PATCH /users/{id}` endpoint (requires another ADMIN account).  
+**Risk**: If an admin loses their password, only another admin can reset it (or the database must be updated directly).
+**Current decision**: Out of scope for MVP. Admin can change passwords via the `PATCH /users/{id}` endpoint (requires another ADMIN account).
 **Status**: Acknowledged. Log as a follow-up feature.
 
 ---

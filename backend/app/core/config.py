@@ -1,4 +1,5 @@
 from typing import List
+from urllib.parse import urlsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -8,12 +9,23 @@ class Settings(BaseSettings):
     # Application
     APP_NAME: str = "StatFlow API"
     ENVIRONMENT: str = "development"
+    LOG_LEVEL: str = "INFO"
+    SENTRY_DSN: str | None = None
+    SENTRY_ENVIRONMENT: str | None = None
+    SENTRY_RELEASE: str | None = None
 
     # API
     API_V1_PREFIX: str = "/api/v1"
+    REQUEST_ID_HEADER: str = "X-Request-ID"
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/statflow"
+
+    # Database pool settings — tuned for bounded production connections.
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 1800
 
     # Test database (used only by pytest — never loaded in production)
     TEST_DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/statflow_test"
@@ -92,6 +104,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
+        hide_input_in_errors=True,
     )
 
     @model_validator(mode="after")
@@ -112,10 +125,39 @@ class Settings(BaseSettings):
         # ── Admin seed password (non-development environments) ─────────────
         if self.ENVIRONMENT != "development":
             admin_pw = self.ADMIN_PASSWORD or ""
-            if not admin_pw.strip():
+            if not admin_pw.strip() or admin_pw == "ChangeMe123!":
                 raise ValueError(
-                    "ADMIN_PASSWORD must not be empty in non-development environments."
+                    "ADMIN_PASSWORD must be configured with a non-development credential."
                 )
+
+            if not self.COOKIE_SECURE:
+                raise ValueError("COOKIE_SECURE must be true in non-development environments.")
+
+            for origin in self.CORS_ORIGINS:
+                parsed_origin = urlsplit(origin.strip())
+                if parsed_origin.hostname in {"localhost", "127.0.0.1"} or origin.strip() == "*":
+                    raise ValueError(
+                        "CORS_ORIGINS must not include loopback or wildcard origins "
+                        "in non-development environments."
+                    )
+
+        # ── Database pool settings (all environments) ──────────────────────
+        if self.DB_POOL_SIZE < 0:
+            raise ValueError(
+                f"DB_POOL_SIZE must be a non-negative integer; got {self.DB_POOL_SIZE}."
+            )
+        if self.DB_MAX_OVERFLOW < 0:
+            raise ValueError(
+                f"DB_MAX_OVERFLOW must be a non-negative integer; got {self.DB_MAX_OVERFLOW}."
+            )
+        if self.DB_POOL_TIMEOUT <= 0:
+            raise ValueError(
+                f"DB_POOL_TIMEOUT must be a positive integer; got {self.DB_POOL_TIMEOUT}."
+            )
+        if self.DB_POOL_RECYCLE <= 0:
+            raise ValueError(
+                f"DB_POOL_RECYCLE must be a positive integer; got {self.DB_POOL_RECYCLE}."
+            )
 
         # ── Ingestion limits (all environments) ────────────────────────────
         if self.INGESTION_MAX_FILE_BYTES <= 0:
