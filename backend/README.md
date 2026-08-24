@@ -64,7 +64,7 @@ frontend `VITE_API_BASE_URL`, then set the exact Static Site origin in backend
 `CORS_ORIGINS` and the generated backend hostname in `TRUSTED_HOSTS`.
 
 Pilot release order is: provision PostgreSQL, inject secrets and configuration,
-run migrations, execute the controlled Luapula import, run the read-only
+run migrations, run `python -m app.db.seeders.reference`, execute the controlled Luapula import, run the read-only
 evidence verifier, start and verify the backend, deploy the frontend, then run
 HTTPS authentication, CSRF, health, readiness, and Decision Intelligence
 smoke tests. Render's generated frontend and backend hostnames are different,
