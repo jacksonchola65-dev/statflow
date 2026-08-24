@@ -32,10 +32,14 @@ EXPECTED_CODES = {
 }
 
 
-async def verify() -> None:
-    engine = create_async_engine(
+def create_script_engine():
+    return create_async_engine(
         normalize_async_database_url(settings.DATABASE_URL), pool_pre_ping=True
     )
+
+
+async def verify() -> None:
+    engine = create_script_engine()
     factory = async_sessionmaker(bind=engine, expire_on_commit=False)
     async with factory() as session:
         province = (

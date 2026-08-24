@@ -14,7 +14,7 @@ from pathlib import Path
 # Add backend directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.core.config import settings
+from app.core.config import normalize_async_database_url, settings
 from app.models.data_source import (
     DatasetRegistry,
     DataSource,
@@ -30,14 +30,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 
-async def main():
-    """Execute the ingestion."""
-    # Create async engine and session factory
-    engine = create_async_engine(
-        settings.DATABASE_URL,
+def create_script_engine():
+    return create_async_engine(
+        normalize_async_database_url(settings.DATABASE_URL),
         echo=False,
         future=True,
     )
+
+
+async def main():
+    """Execute the ingestion."""
+    # Create async engine and session factory
+    engine = create_script_engine()
 
     async_session_factory = async_sessionmaker(
         bind=engine,
