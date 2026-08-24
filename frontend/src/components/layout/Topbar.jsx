@@ -105,6 +105,9 @@ export default function Topbar() {
         <NavLink to="/analytics" className={navLinkClass}>
           Analytics
         </NavLink>
+        <NavLink to="/decisions" className={navLinkClass}>
+          Decisions
+        </NavLink>
 
         {/* Import Data — hidden for VIEWER and ANALYST */}
         {canImport && (

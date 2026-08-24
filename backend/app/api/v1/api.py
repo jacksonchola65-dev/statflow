@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     data_sources,
     dataset_registry,
     datasets,
+    decisions,
     districts,
     health,
     imports,
@@ -34,3 +35,4 @@ api_router.include_router(users.router)
 api_router.include_router(data_sources.router)
 api_router.include_router(dataset_registry.router)
 api_router.include_router(dashboards.router)
+api_router.include_router(decisions.router)

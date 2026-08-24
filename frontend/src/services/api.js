@@ -9,8 +9,9 @@ import { captureApiError } from './errorTracking.js'
  * withCredentials: true — ensures HttpOnly JWT cookie is sent automatically
  * on every request (same-origin in production, cross-origin in dev via proxy).
  */
+const apiOrigin = (import.meta.env.VITE_API_BASE_URL || '').trim().replace(/\/+$/, '')
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiOrigin ? `${apiOrigin}/api/v1` : '/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -127,6 +128,42 @@ export async function fetchHealth() {
  */
 export async function fetchProvinces() {
   const { data } = await api.get('/provinces')
+  return data
+}
+
+// ---------------------------------------------------------------------------
+// Decision Intelligence
+// ---------------------------------------------------------------------------
+
+export async function fetchDecisionModels() {
+  const { data } = await api.get('/decisions/models')
+  return data
+}
+
+export async function fetchDecisionModel(modelId) {
+  const { data } = await api.get(`/decisions/models/${encodeURIComponent(modelId)}`)
+  return data
+}
+
+export async function evaluateDecision(payload) {
+  const { data } = await api.post('/decisions/evaluate', payload)
+  return data
+}
+
+export async function evaluateBusinessLocation(payload) {
+  const { data } = await api.post('/decisions/business-location', payload)
+  return data
+}
+
+export async function interpretDecision(text) {
+  const { data } = await api.post('/decisions/interpret', { text })
+  return data.intent
+}
+
+export async function fetchPartnershipRequirements(partner) {
+  const { data } = await api.get('/decisions/partnerships', {
+    params: partner ? { partner } : undefined,
+  })
   return data
 }
 

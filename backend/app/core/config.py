@@ -1,14 +1,34 @@
-from typing import List
+from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_DEFAULT_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/statflow"
+
+
+def normalize_async_database_url(database_url: str) -> str:
+    """Return a PostgreSQL URL using SQLAlchemy's asyncpg driver."""
+    database_url = database_url.strip()
+    if database_url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + database_url[len("postgres://") :]
+    if database_url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + database_url[len("postgresql://") :]
+    if database_url.startswith("postgresql+asyncpg://"):
+        return database_url
+    raise ValueError("DATABASE_URL must use a PostgreSQL URL scheme.")
+
+
+def normalize_sync_database_url(database_url: str) -> str:
+    """Return a PostgreSQL URL using SQLAlchemy's synchronous psycopg2 driver."""
+    async_url = normalize_async_database_url(database_url)
+    return "postgresql+psycopg2://" + async_url[len("postgresql+asyncpg://") :]
+
 
 class Settings(BaseSettings):
     # Application
     APP_NAME: str = "StatFlow API"
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: Literal["development", "test", "staging", "production"] = "development"
     LOG_LEVEL: str = "INFO"
     SENTRY_DSN: str | None = None
     SENTRY_ENVIRONMENT: str | None = None
@@ -19,7 +39,7 @@ class Settings(BaseSettings):
     REQUEST_ID_HEADER: str = "X-Request-ID"
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/statflow"
+    DATABASE_URL: str = _DEFAULT_DATABASE_URL
 
     # Database pool settings — tuned for bounded production connections.
     DB_POOL_SIZE: int = 5
@@ -31,7 +51,8 @@ class Settings(BaseSettings):
     TEST_DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/statflow_test"
 
     # CORS — comma-separated list of allowed origins
-    CORS_ORIGINS: List[str] = ["http://localhost:5173"]
+    CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+    TRUSTED_HOSTS: list[str] = ["localhost", "127.0.0.1", "testserver"]
 
     # ── JWT / Auth ─────────────────────────────────────────────────────────────
 
@@ -109,29 +130,48 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_settings(self) -> "Settings":
-        # ── JWT secret (non-development environments) ──────────────────────
-        if self.ENVIRONMENT != "development":
-            secret = self.JWT_SECRET_KEY or ""
+        if self.ENVIRONMENT in {"staging", "production"}:
+            database_url = self.DATABASE_URL.strip()
+            database_host = urlsplit(database_url).hostname
             if (
-                not secret.strip()
-                or secret == "dev-only-secret-change-me-in-production"
-                or len(secret.encode("utf-8")) < 32
+                not database_url
+                or database_url == _DEFAULT_DATABASE_URL
+                or database_host in {"localhost", "127.0.0.1", "::1"}
             ):
-                raise ValueError(
-                    "JWT_SECRET_KEY must be at least 32 bytes and must not be the "
-                    "default placeholder in non-development environments."
-                )
+                raise ValueError("DATABASE_URL must be an explicit PostgreSQL async URL.")
+            try:
+                normalize_async_database_url(database_url)
+            except ValueError as exc:
+                raise ValueError("DATABASE_URL must be an explicit PostgreSQL async URL.") from exc
 
-        # ── Admin seed password (non-development environments) ─────────────
-        if self.ENVIRONMENT != "development":
+            secret = self.JWT_SECRET_KEY.strip().casefold()
+            placeholders = {
+                "change-me",
+                "change_me",
+                "secret",
+                "your-secret-key",
+                "development-secret",
+                "example",
+                "dev-only-secret-change-me-in-production",
+            }
+            if (
+                not secret
+                or secret in placeholders
+                or len(self.JWT_SECRET_KEY.encode("utf-8")) < 32
+            ):
+                raise ValueError("JWT_SECRET_KEY must be a unique secret of at least 32 bytes.")
+
             admin_pw = self.ADMIN_PASSWORD or ""
-            if not admin_pw.strip() or admin_pw == "ChangeMe123!":
-                raise ValueError(
-                    "ADMIN_PASSWORD must be configured with a non-development credential."
-                )
+            if not admin_pw.strip() or admin_pw.casefold() in {
+                "changeme123!",
+                "change-me",
+                "password",
+                "example",
+            }:
+                raise ValueError("ADMIN_PASSWORD must be a unique bootstrap credential.")
 
             if not self.COOKIE_SECURE:
-                raise ValueError("COOKIE_SECURE must be true in non-development environments.")
+                raise ValueError("COOKIE_SECURE must be true in staging and production.")
 
             for origin in self.CORS_ORIGINS:
                 parsed_origin = urlsplit(origin.strip())
@@ -140,6 +180,21 @@ class Settings(BaseSettings):
                         "CORS_ORIGINS must not include loopback or wildcard origins "
                         "in non-development environments."
                     )
+
+            if (
+                not self.TRUSTED_HOSTS
+                or "*" in self.TRUSTED_HOSTS
+                or any(
+                    host.strip().lower() in {"localhost", "127.0.0.1"}
+                    for host in self.TRUSTED_HOSTS
+                )
+            ):
+                raise ValueError("TRUSTED_HOSTS must contain explicit non-loopback hosts.")
+
+        if self.COOKIE_SAMESITE not in {"lax", "strict", "none"}:
+            raise ValueError("COOKIE_SAMESITE must be one of: lax, strict, none.")
+        if self.COOKIE_SAMESITE == "none" and not self.COOKIE_SECURE:
+            raise ValueError("COOKIE_SECURE must be true when COOKIE_SAMESITE is none.")
 
         # ── Database pool settings (all environments) ──────────────────────
         if self.DB_POOL_SIZE < 0:

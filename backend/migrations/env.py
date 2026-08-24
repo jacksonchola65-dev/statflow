@@ -18,9 +18,9 @@ if config.config_file_name is not None:
 # Pull DATABASE_URL from our application settings (reads backend/.env)
 # This is the single source of truth — alembic.ini sqlalchemy.url is blank.
 # ---------------------------------------------------------------------------
-from app.core.config import settings  # noqa: E402
+from app.core.config import normalize_sync_database_url, settings  # noqa: E402
 
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", normalize_sync_database_url(settings.DATABASE_URL))
 
 # ---------------------------------------------------------------------------
 # Import Base metadata so autogenerate can detect model changes.
@@ -73,9 +73,7 @@ async def run_async_migrations() -> None:
     """Create an async engine and run migrations via a sync connection."""
     # Alembic cannot use asyncpg directly — we swap the driver to psycopg2
     # for migration execution only. The application runtime still uses asyncpg.
-    sync_url = settings.DATABASE_URL.replace(
-        "postgresql+asyncpg://", "postgresql+psycopg2://"
-    )
+    sync_url = normalize_sync_database_url(settings.DATABASE_URL)
 
     from sqlalchemy import create_engine  # noqa: E402
 

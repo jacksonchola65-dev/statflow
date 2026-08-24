@@ -194,10 +194,12 @@ def test_singleton_exposes_ingestion_settings():
 def _production_settings(**overrides) -> Settings:
     values = {
         "ENVIRONMENT": "production",
+        "DATABASE_URL": "postgresql+asyncpg://app:password@db.example/statflow",
         "JWT_SECRET_KEY": "x" * 32,
         "ADMIN_PASSWORD": "a-strong-production-password",
         "COOKIE_SECURE": True,
         "CORS_ORIGINS": ["https://app.statflow.example"],
+        "TRUSTED_HOSTS": ["app.statflow.example"],
     }
     values.update(overrides)
     return _settings(**values)
@@ -250,3 +252,81 @@ def test_development_defaults_remain_allowed():
     assert settings.COOKIE_SECURE is False
     assert settings.CORS_ORIGINS == ["http://localhost:5173"]
     assert settings.ADMIN_PASSWORD == "ChangeMe123!"
+
+
+def test_supported_test_environment_is_accepted():
+    assert _settings(ENVIRONMENT="test").ENVIRONMENT == "test"
+
+
+def test_unsupported_environment_is_rejected():
+    with pytest.raises(ValidationError, match="ENVIRONMENT"):
+        _settings(ENVIRONMENT="qa")
+
+
+def test_production_rejects_sqlite_database_url():
+    with pytest.raises(ValidationError, match="DATABASE_URL"):
+        _production_settings(DATABASE_URL="sqlite:///statflow.db")
+
+
+def test_staging_requires_explicit_production_like_configuration():
+    staging = _settings(
+        ENVIRONMENT="staging",
+        DATABASE_URL="postgresql+asyncpg://app:password@staging-db.example/statflow",
+        JWT_SECRET_KEY="s" * 32,
+        ADMIN_PASSWORD="staging-bootstrap-password",
+        COOKIE_SECURE=True,
+        CORS_ORIGINS=["https://staging.statflow.example"],
+        TRUSTED_HOSTS=["staging.statflow.example"],
+    )
+    assert staging.ENVIRONMENT == "staging"
+
+
+@pytest.mark.parametrize("field", ["DATABASE_URL", "JWT_SECRET_KEY", "ADMIN_PASSWORD"])
+def test_staging_rejects_missing_required_secret_or_database(field):
+    values = {
+        "DATABASE_URL": "postgresql+asyncpg://app:password@db.example/statflow",
+        "JWT_SECRET_KEY": "s" * 32,
+        "ADMIN_PASSWORD": "staging-bootstrap-password",
+        "COOKIE_SECURE": True,
+        "CORS_ORIGINS": ["https://staging.statflow.example"],
+        "TRUSTED_HOSTS": ["staging.statflow.example"],
+    }
+    values[field] = ""
+    with pytest.raises(ValidationError, match=field):
+        _settings(ENVIRONMENT="staging", **values)
+
+
+def test_production_rejects_default_database_url():
+    with pytest.raises(ValidationError, match="DATABASE_URL"):
+        _settings(
+            ENVIRONMENT="production",
+            JWT_SECRET_KEY="x" * 32,
+            ADMIN_PASSWORD="strong-production-password",
+            COOKIE_SECURE=True,
+            CORS_ORIGINS=["https://app.statflow.example"],
+            TRUSTED_HOSTS=["app.statflow.example"],
+        )
+
+
+@pytest.mark.parametrize("secret", ["change-me", "secret", "your-secret-key", "x" * 31])
+def test_production_rejects_weak_or_placeholder_jwt_secret(secret):
+    with pytest.raises(ValidationError, match="JWT_SECRET_KEY"):
+        _production_settings(JWT_SECRET_KEY=secret)
+
+
+@pytest.mark.parametrize("samesite", ["invalid", "None", "strict-ish"])
+def test_invalid_samesite_is_rejected(samesite):
+    with pytest.raises(ValidationError, match="COOKIE_SAMESITE"):
+        _settings(COOKIE_SAMESITE=samesite)
+
+
+def test_production_rejects_wildcard_trusted_hosts():
+    with pytest.raises(ValidationError, match="TRUSTED_HOSTS"):
+        _production_settings(TRUSTED_HOSTS=["*"])
+
+
+def test_validation_errors_do_not_include_secret_values():
+    secret = "a-unique-invalid-secret-value"
+    with pytest.raises(ValidationError) as error:
+        _production_settings(JWT_SECRET_KEY=secret)
+    assert secret not in str(error.value)

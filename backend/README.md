@@ -47,6 +47,47 @@ The API will be available at:
 - Swagger:  `http://localhost:8000/api/v1/docs`
 - ReDoc:    `http://localhost:8000/api/v1/redoc`
 
+## Running the production container
+
+The production image starts Uvicorn with `--workers 1` and accepts the
+platform-provided `PORT` (defaulting to `8000`). This is intentional because
+ingestion preview/session state is currently process-local. Increase the
+worker count only after that state is shared through PostgreSQL/Redis or the
+workflow is redesigned to be stateless.
+
+The application container does not run migrations at startup. Run migrations
+as a separate release operation with `python -m alembic upgrade head`.
+
+For the temporary Render pilot, [render.yaml](../render.yaml) provides the
+portable service declaration. Set the generated Web Service URL in the
+frontend `VITE_API_BASE_URL`, then set the exact Static Site origin in backend
+`CORS_ORIGINS` and the generated backend hostname in `TRUSTED_HOSTS`.
+
+Pilot release order is: provision PostgreSQL, inject secrets and configuration,
+run migrations, execute the controlled Luapula import, run the read-only
+evidence verifier, start and verify the backend, deploy the frontend, then run
+HTTPS authentication, CSRF, health, readiness, and Decision Intelligence
+smoke tests. Render's generated frontend and backend hostnames are different,
+ so `COOKIE_SAMESITE=lax` with `COOKIE_SECURE=true` remains appropriate. If a future custom-domain layout is
+ genuinely cross-site, set `COOKIE_SAMESITE=none` with `COOKIE_SECURE=true`; CSRF validation remains mandatory in either case.
+
+## Configuration and secrets
+
+Settings are injected through environment variables, which keeps the backend
+portable across local containers, CI, and hosting providers. Do not put real
+database URLs, JWT secrets, admin passwords, Sentry DSNs, or credentials in
+the repository. Production and staging require explicit PostgreSQL URLs,
+unique JWT/admin secrets, `COOKIE_SECURE=true`, explicit trusted hosts, and
+HTTPS CORS origins. The same-origin production target is
+`https://app.statflow.example`; staging must use its own origin, database,
+JWT secret, admin credentials, and cookie names.
+
+Supported environments are `development`, `test`, `staging`, and `production`.
+Staging and production fail during settings initialization when required
+security configuration is missing or unsafe. `TRUSTED_HOSTS` is prepared for
+the later trusted-host middleware milestone and is not inferred from request
+headers.
+
 ## Database seeding
 
 ### Seed reference data (provinces, districts, categories, indicators, datasets)

@@ -23,7 +23,7 @@ import logging
 import sys
 
 from app.core.config import settings
-from app.core.security import hash_password, verify_password
+from app.core.security import hash_password
 from app.db.seeders.seed import _make_quiet_session_factory
 from app.models.user import UserRole
 from app.repositories.user_repository import UserRepository
@@ -58,18 +58,14 @@ async def seed_admin_user(session: AsyncSession) -> dict[str, int | bool]:
         await session.commit()
         return {"created": 1, "skipped": False}
 
-    # Ensure the seeded admin account remains active and correctly configured.
-    # If the password has changed in .env, update the hash using the canonical
-    # AuthService hashing implementation.
+    # Existing accounts are never changed by a bootstrap run. Password rotation
+    # must use the authenticated user-management flow instead.
     needs_update = False
     if not existing.is_active:
         existing.is_active = True
         needs_update = True
     if existing.role != UserRole.ADMIN:
         existing.role = UserRole.ADMIN
-        needs_update = True
-    if not verify_password(settings.ADMIN_PASSWORD, existing.hashed_password):
-        existing.hashed_password = hash_password(settings.ADMIN_PASSWORD)
         needs_update = True
 
     if needs_update:

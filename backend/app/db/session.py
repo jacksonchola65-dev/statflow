@@ -1,7 +1,7 @@
 import asyncio
 from typing import AsyncGenerator
 
-from app.core.config import settings
+from app.core.config import normalize_async_database_url, settings
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 # ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ def get_engine():
         if engine is not None:
             engine.sync_engine.dispose()
         engine = create_async_engine(
-            settings.DATABASE_URL,
+            normalize_async_database_url(settings.DATABASE_URL),
             echo=settings.ENVIRONMENT == "development",
             future=True,
             pool_size=settings.DB_POOL_SIZE,

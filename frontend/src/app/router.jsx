@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardPage from '../pages/DashboardPage'
 import AnalyticsPage from '../pages/AnalyticsPage'
+import DecisionWorkspacePage from '../pages/DecisionWorkspacePage'
 import ImportPage from '../pages/ImportPage'
 import LoginPage from '../pages/LoginPage'
 import NotFoundPage from '../pages/NotFoundPage'
@@ -47,6 +48,22 @@ export default function AppRouter() {
         element={
           <ProtectedRoute>
             <AnalyticsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/decisions"
+        element={
+          <ProtectedRoute>
+            <DecisionWorkspacePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/decisions/business-location"
+        element={
+          <ProtectedRoute>
+            <DecisionWorkspacePage />
           </ProtectedRoute>
         }
       />
