@@ -9,6 +9,7 @@ import asyncio
 import logging
 import sys
 
+from app.core.config import normalize_async_database_url, settings
 from app.db.seeders.categories import seed_categories
 from app.db.seeders.data_points import seed_demo_data_points
 from app.db.seeders.datasets import seed_datasets
@@ -27,11 +28,10 @@ logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 def _make_quiet_session_factory():
     """Create a session factory with echo disabled, regardless of ENVIRONMENT."""
-    from app.core.config import settings
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
     quiet_engine = create_async_engine(
-        settings.DATABASE_URL,
+        normalize_async_database_url(settings.DATABASE_URL),
         echo=False,
         future=True,
         pool_pre_ping=True,
