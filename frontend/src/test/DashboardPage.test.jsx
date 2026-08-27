@@ -1,10 +1,15 @@
 import React from 'react'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import DashboardPage from '../pages/DashboardPage'
 import * as api from '../services/api'
+
+const authState = vi.hoisted(() => ({
+  user: { id: '1', email: 'admin@example.com', role: 'ADMIN', full_name: 'Admin User' },
+  isAuthenticated: true,
+}))
 
 // ---------------------------------------------------------------------------
 // Mock AuthContext so Topbar (inside AppShell) doesn't need a real provider
@@ -12,8 +17,8 @@ import * as api from '../services/api'
 
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user:            { id: '1', email: 'admin@example.com', role: 'ADMIN', full_name: 'Admin User' },
-    isAuthenticated: true,
+    user:            authState.user,
+    isAuthenticated: authState.isAuthenticated,
     isLoading:       false,
     csrfToken:       'mock-csrf',
     login:           vi.fn(),
@@ -72,6 +77,8 @@ function renderDashboard() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  authState.user = { id: '1', email: 'admin@example.com', role: 'ADMIN', full_name: 'Admin User' }
+  authState.isAuthenticated = true
   api.fetchProvinces.mockResolvedValue(PROVINCES)
   api.fetchIndicators.mockResolvedValue(INDICATORS)
   api.fetchIndicatorSummary.mockResolvedValue(SUMMARY)
@@ -82,6 +89,55 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('DashboardPage', () => {
+  it('welcomes the user by first name and positions StatFlow broadly', () => {
+    renderDashboard()
+
+    expect(screen.getByRole('heading', { name: /good morning, admin/i })).toBeInTheDocument()
+    expect(screen.getByText(/trusted public evidence and your organization's permitted data/i)).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: /ask statflow/i })).toBeInTheDocument()
+  })
+
+  it('uses a generic greeting when the user has no full name', () => {
+    authState.user = { id: '1', email: 'admin@example.com', role: 'ADMIN', full_name: '' }
+    renderDashboard()
+
+    expect(screen.getByRole('heading', { name: /good morning, there/i })).toBeInTheDocument()
+  })
+
+  it('distinguishes the available example from future product direction', () => {
+    renderDashboard()
+
+    expect(screen.getByText('Available now')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /which district in luapula/i })).toBeInTheDocument()
+    expect(screen.getByText(/upcoming capabilities, not active production analyses/i)).toBeInTheDocument()
+  })
+
+  it('keeps Bring your data actionable only for permitted roles', () => {
+    authState.user = { id: '1', email: 'viewer@example.com', role: 'VIEWER', full_name: 'Viewer User' }
+    renderDashboard()
+
+    expect(screen.getByLabelText('Bring your data unavailable')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /open data import/i })).not.toBeInTheDocument()
+  })
+
+  it('hands an entered question to the existing Decision Workspace route', async () => {
+    const user = userEvent.setup()
+    render(
+      <MemoryRouter initialEntries={['/dashboard']}>
+        <Routes>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/decisions" element={<div>Decision Workspace destination</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    const input = screen.getByRole('textbox', { name: /ask statflow/i })
+    await user.type(input, 'Which district in Luapula is best for a supermarket?')
+    await user.click(screen.getByRole('button', { name: 'Ask StatFlow' }))
+
+    expect(await screen.findByText('Decision Workspace destination')).toBeInTheDocument()
+  })
+
   it('auto-selects Poverty Rate on load', async () => {
     renderDashboard()
     await waitFor(() => {

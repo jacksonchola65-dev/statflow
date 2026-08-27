@@ -1,8 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppShell from '../components/layout/AppShell'
 import ErrorState from '../components/common/ErrorState'
 import DashboardFilters from '../components/dashboard/DashboardFilters'
 import DashboardFooter from '../components/common/DashboardFooter'
+import { useAuth } from '../contexts/AuthContext'
 import KpiGrid from '../components/dashboard/KpiGrid'
 import ProvinceSummary from '../components/dashboard/ProvinceSummary'
 import DataTable from '../components/dashboard/DataTable'
@@ -148,6 +150,9 @@ function computeKpiItems(results, unit) {
 // ---------------------------------------------------------------------------
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [question, setQuestion] = useState('')
   const {
     provinces,
     indicators,
@@ -179,8 +184,86 @@ export default function DashboardPage() {
     [summary?.results, unit],
   )
 
+  const firstName = user?.full_name?.trim().split(/\s+/)[0]
+  const greeting = firstName || 'there'
+  const userCanImport = ['ADMIN', 'DATA_MANAGER'].includes(user?.role)
+
+  const askStatFlow = (event) => {
+    event.preventDefault()
+    navigate('/decisions', { state: { query: question.trim() } })
+  }
+
   return (
     <AppShell>
+      <section className="mb-8 border border-cyan-300/20 bg-slate-900 px-5 py-7 shadow-[var(--sf-shadow-card)] sm:px-8 sm:py-9" aria-labelledby="dashboard-welcome-heading">
+        <div className="max-w-4xl">
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-cyan-300">Evidence and decision intelligence</p>
+          <h1 id="dashboard-welcome-heading" className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Good morning, {greeting}</h1>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300">Turn trusted public evidence and your organization&apos;s permitted data into insights that help you decide what to do next.</p>
+
+          <form className="mt-6 flex flex-col gap-3 sm:flex-row" onSubmit={askStatFlow}>
+            <label htmlFor="dashboard-question" className="sr-only">Ask StatFlow about data, places or decisions</label>
+            <input
+              id="dashboard-question"
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              placeholder="Ask StatFlow about data, places or decisions..."
+              className="min-h-12 min-w-0 flex-1 border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-300/40"
+            />
+            <button type="submit" className="min-h-12 rounded-lg bg-cyan-300 px-5 py-3 text-sm font-bold text-slate-950 transition-colors hover:bg-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900">
+              Ask StatFlow
+            </button>
+          </form>
+
+          <div className="mt-5 border-l-2 border-emerald-400/60 bg-emerald-400/[0.06] px-4 py-3 text-sm text-slate-300">
+            <p className="font-semibold text-emerald-200">Available now</p>
+            <button type="button" onClick={() => navigate('/decisions')} className="mt-1 text-left text-white underline decoration-white/20 underline-offset-4 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+              Which district in Luapula is best for opening a supermarket?
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="mb-8 grid gap-4 md:grid-cols-3" aria-label="StatFlow primary paths">
+        <button type="button" onClick={() => navigate('/decisions')} className="group rounded-xl border border-white/10 bg-slate-900 p-5 text-left transition-colors hover:border-cyan-300/50 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">01 / Decide</p>
+          <h2 className="mt-2 text-lg font-semibold text-white">Make a decision</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">Use available evidence to evaluate alternatives and support a decision.</p>
+          <span className="mt-4 inline-block text-sm font-semibold text-cyan-200">Open Decision Workspace</span>
+        </button>
+        <button type="button" onClick={() => navigate('/analytics')} className="group rounded-xl border border-white/10 bg-slate-900 p-5 text-left transition-colors hover:border-cyan-300/50 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">02 / Understand</p>
+          <h2 className="mt-2 text-lg font-semibold text-white">Explore evidence</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">Explore available public, official, and permitted organizational data.</p>
+          <span className="mt-4 inline-block text-sm font-semibold text-cyan-200">Open Analytics</span>
+        </button>
+        {userCanImport ? (
+          <button type="button" onClick={() => navigate('/import')} className="group rounded-xl border border-white/10 bg-slate-900 p-5 text-left transition-colors hover:border-cyan-300/50 hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-cyan-300">03 / Contribute</p>
+            <h2 className="mt-2 text-lg font-semibold text-white">Bring your data</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">Upload organizational data and prepare it for analysis and decision support.</p>
+            <span className="mt-4 inline-block text-sm font-semibold text-cyan-200">Open Data Import</span>
+          </button>
+        ) : (
+          <div className="rounded-xl border border-white/10 bg-slate-900 p-5" aria-label="Bring your data unavailable">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">03 / Contribute</p>
+            <h2 className="mt-2 text-lg font-semibold text-white">Bring your data</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">Organizational data import is available to permitted data teams.</p>
+            <span className="mt-4 inline-block text-sm text-slate-500">Permission required</span>
+          </div>
+        )}
+      </section>
+
+      <section className="mb-8 border border-white/10 bg-slate-950/60 px-5 py-4 sm:px-6" aria-labelledby="future-direction-heading">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-300">Product direction</p>
+            <h2 id="future-direction-heading" className="mt-1 text-base font-semibold text-white">More decision families are ahead</h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-slate-400">Examples such as hospital planning, school placement, infrastructure prioritization, and bank expansion are upcoming capabilities, not active production analyses.</p>
+        </div>
+      </section>
+
       {/* Reference data error with Retry */}
       {refError && (
         <ErrorState
