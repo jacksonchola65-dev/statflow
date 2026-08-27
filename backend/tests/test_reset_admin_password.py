@@ -4,6 +4,8 @@ from unittest.mock import AsyncMock
 import pytest
 from app.db.seeders import reset_admin_password as reset_command
 from app.models.user import UserRole
+from app.services.auth_service import PasswordPolicyError
+from sqlalchemy.exc import OperationalError
 
 
 class _FakeSession:
@@ -107,6 +109,43 @@ async def test_non_admin_target_is_rejected_without_mutation(monkeypatch):
     session.commit.assert_not_awaited()
 
 
+@pytest.mark.asyncio
+async def test_inactive_admin_is_rejected_without_mutation(monkeypatch):
+    target = _admin()
+    target.is_active = False
+    _FakeRepository.user = target
+    session = _FakeSession()
+    monkeypatch.setattr(reset_command, "UserRepository", _FakeRepository)
+
+    with pytest.raises(reset_command.AdminPasswordResetError, match="inactive"):
+        await reset_command.reset_admin_password(session)
+
+    session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("error", "expected"),
+    [
+        (PasswordPolicyError("invalid"), "password failed validation"),
+        (OperationalError("statement", {}, Exception("connection")), "Database operation failed"),
+        (RuntimeError("internal"), "Password update failed"),
+    ],
+)
+async def test_update_failures_are_categorized_and_rolled_back(
+    reset_dependencies, monkeypatch, error, expected
+):
+    session = _FakeSession()
+    _FakeUserService.update_user.side_effect = error
+
+    with pytest.raises(reset_command.AdminPasswordResetError, match=expected):
+        await reset_command.reset_admin_password(session)
+
+    session.rollback.assert_awaited_once_with()
+    session.commit.assert_not_awaited()
+    _FakeUserService.update_user.side_effect = None
+
+
 def test_reset_session_factory_normalizes_render_style_url(monkeypatch):
     captured = {}
 
@@ -150,3 +189,32 @@ async def test_cli_output_does_not_include_password_or_hash(monkeypatch, capsys)
     output = capsys.readouterr()
     assert secret not in output.out + output.err
     assert password_hash not in output.out + output.err
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("factory_error", "expected"),
+    [
+        (ValueError("secret database URL"), "configuration validation failed"),
+        (
+            OperationalError("statement", {}, Exception("secret connection")),
+            "database connection failed",
+        ),
+        (RuntimeError("secret internal"), "unexpected reset failure"),
+    ],
+)
+async def test_factory_failures_are_categorized_without_exception_details(
+    monkeypatch, capsys, factory_error, expected
+):
+    def fail_factory():
+        raise factory_error
+
+    monkeypatch.setattr(reset_command, "_make_reset_session_factory", fail_factory)
+
+    with pytest.raises(SystemExit):
+        await reset_command.main()
+
+    output = capsys.readouterr()
+    rendered = output.out + output.err
+    assert expected in rendered
+    assert "secret" not in rendered
