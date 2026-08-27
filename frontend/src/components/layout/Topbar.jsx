@@ -205,7 +205,7 @@ export default function Topbar() {
           />
           <aside
             id="mobile-main-navigation"
-            className="absolute right-0 top-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-white/10 bg-slate-900 p-5 shadow-2xl"
+            className="absolute right-0 top-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-slate-700 bg-[#0b1220] p-5 shadow-2xl"
             aria-label="Mobile main navigation"
           >
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
@@ -227,10 +227,10 @@ export default function Topbar() {
                   end={route.to === '/dashboard'}
                   onClick={closeMobileMenu}
                   className={({ isActive }) => [
-                    'min-h-11 rounded-lg px-4 py-3 text-sm font-semibold transition-colors',
+                    'min-h-11 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300',
                     isActive
-                      ? 'bg-indigo-500/15 text-indigo-300'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white',
+                      ? 'border-cyan-300 bg-indigo-600 text-white shadow-sm'
+                      : 'border-slate-700 bg-slate-800 text-slate-200 hover:border-slate-500 hover:bg-slate-700 hover:text-white',
                   ].join(' ')}
                 >
                   {route.label}
