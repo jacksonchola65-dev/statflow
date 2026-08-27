@@ -10,6 +10,7 @@
  *
  * Uses CSS custom properties from src/index.css tokens.
  */
+import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -21,11 +22,43 @@ const ADMIN_ROLES = ['ADMIN']
 
 export default function Topbar() {
   const { user, isAuthenticated, logout } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const menuButtonRef = useRef(null)
 
   const userRole = user?.role ?? null
 
   const canImport = isAuthenticated && IMPORT_ROLES.includes(userRole)
   const canManageUsers = isAuthenticated && ADMIN_ROLES.includes(userRole)
+
+  const primaryRoutes = [
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/analytics', label: 'Analytics' },
+    { to: '/decisions', label: 'Decisions' },
+    ...(canImport ? [{ to: '/import', label: 'Import Data' }] : []),
+    ...(canManageUsers ? [{ to: '/users', label: 'User Management' }] : []),
+  ]
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined
+
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false)
+    }
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', closeOnEscape)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [mobileMenuOpen])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) menuButtonRef.current?.focus()
+  }, [mobileMenuOpen])
+
+  const closeMobileMenu = () => setMobileMenuOpen(false)
 
   /** Display name: prefer full_name, fall back to email */
   const displayName = user?.full_name?.trim() || user?.email || null
@@ -99,30 +132,29 @@ export default function Topbar() {
         className="hidden sm:flex items-center gap-1 ml-4"
         aria-label="Main navigation"
       >
-        <NavLink to="/dashboard" className={navLinkClass}>
-          Dashboard
-        </NavLink>
-        <NavLink to="/analytics" className={navLinkClass}>
-          Analytics
-        </NavLink>
-        <NavLink to="/decisions" className={navLinkClass}>
-          Decisions
-        </NavLink>
-
-        {/* Import Data — hidden for VIEWER and ANALYST */}
-        {canImport && (
-          <NavLink to="/import" className={navLinkClass}>
-            Import Data
+        {primaryRoutes.map((route) => (
+          <NavLink key={route.to} to={route.to} className={navLinkClass}>
+            {route.label}
           </NavLink>
-        )}
-
-        {/* User Management — ADMIN only */}
-        {canManageUsers && (
-          <NavLink to="/users" className={navLinkClass}>
-            User Management
-          </NavLink>
-        )}
+        ))}
       </nav>
+
+      {/* Mobile navigation trigger and drawer */}
+      <button
+        ref={menuButtonRef}
+        type="button"
+        className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-[var(--sf-text)] hover:bg-white/5 sm:hidden"
+        aria-label={mobileMenuOpen ? 'Close main navigation' : 'Open main navigation'}
+        aria-controls="mobile-main-navigation"
+        aria-expanded={mobileMenuOpen}
+        onClick={() => setMobileMenuOpen(true)}
+      >
+        <span className="flex w-5 flex-col gap-1" aria-hidden="true">
+          <span className="h-0.5 w-full bg-current" />
+          <span className="h-0.5 w-full bg-current" />
+          <span className="h-0.5 w-full bg-current" />
+        </span>
+      </button>
 
       {/* ---- Right-side: user info + logout ---- */}
       <div className="ml-auto flex items-center gap-3 flex-shrink-0">
@@ -162,6 +194,52 @@ export default function Topbar() {
           </button>
         )}
       </div>
+
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[60] sm:hidden" role="presentation">
+          <button
+            type="button"
+            className="absolute inset-0 h-full w-full bg-black/60"
+            aria-label="Close main navigation"
+            onClick={closeMobileMenu}
+          />
+          <aside
+            id="mobile-main-navigation"
+            className="absolute right-0 top-0 flex h-full w-[min(86vw,22rem)] flex-col border-l border-white/10 bg-slate-900 p-5 shadow-2xl"
+            aria-label="Mobile main navigation"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <p className="text-xs font-bold uppercase tracking-[var(--sf-tracking-widest)] text-slate-400">Navigate</p>
+              <button
+                type="button"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-2xl text-slate-300 hover:bg-white/5"
+                aria-label="Close main navigation"
+                onClick={closeMobileMenu}
+              >
+                <span aria-hidden="true">x</span>
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2 pt-5" aria-label="Mobile main navigation links">
+              {primaryRoutes.map((route) => (
+                <NavLink
+                  key={route.to}
+                  to={route.to}
+                  end={route.to === '/dashboard'}
+                  onClick={closeMobileMenu}
+                  className={({ isActive }) => [
+                    'min-h-11 rounded-lg px-4 py-3 text-sm font-semibold transition-colors',
+                    isActive
+                      ? 'bg-indigo-500/15 text-indigo-300'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white',
+                  ].join(' ')}
+                >
+                  {route.label}
+                </NavLink>
+              ))}
+            </nav>
+          </aside>
+        </div>
+      )}
     </header>
   )
 }
