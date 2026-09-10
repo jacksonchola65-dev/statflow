@@ -148,13 +148,28 @@ describe('ZambiaProvinceMap integration', () => {
 
   describe('no-data state', () => {
     it('assigns NO_DATA_COLOR fill to all features when chartData is empty', () => {
-      renderMap({ chartData: [], selectedProvince: '' })
+      renderMap({ chartData: [], selectedProvince: '', indicatorName: 'Population Growth Rate', referenceYear: 2022 })
 
       const lusakaFeature = screen.getByTestId('feature-lusaka')
       const copperbeltFeature = screen.getByTestId('feature-copperbelt')
 
       expect(lusakaFeature.dataset.fill).toBe(NO_DATA_COLOR)
       expect(copperbeltFeature.dataset.fill).toBe(NO_DATA_COLOR)
+      expect(screen.getByText(/No verified Population Growth Rate data is available/i)).toBeInTheDocument()
+      expect(screen.getAllByText('No verified data').length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('zero versus missing evidence', () => {
+    it('keeps a real zero colored and missing evidence neutral', () => {
+      renderMap({
+        chartData: [{ province_id: 'lusaka-uuid', province_name: 'Lusaka', value: 0 }],
+        selectedProvince: '',
+        indicatorName: 'Total Population',
+      })
+
+      expect(screen.getByTestId('feature-lusaka').dataset.fill).not.toBe(NO_DATA_COLOR)
+      expect(screen.getByTestId('feature-copperbelt').dataset.fill).toBe(NO_DATA_COLOR)
     })
   })
 
@@ -169,6 +184,7 @@ describe('ZambiaProvinceMap integration', () => {
       expect(lusakaFeature.dataset.fill).not.toBe(NO_DATA_COLOR)
       // Copperbelt has no data — must be NO_DATA_COLOR
       expect(copperbeltFeature.dataset.fill).toBe(NO_DATA_COLOR)
+      expect(screen.getByText(/Evidence coverage: 1 of 2 provinces/i)).toBeInTheDocument()
     })
   })
 })

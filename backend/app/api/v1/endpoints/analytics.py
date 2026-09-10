@@ -19,6 +19,7 @@ from app.domain.analytics.contracts import (
 from app.domain.analytics.dependencies import (
     get_analytics_service,
     get_dataset_discovery_service,
+    get_stored_dataset_intelligence_service,
 )
 from app.domain.analytics.discovery import DatasetDiscoveryService
 from app.domain.analytics.exceptions import (
@@ -31,13 +32,44 @@ from app.domain.analytics.exceptions import (
 from app.domain.analytics.service import AnalyticsService
 from app.models.user import User
 from app.schemas.analytics import IndicatorSummaryResponse
+from app.schemas.intelligence import DatasetIntelligenceResponse
 from app.services.analytics_service import AnalyticsService as LegacyAnalyticsService
+from app.services.data_intelligence_service import EmptyDatasetError
+from app.services.stored_dataset_intelligence_service import StoredDatasetIntelligenceService
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
+
+
+@router.get(
+    "/datasets/{ingestion_job_id}/intelligence",
+    response_model=DatasetIntelligenceResponse,
+    summary="Analyze a stored dataset",
+    description=(
+        "Run deterministic intelligence over an authenticated, persisted dataset. "
+        "StatFlow is currently single-tenant; dataset access uses the existing "
+        "authenticated platform boundary."
+    ),
+)
+async def analyze_stored_dataset(
+    ingestion_job_id: uuid.UUID,
+    service: StoredDatasetIntelligenceService = Depends(get_stored_dataset_intelligence_service),
+    _: User = Depends(get_current_user),
+) -> DatasetIntelligenceResponse:
+    try:
+        return await service.analyze(ingestion_job_id)
+    except (UnknownIngestionJobError, EmptyDatasetError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found or unavailable.")
+    except (IncompleteIngestionJobError, DatasetNotAnalyticsReadyError):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Dataset is not analytics-ready.")
+    except CancelledError:
+        raise
+    except Exception as exc:
+        logger.exception("Unexpected stored dataset intelligence failure", extra={"ingestion_job_id": str(ingestion_job_id)})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Dataset analysis is unavailable.") from exc
 
 
 @router.post(

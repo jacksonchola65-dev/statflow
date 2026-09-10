@@ -25,5 +25,6 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.js'],
     css: false,
     include: ['src/**/*.test.{js,jsx}'],
+    maxWorkers: 2,
   },
 })

@@ -19,7 +19,7 @@ export default function LineVisualization({ data, legendVisible = true }) {
           <CartesianGrid stroke="#ffffff0a" strokeDasharray="3 3" vertical={false} />
           <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#ffffff12" />
           <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} stroke="#ffffff12" />
-          <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, color: '#f1f5f9' }} />
+          <Tooltip allowEscapeViewBox={{ x: false, y: false }} contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, color: '#f1f5f9' }} />
           {legendVisible && <Legend />}
           {Object.keys(data[0] || {}).filter((key) => key !== 'name').map((key, index) => (
             <Line

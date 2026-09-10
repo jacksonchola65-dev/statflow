@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { create } = vi.hoisted(() => ({
   create: vi.fn((config) => ({
@@ -15,12 +15,15 @@ describe('API base URL configuration', () => {
     create.mockClear()
   })
 
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('uses the configured API origin without duplicating the version path', async () => {
     vi.stubEnv('VITE_API_BASE_URL', 'https://statflow-api.onrender.com/')
     await import('../services/api.js')
 
     expect(create.mock.calls[0][0].baseURL).toBe('https://statflow-api.onrender.com/api/v1')
-    vi.unstubAllEnvs()
   })
 
   it('preserves the relative API path when no origin is configured', async () => {
@@ -28,6 +31,5 @@ describe('API base URL configuration', () => {
     await import('../services/api.js')
 
     expect(create.mock.calls[0][0].baseURL).toBe('/api/v1')
-    vi.unstubAllEnvs()
   })
 })

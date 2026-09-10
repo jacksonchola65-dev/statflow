@@ -433,8 +433,8 @@ describe('ImportPage — inspection flow (Task 8A)', () => {
       expect(screen.getByText('mydata.csv')).toBeInTheDocument()
     })
 
-    // Clean up the pending promise
     resolveInspect(INSPECTION_CANONICAL)
+    await waitFor(() => expect(api.importPreview).toHaveBeenCalledTimes(1))
   })
 
   it('4. canonical file triggers inspection then preview', async () => {
@@ -583,6 +583,7 @@ describe('ImportPage — inspection flow (Task 8A)', () => {
   })
 
   it('11. inspection loading state — upload button is disabled while inspecting', async () => {
+    const user = userEvent.setup()
     let resolveInspect
     api.inspectFile.mockReturnValueOnce(
       new Promise((res) => { resolveInspect = res })
@@ -594,18 +595,19 @@ describe('ImportPage — inspection flow (Task 8A)', () => {
     const uploadBtn = screen.getByRole('button', { name: /upload/i })
     expect(uploadBtn).not.toBeDisabled()
 
-    fireEvent.click(uploadBtn)
+    await user.click(uploadBtn)
 
     // Button should now be disabled while in-flight
     await waitFor(() => {
       expect(uploadBtn).toBeDisabled()
     })
 
-    // Clean up
     resolveInspect(INSPECTION_CANONICAL)
+    await waitFor(() => expect(api.importPreview).toHaveBeenCalledTimes(1))
   })
 
   it('12. duplicate submission is prevented — clicking Upload twice calls inspectFile once', async () => {
+    const user = userEvent.setup()
     let resolveInspect
     api.inspectFile.mockReturnValueOnce(
       new Promise((res) => { resolveInspect = res })
@@ -615,14 +617,14 @@ describe('ImportPage — inspection flow (Task 8A)', () => {
     pickFile(makeFile('data.csv', 100, 'text/csv'))
 
     const uploadBtn = screen.getByRole('button', { name: /upload/i })
-    fireEvent.click(uploadBtn)
-    fireEvent.click(uploadBtn)  // second click while disabled
+  await user.click(uploadBtn)
+  await user.click(uploadBtn)  // second click while disabled
 
     // Only one call despite two clicks
     expect(api.inspectFile).toHaveBeenCalledTimes(1)
 
-    // Clean up
     resolveInspect(INSPECTION_CANONICAL)
+    await waitFor(() => expect(api.importPreview).toHaveBeenCalledTimes(1))
   })
 
   it('13. existing preview and confirm flow remains operational (regression)', async () => {

@@ -1,5 +1,6 @@
 from app.api.v1.endpoints import (
     analytics,
+    assistant,
     auth,
     categories,
     dashboards,
@@ -36,3 +37,4 @@ api_router.include_router(data_sources.router)
 api_router.include_router(dataset_registry.router)
 api_router.include_router(dashboards.router)
 api_router.include_router(decisions.router)
+api_router.include_router(assistant.router)

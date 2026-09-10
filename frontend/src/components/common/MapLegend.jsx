@@ -15,12 +15,9 @@ import { PALETTE, NO_DATA_COLOR } from '../../utils/choropleth'
  *
  * All prop signatures and choropleth logic are unchanged.
  *
- * @param {{
- *   bins: number[],
- *   unit: string,
- * }} props
+ * @param {{ bins: number[], unit: string, indicatorName?: string, coverage?: string, state?: string }} props
  */
-export default function MapLegend({ bins, unit }) {
+export default function MapLegend({ bins, unit, indicatorName, coverage, state }) {
   return (
     <div
       className="
@@ -45,8 +42,12 @@ export default function MapLegend({ bins, unit }) {
           mb-2
         "
       >
-        {unit ? `Legend (${unit})` : 'Legend'}
+        {indicatorName || 'Evidence'}{unit ? ` (${unit})` : ''}
       </p>
+
+      {coverage && state !== 'NO_DATA' && (
+        <p className="mb-2 text-[11px] text-[var(--sf-text-muted)]">Coverage: {coverage}</p>
+      )}
 
       {bins.length === 5 ? (
         <ul className="space-y-1.5">
@@ -86,7 +87,7 @@ export default function MapLegend({ bins, unit }) {
               "
               style={{ backgroundColor: NO_DATA_COLOR }}
             />
-            <span className="text-[var(--sf-text-subtle)] text-[11px]">No data</span>
+            <span className="text-[var(--sf-text-subtle)] text-[11px]">No verified data</span>
           </li>
         </ul>
       ) : (
@@ -103,7 +104,7 @@ export default function MapLegend({ bins, unit }) {
               "
               style={{ backgroundColor: NO_DATA_COLOR }}
             />
-            <span className="text-[var(--sf-text-subtle)] text-[11px]">No data</span>
+            <span className="text-[var(--sf-text-subtle)] text-[11px]">No verified data</span>
           </li>
         </ul>
       )}

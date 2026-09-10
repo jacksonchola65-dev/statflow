@@ -31,7 +31,7 @@ const BASE_STYLE = {
 const HOVER_STROKE = { weight: 2, color: '#a5b4fc' } // indigo-300
 
 /**
- * ZambiaProvinceMap — polished choropleth map of Zambia's 10 provinces.
+ * ZambiaProvinceMap — province-level geographic intelligence map.
  *
  * Visual changes from previous version
  * ─────────────────────────────────────
@@ -63,6 +63,8 @@ const HOVER_STROKE = { weight: 2, color: '#a5b4fc' } // indigo-300
  *   selectedProvince: string,
  *   onProvinceSelect: (id: string) => void,
  *   unit:             string,
+ *   indicatorName:    string,
+ *   referenceYear:    number,
  *   loading:          boolean,
  *   error:            string | null,
  * }} props
@@ -73,6 +75,8 @@ export default function ZambiaProvinceMap({
   selectedProvince = '',
   onProvinceSelect,
   unit = '',
+  indicatorName = '',
+  referenceYear = '',
   loading = false,
   error = null,
 }) {
@@ -98,10 +102,11 @@ export default function ZambiaProvinceMap({
   // ------------------------------------------------------------------
   // Compute colour bins from the current data values
   // ------------------------------------------------------------------
-  const bins = useMemo(
-    () => computeBins(chartData.map((r) => r.value)),
+  const numericValues = useMemo(
+    () => chartData.map((r) => Number(r.value)).filter(Number.isFinite),
     [chartData],
   )
+  const bins = useMemo(() => computeBins(numericValues), [numericValues])
 
   // ------------------------------------------------------------------
   // styleFeature — returns Leaflet path options for each GeoJSON feature
@@ -111,7 +116,9 @@ export default function ZambiaProvinceMap({
       const rawName  = feature?.properties?.shapeName ?? ''
       const canonical = normaliseProvinceName(rawName)
       const entry    = valueLookup.get(canonical)
-      const fillColor = entry ? getColor(entry.value, bins) : NO_DATA_COLOR
+      const fillColor = entry && Number.isFinite(Number(entry.value))
+        ? getColor(Number(entry.value), bins)
+        : NO_DATA_COLOR
 
       const isSelected = selectedProvince && entry?.provinceId === selectedProvince
 
@@ -136,7 +143,7 @@ export default function ZambiaProvinceMap({
       const entry     = valueLookup.get(canonical)
 
       // Tooltip — styled via Leaflet tooltip class
-      const valueStr = entry
+      const valueStr = entry && Number.isFinite(Number(entry.value))
         ? `${Number(entry.value).toLocaleString()}${unit ? ' ' + unit : ''}`
         : null
 
@@ -144,7 +151,7 @@ export default function ZambiaProvinceMap({
         ? `<strong style="font-size:13px;color:#f1f5f9">${canonical}</strong>` +
           `<br/><span style="color:#94a3b8;font-size:12px">${valueStr}</span>`
         : `<strong style="font-size:13px;color:#f1f5f9">${canonical}</strong>` +
-          `<br/><em style="color:#64748b;font-size:12px">No data</em>`
+          `<br/><em style="color:#64748b;font-size:12px">No verified data</em>`
 
       layer.bindTooltip(tooltipContent, {
         sticky:    true,
@@ -196,11 +203,15 @@ export default function ZambiaProvinceMap({
   // ------------------------------------------------------------------
   const isLoading    = loading || geoLoading
   const displayError = error || geoError
-  const isEmpty      = !isLoading && !displayError && chartData.length === 0
+  const featureCount = geojson?.features?.length ?? 0
+  const usableCount = numericValues.length
+  const isEmpty = !isLoading && !displayError && usableCount === 0
+  const isPartial = !isLoading && !displayError && usableCount > 0 && featureCount > usableCount
+  const state = isLoading ? 'LOADING' : displayError ? 'ERROR' : isEmpty ? 'NO_DATA' : isPartial ? 'PARTIAL_DATA' : 'DATA_AVAILABLE'
 
   const ariaLabel = unit
-    ? `Zambia province map — values in ${unit}`
-    : 'Zambia province map'
+    ? `Geographic Intelligence province map — ${indicatorName || 'selected indicator'}, values in ${unit}`
+    : 'Geographic Intelligence province map'
 
   return (
     <section
@@ -224,10 +235,10 @@ export default function ZambiaProvinceMap({
             mb-1
           "
         >
-          Province choropleth
+          Geographic Intelligence · province level
         </p>
         <h2 className="text-xl font-semibold text-white leading-tight">
-          Zambia — Province Map
+          Zambia — Geographic Intelligence
           {unit && (
             <span className="ml-2 text-sm font-normal text-[var(--sf-text-muted)]">
               ({unit})
@@ -235,6 +246,10 @@ export default function ZambiaProvinceMap({
           )}
         </h2>
       </div>
+
+      <p className="mb-4 max-w-2xl text-sm text-[var(--sf-text-muted)]">
+        Explore how available evidence varies across provinces. District drill-down requires a trusted district boundary asset and is not available in this map.
+      </p>
 
       {/* Map wrapper — relative for overlay positioning */}
       <div
@@ -287,7 +302,7 @@ export default function ZambiaProvinceMap({
                 d="M4 12a8 8 0 018-8v8H4z"
               />
             </svg>
-            <p className="text-sm text-[var(--sf-text-muted)]">Loading map data…</p>
+            <p className="text-sm text-[var(--sf-text-muted)]">Loading geographic evidence…</p>
           </div>
         )}
 
@@ -315,17 +330,23 @@ export default function ZambiaProvinceMap({
                 px-4 py-2.5 rounded-lg
               "
             >
-              No indicator data for the current selection — provinces shown in neutral grey.
+              No verified {indicatorName || 'indicator'} data is available for {selectedProvince ? 'the selected province' : 'this selection'}{referenceYear ? ` in ${referenceYear}` : ''}. StatFlow will not estimate or fabricate missing values.
             </p>
+          </div>
+        )}
+
+        {isPartial && (
+          <div className="absolute left-3 top-3 z-[1000] border border-amber-300/30 bg-slate-900/95 px-3 py-2 text-xs text-amber-100 shadow-lg" role="status">
+            Evidence coverage: {usableCount} of {featureCount} provinces. Uncovered provinces are marked No verified data.
           </div>
         )}
 
         {/* ---- Legend (bottom-right, inside map) ---- */}
         <div className="absolute bottom-8 right-3 z-[1000]">
-          <MapLegend bins={bins} unit={unit} />
+          <MapLegend bins={bins} unit={unit} indicatorName={indicatorName} coverage={`${usableCount} of ${featureCount} provinces`} state={state} />
         </div>
 
-        {/* ---- Attribution (bottom-left, preserved from geoBoundaries requirement) ---- */}
+        {/* Boundary attribution is separate from numeric evidence provenance. */}
         <div
           className="
             absolute bottom-0 left-0 z-[1000]

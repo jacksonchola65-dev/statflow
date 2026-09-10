@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import DashboardPage from '../pages/DashboardPage'
 import AnalyticsPage from '../pages/AnalyticsPage'
+import DatasetIntelligencePage from '../pages/DatasetIntelligencePage'
 import DecisionWorkspacePage from '../pages/DecisionWorkspacePage'
 import ImportPage from '../pages/ImportPage'
 import LoginPage from '../pages/LoginPage'
@@ -51,6 +52,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         }
       />
+      <Route path="/analytics/datasets/:datasetId" element={<ProtectedRoute><DatasetIntelligencePage /></ProtectedRoute>} />
       <Route
         path="/decisions"
         element={

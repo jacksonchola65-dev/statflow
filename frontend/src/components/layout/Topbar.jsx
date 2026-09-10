@@ -82,7 +82,7 @@ export default function Topbar() {
         sticky top-0 z-50
         border-b border-[var(--sf-border)]
         bg-slate-900/80 backdrop-blur-md
-        px-4 sm:px-6 lg:px-8
+        px-3 sm:px-6 lg:px-8
         py-3
         flex items-center gap-4
       "
@@ -90,7 +90,7 @@ export default function Topbar() {
     >
       {/* ---- Logo + subtitle ---- */}
       <div className="flex flex-col min-w-0 flex-shrink-0">
-        <h1
+        <div
           className="
             text-[22px] font-extrabold leading-none tracking-tight text-white
             [font-family:var(--sf-font-family)]
@@ -98,11 +98,11 @@ export default function Topbar() {
         >
           Stat
           <span className="text-indigo-400">Flow</span>
-        </h1>
+        </div>
 
         <p
           className="
-            hidden sm:block
+            hidden lg:block
             mt-0.5
             text-[11px] font-medium uppercase tracking-[var(--sf-tracking-widest)]
             text-[var(--sf-text-subtle)]
@@ -116,7 +116,7 @@ export default function Topbar() {
         {/* Mobile: shorter subtitle to avoid overflow */}
         <p
           className="
-            block sm:hidden
+            block lg:hidden
             mt-0.5
             text-[10px] font-medium uppercase tracking-wide
             text-[var(--sf-text-subtle)]
@@ -129,7 +129,7 @@ export default function Topbar() {
 
       {/* ---- Navigation links (desktop) ---- */}
       <nav
-        className="hidden sm:flex items-center gap-1 ml-4"
+        className="hidden lg:flex items-center gap-1 ml-4"
         aria-label="Main navigation"
       >
         {primaryRoutes.map((route) => (
@@ -143,7 +143,7 @@ export default function Topbar() {
       <button
         ref={menuButtonRef}
         type="button"
-        className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-[var(--sf-text)] hover:bg-white/5 sm:hidden"
+        className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-white/10 text-[var(--sf-text)] hover:bg-white/5 lg:hidden"
         aria-label={mobileMenuOpen ? 'Close main navigation' : 'Open main navigation'}
         aria-controls="mobile-main-navigation"
         aria-expanded={mobileMenuOpen}
@@ -157,7 +157,7 @@ export default function Topbar() {
       </button>
 
       {/* ---- Right-side: user info + logout ---- */}
-      <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+      <div className="ml-0 lg:ml-auto flex items-center gap-3 flex-shrink-0">
         {/* Logged-in user display */}
         {isAuthenticated && displayName && (
           <span
@@ -196,7 +196,7 @@ export default function Topbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[60] sm:hidden" role="presentation">
+        <div className="fixed inset-0 z-[60] lg:hidden" role="presentation">
           <button
             type="button"
             className="absolute inset-0 h-full w-full bg-black/60"

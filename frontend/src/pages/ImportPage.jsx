@@ -546,6 +546,15 @@ export default function ImportPage() {
                 View Dashboard
               </Link>
 
+              {result.dataset_ids?.[0] && (
+                <Link
+                  to={`/analytics/datasets/${result.dataset_ids[0]}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sf-focus-ring)]"
+                >
+                  Analyze Dataset
+                </Link>
+              )}
+
               <button
                 type="button"
                 onClick={handleReset}

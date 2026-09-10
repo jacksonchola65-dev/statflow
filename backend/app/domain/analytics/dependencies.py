@@ -8,6 +8,7 @@ from app.domain.analytics.discovery import (
 from app.domain.analytics.planner import AnalyticsQueryPlanner
 from app.domain.analytics.repository import AnalyticsRepository
 from app.domain.analytics.service import AnalyticsService
+from app.services.stored_dataset_intelligence_service import StoredDatasetIntelligenceService
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,3 +38,10 @@ def get_dataset_discovery_service(
     repository: DatasetDiscoveryRepository = Depends(get_analytics_discovery_repository),
 ) -> DatasetDiscoveryService:
     return DatasetDiscoveryService(repository)
+
+
+def get_stored_dataset_intelligence_service(
+    discovery: DatasetDiscoveryService = Depends(get_dataset_discovery_service),
+    analytics: AnalyticsService = Depends(get_analytics_service),
+) -> StoredDatasetIntelligenceService:
+    return StoredDatasetIntelligenceService(discovery, analytics)

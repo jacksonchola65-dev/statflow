@@ -112,6 +112,15 @@ export async function getDatasetDetails(ingestionJobId, { signal } = {}) {
   }
 }
 
+export async function getDatasetIntelligence(ingestionJobId, { signal } = {}) {
+  try {
+    const { data } = await api.get(`/analytics/datasets/${encodeURIComponent(ingestionJobId)}/intelligence`, { signal })
+    return data
+  } catch (error) {
+    throwDetail(error)
+  }
+}
+
 /**
  * @param {string} ingestionJobId
  * @param {{ signal?: AbortSignal }} [options]

@@ -121,6 +121,16 @@ class Settings(BaseSettings):
     # Leave unset unless a machine-readable official download URL has been confirmed.
     ZAMSTATS_DATASET_URL: str | None = None
 
+    # Optional single-turn model gateway. Disabled unless explicitly configured.
+    AI_PROVIDER: str = "disabled"
+    AI_MODEL: str = ""
+    AI_API_KEY: str | None = None
+    AI_BASE_URL: str | None = None
+    AI_TIMEOUT_SECONDS: float = 20.0
+    AI_MAX_TOOL_ROUNDS: int = 4
+    AI_MAX_TOOL_CALLS: int = 8
+    AI_MAX_OUTPUT_TOKENS: int = 800
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -229,6 +239,15 @@ class Settings(BaseSettings):
                 f"INGESTION_MAX_COLUMNS must be a positive integer; "
                 f"got {self.INGESTION_MAX_COLUMNS}."
             )
+
+        if self.AI_TIMEOUT_SECONDS <= 0:
+            raise ValueError("AI_TIMEOUT_SECONDS must be positive.")
+        if self.AI_MAX_TOOL_ROUNDS < 1 or self.AI_MAX_TOOL_ROUNDS > 10:
+            raise ValueError("AI_MAX_TOOL_ROUNDS must be between 1 and 10.")
+        if self.AI_MAX_TOOL_CALLS < 1 or self.AI_MAX_TOOL_CALLS > 20:
+            raise ValueError("AI_MAX_TOOL_CALLS must be between 1 and 20.")
+        if self.AI_MAX_OUTPUT_TOKENS < 1 or self.AI_MAX_OUTPUT_TOKENS > 4096:
+            raise ValueError("AI_MAX_OUTPUT_TOKENS must be between 1 and 4096.")
 
         return self
 

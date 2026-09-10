@@ -5,6 +5,10 @@ from pathlib import Path
 
 import pytest
 import pytest_asyncio
+from app.domain.analytics.discovery import DatasetDiscoveryRepository, DatasetDiscoveryService
+from app.domain.analytics.planner import AnalyticsQueryPlanner
+from app.domain.analytics.repository import AnalyticsRepository
+from app.domain.analytics.service import AnalyticsService
 from app.domain.decision import (
     AbstentionReasonCode,
     BusinessLocationMode,
@@ -29,11 +33,14 @@ from app.models.category import Category
 from app.models.district import District
 from app.models.indicator import Indicator
 from app.models.province import Province
+from app.models.user import UserRole
 from app.services.decision_evidence import DecisionEvidenceResolver
 from app.services.district_population_ingestion_service import (
     DistrictPopulationIngestionService,
     IngestionStatus,
 )
+from app.services.stored_dataset_intelligence_service import StoredDatasetIntelligenceService
+from app.tools import ToolAuthority, ToolExecutionContext, ToolStatus, build_tool_registry
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -350,3 +357,37 @@ async def test_real_data_failure_injections_abstain(db_session, real_luapula):
             reason is AbstentionReasonCode.INSUFFICIENT_REQUIRED_EVIDENCE
             and AbstentionReasonCode.INSUFFICIENT_CRITERION_COVERAGE in run.readiness.reasons
         )
+
+
+@pytest.mark.asyncio
+async def test_live_decision_tools_preserve_production_and_exploratory_semantics(
+    authed_client, db_session, real_luapula
+):
+    discovery = DatasetDiscoveryService(DatasetDiscoveryRepository(db_session))
+    analytics = AnalyticsService(AnalyticsQueryPlanner(db_session), AnalyticsRepository(db_session))
+    registry = build_tool_registry(
+        discovery=discovery,
+        intelligence=StoredDatasetIntelligenceService(discovery, analytics),
+        analytics=analytics,
+        db=db_session,
+    )
+    from app.core.dependencies import get_current_user
+
+    principal = await authed_client._transport.app.dependency_overrides[get_current_user]()
+    context = ToolExecutionContext(user_id=principal.id, role=UserRole.ADMIN, request_id="decision-registry-test")
+    base = {
+        "model_id": "BUSINESS_LOCATION_OPPORTUNITY",
+        "province_code": "LP",
+        "business_category": "SUPERMARKET",
+        "reference_year": 2022,
+    }
+    production = await registry.execute("run_decision", {**base, "mode": "PRODUCTION"}, context)
+    exploratory = await registry.execute("run_decision", {**base, "mode": "EXPLORATORY"}, context)
+
+    assert production.status is ToolStatus.INSUFFICIENT_EVIDENCE
+    assert production.data["recommendation"] is None
+    assert production.data["production_recommendation"] is False
+    assert exploratory.status is ToolStatus.SUCCESS
+    assert exploratory.authority is ToolAuthority.EXPLORATORY
+    assert exploratory.data["exploratory_designation"] == "NOT_A_PRODUCTION_RECOMMENDATION"
+    assert exploratory.data["production_recommendation"] is False

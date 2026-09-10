@@ -21,7 +21,7 @@ export default function PieVisualization({ data, legendVisible = true }) {
               <Cell key={`${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, color: '#f1f5f9' }} />
+          <Tooltip allowEscapeViewBox={{ x: false, y: false }} contentStyle={{ backgroundColor: '#1e293b', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 10, color: '#f1f5f9' }} />
           {legendVisible && <Legend />}
         </PieChart>
       </ResponsiveContainer>

@@ -2,7 +2,8 @@
  * DashboardFooter — professional four-item contextual footer.
  *
  * Displays:
- *  - Data Source
+ *  - Evidence provenance
+ *  - Geographic boundaries
  *  - Reference Year   (driven by selectedYear prop)
  *  - Dataset          (driven by indicatorName prop)
  *  - Notice           (static demonstration-data disclaimer)
@@ -21,8 +22,12 @@
 export default function DashboardFooter({ year, indicatorName }) {
   const items = [
     {
-      label: 'Data Source',
-      value: 'Zambia Data Hub / geoBoundaries',
+      label: 'Evidence provenance',
+      value: 'Not exposed by the current dashboard summary API',
+    },
+    {
+      label: 'Geographic boundaries',
+      value: 'geoBoundaries',
     },
     {
       label: 'Reference Year',
@@ -30,7 +35,7 @@ export default function DashboardFooter({ year, indicatorName }) {
     },
     {
       label: 'Dataset',
-      value: indicatorName || '—',
+      value: indicatorName ? `${indicatorName} · dataset metadata unavailable` : '—',
     },
     {
       label: 'Notice',

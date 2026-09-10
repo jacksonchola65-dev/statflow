@@ -296,6 +296,8 @@ export default function DashboardPage() {
         selectedProvince={selectedProvince}
         onProvinceSelect={setSelectedProvince}
         unit={unit}
+        indicatorName={selectedIndicator?.name ?? ''}
+        referenceYear={selectedYear}
         loading={refLoading || chartLoading}
         error={chartError}
       />
