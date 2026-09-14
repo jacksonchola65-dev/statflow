@@ -57,9 +57,15 @@ class StatFlowAssistantService:
             else self._capability_state()
         )
 
-    async def answer(self, query: AssistantQuery, context: ToolExecutionContext) -> GroundedAssistantResponse:
+    async def answer(
+        self, query: AssistantQuery, context: ToolExecutionContext
+    ) -> GroundedAssistantResponse:
         if self.capability_state is not AiCapabilityState.AVAILABLE:
-            code = AiErrorCode.AI_DISABLED if self.capability_state is AiCapabilityState.DISABLED else AiErrorCode.AI_MISCONFIGURED
+            code = (
+                AiErrorCode.AI_DISABLED
+                if self.capability_state is AiCapabilityState.DISABLED
+                else AiErrorCode.AI_MISCONFIGURED
+            )
             raise AiApplicationError(code, self.capability_state)
         started = perf_counter()
         messages = [
@@ -88,30 +94,43 @@ class StatFlowAssistantService:
                 for call in last_response.tool_calls:
                     tool_calls += 1
                     if tool_calls > settings.AI_MAX_TOOL_CALLS:
-                        raise AiApplicationError(AiErrorCode.TOOL_LIMIT_EXCEEDED, self.capability_state)
+                        raise AiApplicationError(
+                            AiErrorCode.TOOL_LIMIT_EXCEEDED, self.capability_state
+                        )
                     result = await self.registry.execute(call.name, call.arguments, context)
-                    grounding.append(GroundingReference(
-                        tool_name=result.tool_name,
-                        status=result.status.value,
-                        authority=result.authority.value,
-                        provenance=result.provenance,
-                    ))
-                    messages.append(GatewayMessage(
-                        role=MessageRole.ASSISTANT,
-                        content=last_response.text,
-                        tool_call_id=call.id,
-                        tool_name=call.name,
-                        tool_arguments=call.arguments,
-                    ))
+                    grounding.append(
+                        GroundingReference(
+                            tool_name=result.tool_name,
+                            status=result.status.value,
+                            authority=result.authority.value,
+                            provenance=result.provenance,
+                        )
+                    )
+                    messages.append(
+                        GatewayMessage(
+                            role=MessageRole.ASSISTANT,
+                            content=last_response.text,
+                            tool_call_id=call.id,
+                            tool_name=call.name,
+                            tool_arguments=call.arguments,
+                        )
+                    )
                     safe_result = self._prepare_tool_result(result.model_dump(mode="json"))
-                    messages.append(GatewayMessage(
-                        role=MessageRole.TOOL,
-                        tool_call_id=call.id,
-                        tool_name=call.name,
-                        content=json.dumps(safe_result, default=str),
-                    ))
-                    if len(json.dumps(messages, default=lambda item: item.model_dump())) > self.MAX_CONTEXT_BYTES:
-                        raise AiApplicationError(AiErrorCode.CONTEXT_LIMIT_EXCEEDED, self.capability_state)
+                    messages.append(
+                        GatewayMessage(
+                            role=MessageRole.TOOL,
+                            tool_call_id=call.id,
+                            tool_name=call.name,
+                            content=json.dumps(safe_result, default=str),
+                        )
+                    )
+                    if (
+                        len(json.dumps(messages, default=lambda item: item.model_dump()))
+                        > self.MAX_CONTEXT_BYTES
+                    ):
+                        raise AiApplicationError(
+                            AiErrorCode.CONTEXT_LIMIT_EXCEEDED, self.capability_state
+                        )
             else:
                 raise AiApplicationError(AiErrorCode.TOOL_LIMIT_EXCEEDED, self.capability_state)
         except AiApplicationError:
@@ -120,7 +139,9 @@ class StatFlowAssistantService:
             raise AiApplicationError(AiErrorCode(exc.code), self.capability_state) from exc
         except Exception as exc:
             logger.exception("AI orchestration failed", extra={"request_id": context.request_id})
-            raise AiApplicationError(AiErrorCode.ORCHESTRATION_FAILED, self.capability_state) from exc
+            raise AiApplicationError(
+                AiErrorCode.ORCHESTRATION_FAILED, self.capability_state
+            ) from exc
 
         text = last_response.text if last_response else ""
         text, claim_class, policy_blocked = self._apply_output_policy(text, grounding)
@@ -151,7 +172,11 @@ class StatFlowAssistantService:
     def _capability_state() -> AiCapabilityState:
         if settings.AI_PROVIDER in {"", "disabled", "none"}:
             return AiCapabilityState.DISABLED
-        if settings.AI_PROVIDER == "openai_compatible" and settings.AI_API_KEY and settings.AI_BASE_URL:
+        if (
+            settings.AI_PROVIDER == "openai_compatible"
+            and settings.AI_API_KEY
+            and settings.AI_BASE_URL
+        ):
             return AiCapabilityState.AVAILABLE
         return AiCapabilityState.MISCONFIGURED
 
@@ -169,7 +194,9 @@ class StatFlowAssistantService:
     @staticmethod
     def _user_message(query: AssistantQuery) -> str:
         hints = {"current_page": query.current_page, "dataset_id": query.dataset_id}
-        return json.dumps({"question": query.question, "context_hints": hints}, separators=(",", ":"))
+        return json.dumps(
+            {"question": query.question, "context_hints": hints}, separators=(",", ":")
+        )
 
     @classmethod
     def _prepare_tool_result(cls, result: dict[str, Any]) -> dict[str, Any]:
@@ -184,15 +211,23 @@ class StatFlowAssistantService:
                     for artifact in data["visualizations"]
                 ]
             if "profile" in data and isinstance(data["profile"], dict):
-                data["profile"] = {"columns": data["profile"].get("columns", []), "row_count": data["profile"].get("row_count")}
+                data["profile"] = {
+                    "columns": data["profile"].get("columns", []),
+                    "row_count": data["profile"].get("row_count"),
+                }
             result = {**result, "data": data}
         encoded = json.dumps(result, default=str)
         if len(encoded) > cls.MAX_CONTEXT_BYTES:
-            result["data"] = {"truncated": True, "summary": "Tool result exceeded model context budget."}
+            result["data"] = {
+                "truncated": True,
+                "summary": "Tool result exceeded model context budget.",
+            }
         return result
 
     @staticmethod
-    def _apply_output_policy(text: str, grounding: list[GroundingReference]) -> tuple[str, ClaimClass, bool]:
+    def _apply_output_policy(
+        text: str, grounding: list[GroundingReference]
+    ) -> tuple[str, ClaimClass, bool]:
         production_blocked = any(
             item.tool_name in {"run_decision", "identify_evidence_gaps"}
             and item.status == ToolStatus.INSUFFICIENT_EVIDENCE.value

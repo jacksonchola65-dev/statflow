@@ -69,7 +69,11 @@ class FakeAnalytics:
                 )
                 for alias, measure in zip(aliases, query.measures)
             ],
-            rows=[row], row_count=1, limit=query.limit, offset=0, has_more=False,
+            rows=[row],
+            row_count=1,
+            limit=query.limit,
+            offset=0,
+            has_more=False,
         )
 
 
@@ -109,7 +113,9 @@ async def test_anonymous_intelligence_request_is_rejected():
 
     app = create_app()
     app.dependency_overrides[get_stored_dataset_intelligence_service] = lambda: None
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get(f"/api/v1/analytics/datasets/{uuid4()}/intelligence")
     assert response.status_code == 401
 
@@ -122,14 +128,19 @@ async def test_authenticated_intelligence_request_returns_scope_metadata():
     dataset_id = uuid4()
     expected = DatasetIntelligenceResponse(
         dataset={"id": dataset_id, "name": "Sales", "row_count": 1, "column_count": 1},
-        analysis_scope="FULL_DATASET", sample_size=1, total_rows=1, coverage_ratio=1.0,
+        analysis_scope="FULL_DATASET",
+        sample_size=1,
+        total_rows=1,
+        coverage_ratio=1.0,
     )
     app = create_app()
     app.dependency_overrides[get_current_user] = lambda: SimpleNamespace(id=uuid4(), role="ADMIN")
     app.dependency_overrides[get_stored_dataset_intelligence_service] = lambda: SimpleNamespace(
         analyze=lambda _dataset_id: _async_value(expected)
     )
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get(f"/api/v1/analytics/datasets/{dataset_id}/intelligence")
     assert response.status_code == 200
     assert response.json()["analysis_scope"] == "FULL_DATASET"

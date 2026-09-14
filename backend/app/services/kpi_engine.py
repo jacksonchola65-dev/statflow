@@ -138,9 +138,13 @@ class KpiEngine:
         # Generate KPIs for temporal dimensions (if paired with measures)
         temporal_columns = [c for c in columns if c.is_temporal]
         if temporal_columns and numeric_columns and rows_data:
-            kpis.extend(self._generate_temporal_kpis(temporal_columns, numeric_columns, rows_data, dataset_id))
+            kpis.extend(
+                self._generate_temporal_kpis(
+                    temporal_columns, numeric_columns, rows_data, dataset_id
+                )
+            )
 
-        return kpis[:self.MAX_NUMERIC_KPIS_PER_DATASET + self.MAX_CATEGORY_KPIS_PER_DATASET]
+        return kpis[: self.MAX_NUMERIC_KPIS_PER_DATASET + self.MAX_CATEGORY_KPIS_PER_DATASET]
 
     # ========================================================================
     # Numeric Column KPIs

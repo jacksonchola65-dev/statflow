@@ -117,8 +117,7 @@ class InsightEngine:
 
         # Categorical insights — highest/lowest categories
         categorical_columns = [
-            c for c in columns
-            if not c.is_numeric and not c.is_temporal and c.unique_values
+            c for c in columns if not c.is_numeric and not c.is_temporal and c.unique_values
         ]
         for col in categorical_columns[:10]:  # limit processing
             insights.extend(self._generate_categorical_insights(col, source_ref))
@@ -128,7 +127,7 @@ class InsightEngine:
         for col in temporal_columns[:5]:  # limit processing
             insights.extend(self._generate_temporal_insights(col, source_ref))
 
-        return insights[:self.MAX_INSIGHTS_PER_DATASET]
+        return insights[: self.MAX_INSIGHTS_PER_DATASET]
 
     def generate_data_quality_notes(
         self,
@@ -208,7 +207,7 @@ class InsightEngine:
                     )
                 )
 
-        return notes[:self.MAX_QUALITY_NOTES_PER_DATASET]
+        return notes[: self.MAX_QUALITY_NOTES_PER_DATASET]
 
     # ========================================================================
     # Numeric Column Insights
@@ -233,7 +232,9 @@ class InsightEngine:
         max_val = max(values)
         insights.append(
             InsightResult(
-                insight_type=InsightType.HIGHEST_PERIOD if col.is_temporal else InsightType.LOWEST_CATEGORY,
+                insight_type=InsightType.HIGHEST_PERIOD
+                if col.is_temporal
+                else InsightType.LOWEST_CATEGORY,
                 metric=col.name,
                 subject=f"Maximum value in {col.name}",
                 value=max_val,
@@ -248,7 +249,9 @@ class InsightEngine:
         min_val = min(values)
         insights.append(
             InsightResult(
-                insight_type=InsightType.LOWEST_PERIOD if col.is_temporal else InsightType.LOWEST_CATEGORY,
+                insight_type=InsightType.LOWEST_PERIOD
+                if col.is_temporal
+                else InsightType.LOWEST_CATEGORY,
                 metric=col.name,
                 subject=f"Minimum value in {col.name}",
                 value=min_val,

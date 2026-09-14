@@ -121,8 +121,12 @@ class DataIntelligenceService:
             # ── Generate intelligence components ──────────────────────────────
             kpis = self.kpi_engine.generate_kpis(kpi_columns, rows, dataset_id)
             insights = self.insight_engine.generate_insights(insight_columns, dataset_id)
-            quality_notes = self.insight_engine.generate_data_quality_notes(insight_columns, dataset_id)
-            viz_recommendations = self.visualization_engine.recommend(viz_columns, row_count, dataset_id)
+            quality_notes = self.insight_engine.generate_data_quality_notes(
+                insight_columns, dataset_id
+            )
+            viz_recommendations = self.visualization_engine.recommend(
+                viz_columns, row_count, dataset_id
+            )
 
             # ── Build column intelligence ────────────────────────────────────
             column_intelligence = self._build_column_intelligence(columns)
@@ -343,7 +347,9 @@ class DataIntelligenceService:
         """Infer semantic type from physical type and role."""
         dtype_str = str(physical_type or "").upper()
 
-        if role == "measure" or any(t in dtype_str for t in ["INTEGER", "DECIMAL", "NUMERIC", "FLOAT"]):
+        if role == "measure" or any(
+            t in dtype_str for t in ["INTEGER", "DECIMAL", "NUMERIC", "FLOAT"]
+        ):
             return ColumnSemanticType.NUMERIC_MEASURE
 
         if any(t in dtype_str for t in ["DATE", "DATETIME", "TIMESTAMP", "TIME"]):

@@ -32,10 +32,15 @@ async def handler(_context, args):
 @pytest.mark.asyncio
 async def test_registry_registration_discovery_and_execution():
     registry = ToolRegistry()
-    registry.register(ToolDefinition(
-        name="metadata", version=1, description="metadata", arguments_model=DatasetToolArguments,
-        handler=handler,
-    ))
+    registry.register(
+        ToolDefinition(
+            name="metadata",
+            version=1,
+            description="metadata",
+            arguments_model=DatasetToolArguments,
+            handler=handler,
+        )
+    )
     descriptors = registry.describe_tools(context())
     assert descriptors[0].name == "metadata"
     assert descriptors[0].version == 1
@@ -48,29 +53,51 @@ async def test_registry_registration_discovery_and_execution():
 @pytest.mark.asyncio
 async def test_registry_rejects_unknown_extra_and_identity_arguments():
     registry = ToolRegistry()
-    registry.register(ToolDefinition(
-        name="metadata", version=1, description="metadata", arguments_model=DatasetToolArguments,
-        handler=handler,
-    ))
-    assert (await registry.execute("missing", {}, context())).status is ToolStatus.UNSUPPORTED_OPERATION
-    assert (await registry.execute("metadata", {"dataset_id": str(uuid.uuid4()), "role": "ADMIN"}, context())).status is ToolStatus.INVALID_ARGUMENTS
+    registry.register(
+        ToolDefinition(
+            name="metadata",
+            version=1,
+            description="metadata",
+            arguments_model=DatasetToolArguments,
+            handler=handler,
+        )
+    )
+    assert (
+        await registry.execute("missing", {}, context())
+    ).status is ToolStatus.UNSUPPORTED_OPERATION
+    assert (
+        await registry.execute(
+            "metadata", {"dataset_id": str(uuid.uuid4()), "role": "ADMIN"}, context()
+        )
+    ).status is ToolStatus.INVALID_ARGUMENTS
     assert (await registry.execute("metadata", {}, None)).status is ToolStatus.UNAUTHORIZED
 
 
 @pytest.mark.asyncio
 async def test_registry_permission_aware_discovery_and_duplicate_registration():
     registry = ToolRegistry()
-    registry.register(ToolDefinition(
-        name="admin_tool", version=1, description="admin", arguments_model=DatasetToolArguments,
-        handler=handler, required_roles=frozenset({UserRole.ADMIN.value}),
-    ))
+    registry.register(
+        ToolDefinition(
+            name="admin_tool",
+            version=1,
+            description="admin",
+            arguments_model=DatasetToolArguments,
+            handler=handler,
+            required_roles=frozenset({UserRole.ADMIN.value}),
+        )
+    )
     assert registry.describe_tools(context(UserRole.ANALYST)) == []
     assert registry.describe_tools(context(UserRole.ADMIN))[0].name == "admin_tool"
     with pytest.raises(ValueError, match="already registered"):
-        registry.register(ToolDefinition(
-            name="admin_tool", version=1, description="admin", arguments_model=DatasetToolArguments,
-            handler=handler,
-        ))
+        registry.register(
+            ToolDefinition(
+                name="admin_tool",
+                version=1,
+                description="admin",
+                arguments_model=DatasetToolArguments,
+                handler=handler,
+            )
+        )
 
 
 @pytest.mark.asyncio
@@ -79,10 +106,15 @@ async def test_registry_sanitizes_handler_failures():
         raise RuntimeError("database password=secret")
 
     registry = ToolRegistry()
-    registry.register(ToolDefinition(
-        name="broken", version=1, description="broken", arguments_model=DatasetToolArguments,
-        handler=broken,
-    ))
+    registry.register(
+        ToolDefinition(
+            name="broken",
+            version=1,
+            description="broken",
+            arguments_model=DatasetToolArguments,
+            handler=broken,
+        )
+    )
     result = await registry.execute("broken", {"dataset_id": str(uuid.uuid4())}, context())
     assert result.status is ToolStatus.EXECUTION_FAILED
     assert result.error_code == "EXECUTION_FAILED"

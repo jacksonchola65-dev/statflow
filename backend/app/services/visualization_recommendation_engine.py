@@ -184,7 +184,9 @@ class VisualizationRecommendationEngine:
                     visualization_type=VisualizationType.TABLE,
                     reason_code=VisualizationRecommendationReason.TABLE_FALLBACK,
                     confidence=ConfidenceStatus.SUPPORTED,
-                    warnings=["Result shape does not match common visualization patterns. Table recommended."],
+                    warnings=[
+                        "Result shape does not match common visualization patterns. Table recommended."
+                    ],
                 )
             )
 

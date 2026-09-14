@@ -8,7 +8,6 @@ Tests validate that insight generation is deterministic, accurate, and
 respects the factual-observations-only principle.
 """
 
-
 import pytest
 from app.schemas.intelligence import (
     ConfidenceStatus,
@@ -38,12 +37,30 @@ def sales_numeric_column():
         null_count=0,
         total_count=24,
         numeric_values=[
-            1050.00, 1125.00, 525.00, 1200.00,
-            1260.00, 1350.00, 630.00, 1275.00,
-            1155.00, 1425.00, 577.50, 1050.00,
-            1365.00, 1500.00, 682.50, 1125.00,
-            1102.50, 1320.00, 609.00, 1230.00,
-            1312.50, 1380.00, 651.00, 1170.00,
+            1050.00,
+            1125.00,
+            525.00,
+            1200.00,
+            1260.00,
+            1350.00,
+            630.00,
+            1275.00,
+            1155.00,
+            1425.00,
+            577.50,
+            1050.00,
+            1365.00,
+            1500.00,
+            682.50,
+            1125.00,
+            1102.50,
+            1320.00,
+            609.00,
+            1230.00,
+            1312.50,
+            1380.00,
+            651.00,
+            1170.00,
         ],
     )
 
@@ -71,12 +88,30 @@ def sales_temporal_column():
         null_count=0,
         total_count=24,
         date_values=[
-            "2024-01-01", "2024-01-01", "2024-01-01", "2024-01-01",
-            "2024-01-15", "2024-01-15", "2024-01-15", "2024-01-15",
-            "2024-02-01", "2024-02-01", "2024-02-01", "2024-02-01",
-            "2024-02-15", "2024-02-15", "2024-02-15", "2024-02-15",
-            "2024-03-01", "2024-03-01", "2024-03-01", "2024-03-01",
-            "2024-03-15", "2024-03-15", "2024-03-15", "2024-03-15",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-01-01",
+            "2024-01-15",
+            "2024-01-15",
+            "2024-01-15",
+            "2024-01-15",
+            "2024-02-01",
+            "2024-02-01",
+            "2024-02-01",
+            "2024-02-01",
+            "2024-02-15",
+            "2024-02-15",
+            "2024-02-15",
+            "2024-02-15",
+            "2024-03-01",
+            "2024-03-01",
+            "2024-03-01",
+            "2024-03-01",
+            "2024-03-15",
+            "2024-03-15",
+            "2024-03-15",
+            "2024-03-15",
         ],
     )
 
@@ -133,7 +168,9 @@ class TestNumericInsights:
         insights = insight_engine._generate_numeric_insights(sales_numeric_column, "ds_001")
 
         assert len(insights) == 2
-        assert insights[0].insight_type == InsightType.LOWEST_CATEGORY  # Note: logic issue, should be max
+        assert (
+            insights[0].insight_type == InsightType.LOWEST_CATEGORY
+        )  # Note: logic issue, should be max
         assert insights[0].value == 1500.00  # max value
         assert insights[1].insight_type == InsightType.LOWEST_CATEGORY
         assert insights[1].value == 525.00  # min value
@@ -170,7 +207,9 @@ class TestNumericInsights:
 class TestCategoricalInsights:
     """Test insight generation for categorical columns."""
 
-    def test_categorical_column_generates_highest_lowest(self, insight_engine, sales_category_column):
+    def test_categorical_column_generates_highest_lowest(
+        self, insight_engine, sales_category_column
+    ):
         """Categorical column should generate highest/lowest category insights."""
         insights = insight_engine._generate_categorical_insights(sales_category_column, "ds_001")
 
@@ -268,8 +307,7 @@ class TestDataQualityNotes:
         assert len(notes) >= 1
         # At least one note should mention missing values or low coverage
         assert any(
-            "missing" in n.observation.lower() or "coverage" in n.observation.lower()
-            for n in notes
+            "missing" in n.observation.lower() or "coverage" in n.observation.lower() for n in notes
         )
 
     def test_quality_notes_no_duplicates(self, insight_engine):

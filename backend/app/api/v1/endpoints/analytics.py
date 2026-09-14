@@ -62,14 +62,24 @@ async def analyze_stored_dataset(
     try:
         return await service.analyze(ingestion_job_id)
     except (UnknownIngestionJobError, EmptyDatasetError):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found or unavailable.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Dataset not found or unavailable."
+        )
     except (IncompleteIngestionJobError, DatasetNotAnalyticsReadyError):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Dataset is not analytics-ready.")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="Dataset is not analytics-ready."
+        )
     except CancelledError:
         raise
     except Exception as exc:
-        logger.exception("Unexpected stored dataset intelligence failure", extra={"ingestion_job_id": str(ingestion_job_id)})
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Dataset analysis is unavailable.") from exc
+        logger.exception(
+            "Unexpected stored dataset intelligence failure",
+            extra={"ingestion_job_id": str(ingestion_job_id)},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Dataset analysis is unavailable.",
+        ) from exc
 
 
 @router.post(

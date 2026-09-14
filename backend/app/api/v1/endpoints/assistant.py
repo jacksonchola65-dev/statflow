@@ -32,5 +32,9 @@ async def assistant_query(
     try:
         return await service.answer(query, context)
     except AiApplicationError as exc:
-        http_status = status.HTTP_503_SERVICE_UNAVAILABLE if exc.state is not AiCapabilityState.AVAILABLE else status.HTTP_502_BAD_GATEWAY
+        http_status = (
+            status.HTTP_503_SERVICE_UNAVAILABLE
+            if exc.state is not AiCapabilityState.AVAILABLE
+            else status.HTTP_502_BAD_GATEWAY
+        )
         raise HTTPException(status_code=http_status, detail=exc.code.value) from exc

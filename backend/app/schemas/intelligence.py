@@ -134,24 +134,42 @@ class KpiResult(BaseModel):
     """
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique KPI ID")
-    label: str = Field(min_length=1, max_length=100, description="Display label (e.g. 'National Average')")
+    label: str = Field(
+        min_length=1, max_length=100, description="Display label (e.g. 'National Average')"
+    )
     metric: str = Field(min_length=1, description="Metric name (e.g. 'revenue')")
     kpi_type: KpiType = Field(description="Type of KPI (total, average, highest_category, etc.)")
-    aggregation: str = Field(min_length=1, description="Aggregation used (e.g. 'SUM', 'AVG', 'MAX')")
+    aggregation: str = Field(
+        min_length=1, description="Aggregation used (e.g. 'SUM', 'AVG', 'MAX')"
+    )
     value: float | int | str | None = Field(description="The computed KPI value")
     unit: Optional[str] = Field(default=None, description="Unit suffix (e.g. '%', 'USD')")
-    scope: Optional[str] = Field(default=None, description="Scope of aggregation (e.g. 'all_provinces', 'all_periods')")
-    dimension: Optional[str] = Field(default=None, description="Dimension if this KPI is grouped (e.g. 'province', 'month')")
-    dimension_value: Optional[str] = Field(default=None, description="Dimension value (e.g. 'Lusaka', 'January')")
-    period: Optional[str] = Field(default=None, description="Time period if temporal (e.g. '2024', '2024-01')")
-    source_reference: str = Field(description="Reference to data source (e.g. dataset_id, query_id)")
-    confidence: ConfidenceStatus = Field(default=ConfidenceStatus.SUPPORTED, description="Confidence in this KPI")
+    scope: Optional[str] = Field(
+        default=None, description="Scope of aggregation (e.g. 'all_provinces', 'all_periods')"
+    )
+    dimension: Optional[str] = Field(
+        default=None, description="Dimension if this KPI is grouped (e.g. 'province', 'month')"
+    )
+    dimension_value: Optional[str] = Field(
+        default=None, description="Dimension value (e.g. 'Lusaka', 'January')"
+    )
+    period: Optional[str] = Field(
+        default=None, description="Time period if temporal (e.g. '2024', '2024-01')"
+    )
+    source_reference: str = Field(
+        description="Reference to data source (e.g. dataset_id, query_id)"
+    )
+    confidence: ConfidenceStatus = Field(
+        default=ConfidenceStatus.SUPPORTED, description="Confidence in this KPI"
+    )
     warnings: list[str] = Field(default_factory=list, description="Any warnings or caveats")
     analysis_scope: str = Field(default="FULL_DATASET", description="Truth scope of this value")
     sample_size: int | None = Field(default=None, ge=0)
     total_rows: int | None = Field(default=None, ge=0)
     coverage_ratio: float | None = Field(default=None, ge=0.0, le=1.0)
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="When this KPI was generated")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="When this KPI was generated"
+    )
 
 
 # ============================================================================
@@ -168,31 +186,46 @@ class InsightResult(BaseModel):
     """
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique insight ID")
-    insight_type: InsightType = Field(description="Type of insight (highest_category, increase_over_time, etc.)")
+    insight_type: InsightType = Field(
+        description="Type of insight (highest_category, increase_over_time, etc.)"
+    )
     metric: str = Field(min_length=1, description="Metric being analyzed (e.g. 'revenue')")
     dimension: Optional[str] = Field(default=None, description="Dimension (e.g. 'branch', 'month')")
-    subject: Optional[str] = Field(default=None, description="Subject of observation (e.g. category name, period)")
+    subject: Optional[str] = Field(
+        default=None, description="Subject of observation (e.g. category name, period)"
+    )
     value: float | int | str | None = Field(description="Primary value")
-    comparison_value: Optional[float | int | str] = Field(default=None, description="Secondary value for comparison")
-    change: Optional[float] = Field(default=None, description="Change amount or percentage (if applicable)")
+    comparison_value: Optional[float | int | str] = Field(
+        default=None, description="Secondary value for comparison"
+    )
+    change: Optional[float] = Field(
+        default=None, description="Change amount or percentage (if applicable)"
+    )
     period: Optional[str] = Field(default=None, description="Time period (if temporal)")
-    comparison_period: Optional[str] = Field(default=None, description="Period being compared to (if temporal)")
+    comparison_period: Optional[str] = Field(
+        default=None, description="Period being compared to (if temporal)"
+    )
     statement_data: dict[str, Any] = Field(
         default_factory=dict,
-        description="Structured data representing this insight (for reproducibility)"
+        description="Structured data representing this insight (for reproducibility)",
     )
     severity: DataQualitySeverity = Field(
-        default=DataQualitySeverity.INFO,
-        description="Severity level (info/warning/critical)"
+        default=DataQualitySeverity.INFO, description="Severity level (info/warning/critical)"
     )
-    confidence: ConfidenceStatus = Field(default=ConfidenceStatus.SUPPORTED, description="Confidence in this insight")
-    source_reference: str = Field(description="Reference to data source (e.g. dataset_id, query_id)")
+    confidence: ConfidenceStatus = Field(
+        default=ConfidenceStatus.SUPPORTED, description="Confidence in this insight"
+    )
+    source_reference: str = Field(
+        description="Reference to data source (e.g. dataset_id, query_id)"
+    )
     warnings: list[str] = Field(default_factory=list, description="Warnings about this insight")
     analysis_scope: str = Field(default="FULL_DATASET", description="Truth scope of this insight")
     sample_size: int | None = Field(default=None, ge=0)
     total_rows: int | None = Field(default=None, ge=0)
     coverage_ratio: float | None = Field(default=None, ge=0.0, le=1.0)
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="When this insight was generated")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="When this insight was generated"
+    )
 
 
 # ============================================================================
@@ -212,14 +245,18 @@ class DataQualityNote(BaseModel):
     observation: str = Field(min_length=1, description="Description of the observation")
     severity: DataQualitySeverity = Field(description="Severity level")
     affected_rows: Optional[int] = Field(default=None, description="Number of affected rows")
-    affected_percentage: Optional[float] = Field(default=None, description="Percentage of affected rows")
+    affected_percentage: Optional[float] = Field(
+        default=None, description="Percentage of affected rows"
+    )
     recommendation: Optional[str] = Field(default=None, description="Recommended action if any")
     source_reference: str = Field(description="Reference to data source")
     analysis_scope: str = Field(default="FULL_DATASET", description="Truth scope of this note")
     sample_size: int | None = Field(default=None, ge=0)
     total_rows: int | None = Field(default=None, ge=0)
     coverage_ratio: float | None = Field(default=None, ge=0.0, le=1.0)
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="When this note was generated")
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="When this note was generated"
+    )
 
 
 # ============================================================================
@@ -236,13 +273,21 @@ class ColumnIntelligence(BaseModel):
 
     column_name: str = Field(min_length=1, description="Column identifier")
     physical_type: str = Field(description="Physical data type (INTEGER, TEXT, DATE, etc.)")
-    semantic_type: ColumnSemanticType = Field(description="Semantic interpretation (TEMPORAL, CATEGORICAL, NUMERIC_MEASURE, etc.)")
-    semantic_hints: list[SemanticHint] = Field(default_factory=list, description="Additional semantic hints (CURRENCY, PERCENTAGE, etc.)")
+    semantic_type: ColumnSemanticType = Field(
+        description="Semantic interpretation (TEMPORAL, CATEGORICAL, NUMERIC_MEASURE, etc.)"
+    )
+    semantic_hints: list[SemanticHint] = Field(
+        default_factory=list, description="Additional semantic hints (CURRENCY, PERCENTAGE, etc.)"
+    )
     cardinality: int = Field(ge=0, description="Distinct value count")
     null_count: int = Field(ge=0, description="Number of null/missing values")
     null_percentage: float = Field(ge=0.0, le=100.0, description="Percentage of null values")
-    unique_values: Optional[list[str]] = Field(default=None, description="Sample unique values (limited)")
-    confidence: ConfidenceStatus = Field(default=ConfidenceStatus.SUPPORTED, description="Confidence in this classification")
+    unique_values: Optional[list[str]] = Field(
+        default=None, description="Sample unique values (limited)"
+    )
+    confidence: ConfidenceStatus = Field(
+        default=ConfidenceStatus.SUPPORTED, description="Confidence in this classification"
+    )
     warnings: list[str] = Field(default_factory=list, description="Any warnings about this column")
 
 
@@ -258,19 +303,37 @@ class VisualizationRecommendation(BaseModel):
     Provides both the recommended chart type and compatible alternatives.
     """
 
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description="Unique recommendation ID")
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()), description="Unique recommendation ID"
+    )
     visualization_type: VisualizationType = Field(description="Recommended chart type")
     title: Optional[str] = Field(default=None, description="Suggested chart title")
-    dimension: Optional[str] = Field(default=None, description="Recommended dimension/category field")
+    dimension: Optional[str] = Field(
+        default=None, description="Recommended dimension/category field"
+    )
     measure: Optional[str] = Field(default=None, description="Recommended measure/value field")
-    aggregation: Optional[str] = Field(default=None, description="Recommended aggregation if applicable")
-    series: list[str] = Field(default_factory=list, description="Series fields for multi-series charts")
+    aggregation: Optional[str] = Field(
+        default=None, description="Recommended aggregation if applicable"
+    )
+    series: list[str] = Field(
+        default_factory=list, description="Series fields for multi-series charts"
+    )
     filters: dict[str, Any] = Field(default_factory=dict, description="Recommended filters")
-    reason_code: VisualizationRecommendationReason = Field(description="Reason for this recommendation")
-    confidence: ConfidenceStatus = Field(default=ConfidenceStatus.SUPPORTED, description="Confidence in recommendation")
-    compatible_types: list[VisualizationType] = Field(default_factory=list, description="Other compatible visualization types")
-    warnings: list[str] = Field(default_factory=list, description="Warnings (e.g., high cardinality, missing values)")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="When this recommendation was generated")
+    reason_code: VisualizationRecommendationReason = Field(
+        description="Reason for this recommendation"
+    )
+    confidence: ConfidenceStatus = Field(
+        default=ConfidenceStatus.SUPPORTED, description="Confidence in recommendation"
+    )
+    compatible_types: list[VisualizationType] = Field(
+        default_factory=list, description="Other compatible visualization types"
+    )
+    warnings: list[str] = Field(
+        default_factory=list, description="Warnings (e.g., high cardinality, missing values)"
+    )
+    created_at: datetime = Field(
+        default_factory=datetime.utcnow, description="When this recommendation was generated"
+    )
 
 
 # ============================================================================
@@ -287,35 +350,38 @@ class DatasetIntelligenceResult(BaseModel):
     """
 
     dataset_id: uuid.UUID = Field(description="Dataset being analyzed")
-    analysis_timestamp: datetime = Field(default_factory=datetime.utcnow, description="When analysis was performed")
+    analysis_timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="When analysis was performed"
+    )
 
     # Dataset metadata
     row_count: int = Field(ge=0, description="Number of data rows")
     column_count: int = Field(ge=0, description="Number of columns")
-    columns: list[ColumnIntelligence] = Field(default_factory=list, description="Intelligence for each column")
+    columns: list[ColumnIntelligence] = Field(
+        default_factory=list, description="Intelligence for each column"
+    )
 
     # KPIs
     kpis: list[KpiResult] = Field(default_factory=list, description="Generated KPI metrics")
 
     # Insights
     insights: list[InsightResult] = Field(default_factory=list, description="Factual observations")
-    data_quality_notes: list[DataQualityNote] = Field(default_factory=list, description="Data quality observations")
+    data_quality_notes: list[DataQualityNote] = Field(
+        default_factory=list, description="Data quality observations"
+    )
 
     # Visualization recommendations
     visualization_recommendations: list[VisualizationRecommendation] = Field(
-        default_factory=list,
-        description="Chart type recommendations"
+        default_factory=list, description="Chart type recommendations"
     )
 
     # Metadata
     provenance: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Provenance and reproducibility information"
+        default_factory=dict, description="Provenance and reproducibility information"
     )
     warnings: list[str] = Field(default_factory=list, description="Any analysis-level warnings")
     performance_metrics: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Performance info (processing time, etc.)"
+        default_factory=dict, description="Performance info (processing time, etc.)"
     )
 
     class Config:

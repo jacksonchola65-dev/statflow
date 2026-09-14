@@ -74,7 +74,9 @@ class StoredDatasetIntelligenceService:
         visualizations: list[VisualizationArtifact] = []
         warnings = list(result.warnings)
         for recommendation in result.visualization_recommendations:
-            artifact = await self._build_artifact(ingestion_job_id, recommendation, summary.row_count)
+            artifact = await self._build_artifact(
+                ingestion_job_id, recommendation, summary.row_count
+            )
             if artifact is None:
                 warnings.append(
                     f"Visualization '{recommendation.visualization_type.value}' was skipped because its result shape was unsupported."
@@ -112,7 +114,8 @@ class StoredDatasetIntelligenceService:
     async def _build_exact_metrics(self, ingestion_job_id, columns, total_rows):
         """Calculate dataset-level numeric facts through the analytics planner/repository."""
         numeric = [
-            column for column in columns
+            column
+            for column in columns
             if column.inferred_type in {InferredColumnType.INTEGER, InferredColumnType.DECIMAL}
         ]
         kpis: list[KpiResult] = []
@@ -128,7 +131,9 @@ class StoredDatasetIntelligenceService:
             query = AnalyticsQuery(
                 dataset_reference=DatasetReference(ingestion_job_id=ingestion_job_id),
                 measures=[
-                    Measure(aggregation=aggregation, column_name=column.normalized_name, alias=alias)
+                    Measure(
+                        aggregation=aggregation, column_name=column.normalized_name, alias=alias
+                    )
                     for alias, aggregation in aliases.items()
                 ],
                 limit=1,
@@ -139,73 +144,93 @@ class StoredDatasetIntelligenceService:
                 if value is None:
                     continue
                 kpi_type = {
-                    "total": KpiType.TOTAL, "count": KpiType.COUNT,
-                    "average": KpiType.AVERAGE, "minimum": KpiType.MINIMUM,
+                    "total": KpiType.TOTAL,
+                    "count": KpiType.COUNT,
+                    "average": KpiType.AVERAGE,
+                    "minimum": KpiType.MINIMUM,
                     "maximum": KpiType.MAXIMUM,
                 }[alias]
-                kpis.append(KpiResult(
-                    label=f"{aggregation.value.title()} {column.original_name}",
-                    metric=column.normalized_name,
-                    kpi_type=kpi_type,
-                    aggregation=aggregation.value,
-                    value=value,
-                    scope="all_rows",
-                    source_reference=str(ingestion_job_id),
-                    confidence=ConfidenceStatus.SUPPORTED,
-                    analysis_scope="FULL_DATASET",
-                    sample_size=0,
-                    total_rows=total_rows,
-                    coverage_ratio=1.0,
-                ))
+                kpis.append(
+                    KpiResult(
+                        label=f"{aggregation.value.title()} {column.original_name}",
+                        metric=column.normalized_name,
+                        kpi_type=kpi_type,
+                        aggregation=aggregation.value,
+                        value=value,
+                        scope="all_rows",
+                        source_reference=str(ingestion_job_id),
+                        confidence=ConfidenceStatus.SUPPORTED,
+                        analysis_scope="FULL_DATASET",
+                        sample_size=0,
+                        total_rows=total_rows,
+                        coverage_ratio=1.0,
+                    )
+                )
             distinct_query = AnalyticsQuery(
                 dataset_reference=DatasetReference(ingestion_job_id=ingestion_job_id),
-                measures=[Measure(
-                    aggregation=AggregationFunction.COUNT_DISTINCT,
-                    column_name=column.normalized_name,
-                    alias="distinct",
-                )],
+                measures=[
+                    Measure(
+                        aggregation=AggregationFunction.COUNT_DISTINCT,
+                        column_name=column.normalized_name,
+                        alias="distinct",
+                    )
+                ],
                 limit=1,
             )
-            distinct_value = self._json_number(
-                (await self._analytics.execute(distinct_query)).rows[0].get("distinct")
-            ) if total_rows else None
+            distinct_value = (
+                self._json_number(
+                    (await self._analytics.execute(distinct_query)).rows[0].get("distinct")
+                )
+                if total_rows
+                else None
+            )
             if distinct_value is not None:
-                kpis.append(KpiResult(
-                    label=f"Distinct values in {column.original_name}",
-                    metric=column.normalized_name,
-                    kpi_type=KpiType.COUNT_DISTINCT,
-                    aggregation=AggregationFunction.COUNT_DISTINCT.value,
-                    value=distinct_value,
-                    scope="all_rows",
-                    source_reference=str(ingestion_job_id),
-                    confidence=ConfidenceStatus.SUPPORTED,
-                    analysis_scope="FULL_DATASET",
-                    sample_size=0,
-                    total_rows=total_rows,
-                    coverage_ratio=1.0,
-                ))
+                kpis.append(
+                    KpiResult(
+                        label=f"Distinct values in {column.original_name}",
+                        metric=column.normalized_name,
+                        kpi_type=KpiType.COUNT_DISTINCT,
+                        aggregation=AggregationFunction.COUNT_DISTINCT.value,
+                        value=distinct_value,
+                        scope="all_rows",
+                        source_reference=str(ingestion_job_id),
+                        confidence=ConfidenceStatus.SUPPORTED,
+                        analysis_scope="FULL_DATASET",
+                        sample_size=0,
+                        total_rows=total_rows,
+                        coverage_ratio=1.0,
+                    )
+                )
             for insight_type, alias, operation in (
                 (InsightType.HIGHEST_CATEGORY, "maximum", "max"),
                 (InsightType.LOWEST_CATEGORY, "minimum", "min"),
             ):
                 value = self._json_number(values.get(alias))
                 if value is not None:
-                    insights.append(InsightResult(
-                        insight_type=insight_type,
-                        metric=column.normalized_name,
-                        subject=f"{operation.title()} value in {column.original_name}",
-                        value=value,
-                        statement_data={"operation": operation, "column": column.normalized_name, "result": value},
-                        source_reference=str(ingestion_job_id),
-                        analysis_scope="FULL_DATASET",
-                        sample_size=0,
-                        total_rows=total_rows,
-                        coverage_ratio=1.0,
-                    ))
+                    insights.append(
+                        InsightResult(
+                            insight_type=insight_type,
+                            metric=column.normalized_name,
+                            subject=f"{operation.title()} value in {column.original_name}",
+                            value=value,
+                            statement_data={
+                                "operation": operation,
+                                "column": column.normalized_name,
+                                "result": value,
+                            },
+                            source_reference=str(ingestion_job_id),
+                            analysis_scope="FULL_DATASET",
+                            sample_size=0,
+                            total_rows=total_rows,
+                            coverage_ratio=1.0,
+                        )
+                    )
 
         dimensions = [
-            column for column in columns
-            if column.inferred_type in {
+            column
+            for column in columns
+            if column.inferred_type
+            in {
                 InferredColumnType.TEXT,
                 InferredColumnType.DATE,
                 InferredColumnType.DATETIME,
@@ -214,47 +239,59 @@ class StoredDatasetIntelligenceService:
         for dimension in dimensions:
             distinct_query = AnalyticsQuery(
                 dataset_reference=DatasetReference(ingestion_job_id=ingestion_job_id),
-                measures=[Measure(
-                    aggregation=AggregationFunction.COUNT_DISTINCT,
-                    column_name=dimension.normalized_name,
-                    alias="distinct",
-                )],
+                measures=[
+                    Measure(
+                        aggregation=AggregationFunction.COUNT_DISTINCT,
+                        column_name=dimension.normalized_name,
+                        alias="distinct",
+                    )
+                ],
                 limit=1,
             )
-            distinct_value = self._json_number(
-                (await self._analytics.execute(distinct_query)).rows[0].get("distinct")
-            ) if total_rows else None
+            distinct_value = (
+                self._json_number(
+                    (await self._analytics.execute(distinct_query)).rows[0].get("distinct")
+                )
+                if total_rows
+                else None
+            )
             if distinct_value is not None:
-                kpis.append(KpiResult(
-                    label=f"Distinct values in {dimension.original_name}",
-                    metric=dimension.normalized_name,
-                    kpi_type=KpiType.COUNT_DISTINCT,
-                    aggregation=AggregationFunction.COUNT_DISTINCT.value,
-                    value=distinct_value,
-                    scope="all_rows",
-                    source_reference=str(ingestion_job_id),
-                    confidence=ConfidenceStatus.SUPPORTED,
-                    analysis_scope="FULL_DATASET",
-                    sample_size=0,
-                    total_rows=total_rows,
-                    coverage_ratio=1.0,
-                ))
+                kpis.append(
+                    KpiResult(
+                        label=f"Distinct values in {dimension.original_name}",
+                        metric=dimension.normalized_name,
+                        kpi_type=KpiType.COUNT_DISTINCT,
+                        aggregation=AggregationFunction.COUNT_DISTINCT.value,
+                        value=distinct_value,
+                        scope="all_rows",
+                        source_reference=str(ingestion_job_id),
+                        confidence=ConfidenceStatus.SUPPORTED,
+                        analysis_scope="FULL_DATASET",
+                        sample_size=0,
+                        total_rows=total_rows,
+                        coverage_ratio=1.0,
+                    )
+                )
         for dimension in dimensions[:10]:
             for measure_column in numeric[:5]:
                 query = AnalyticsQuery(
                     dataset_reference=DatasetReference(ingestion_job_id=ingestion_job_id),
                     dimensions=[Dimension(column_name=dimension.normalized_name)],
-                    measures=[Measure(
-                        aggregation=AggregationFunction.SUM,
-                        column_name=measure_column.normalized_name,
-                        alias="value",
-                    )],
+                    measures=[
+                        Measure(
+                            aggregation=AggregationFunction.SUM,
+                            column_name=measure_column.normalized_name,
+                            alias="value",
+                        )
+                    ],
                     limit=self.ARTIFACT_LIMIT,
                 )
                 grouped = (await self._analytics.execute(query)).rows
                 grouped = [
-                    row for row in grouped
-                    if row.get(dimension.normalized_name) is not None and row.get("value") is not None
+                    row
+                    for row in grouped
+                    if row.get(dimension.normalized_name) is not None
+                    and row.get("value") is not None
                 ]
                 if not grouped:
                     continue
@@ -262,62 +299,78 @@ class StoredDatasetIntelligenceService:
                 lowest = min(grouped, key=lambda row: float(row["value"]))
                 for insight_type, selected, operation in (
                     (
-                        InsightType.HIGHEST_PERIOD if dimension.inferred_type in {InferredColumnType.DATE, InferredColumnType.DATETIME} else InsightType.HIGHEST_CATEGORY,
+                        InsightType.HIGHEST_PERIOD
+                        if dimension.inferred_type
+                        in {InferredColumnType.DATE, InferredColumnType.DATETIME}
+                        else InsightType.HIGHEST_CATEGORY,
                         highest,
                         "max",
                     ),
                     (
-                        InsightType.LOWEST_PERIOD if dimension.inferred_type in {InferredColumnType.DATE, InferredColumnType.DATETIME} else InsightType.LOWEST_CATEGORY,
+                        InsightType.LOWEST_PERIOD
+                        if dimension.inferred_type
+                        in {InferredColumnType.DATE, InferredColumnType.DATETIME}
+                        else InsightType.LOWEST_CATEGORY,
                         lowest,
                         "min",
                     ),
                 ):
                     value = self._json_number(selected["value"])
                     subject = str(selected[dimension.normalized_name])
-                    kpis.append(KpiResult(
-                        label=f"{operation.title()} {measure_column.original_name} by {dimension.original_name}",
-                        metric=measure_column.normalized_name,
-                        kpi_type=(
-                            KpiType.HIGHEST_PERIOD
-                            if insight_type == InsightType.HIGHEST_PERIOD
-                            else KpiType.LOWEST_PERIOD
-                            if insight_type == InsightType.LOWEST_PERIOD
-                            else KpiType.HIGHEST_CATEGORY
-                            if insight_type == InsightType.HIGHEST_CATEGORY
-                            else KpiType.LOWEST_CATEGORY
-                        ),
-                        aggregation=AggregationFunction.SUM.value,
-                        value=value,
-                        dimension=dimension.normalized_name,
-                        dimension_value=subject,
-                        period=subject if insight_type in {InsightType.HIGHEST_PERIOD, InsightType.LOWEST_PERIOD} else None,
-                        scope="all_rows",
-                        source_reference=str(ingestion_job_id),
-                        analysis_scope="FULL_DATASET",
-                        sample_size=0,
-                        total_rows=total_rows,
-                        coverage_ratio=1.0,
-                    ))
-                    insights.append(InsightResult(
-                        insight_type=insight_type,
-                        metric=measure_column.normalized_name,
-                        dimension=dimension.normalized_name,
-                        subject=subject,
-                        value=value,
-                        statement_data={
-                            "operation": operation,
-                            "dimension": dimension.normalized_name,
-                            "measure": measure_column.normalized_name,
-                            "subject": subject,
-                            "result": value,
-                        },
-                        period=subject if insight_type in {InsightType.HIGHEST_PERIOD, InsightType.LOWEST_PERIOD} else None,
-                        source_reference=str(ingestion_job_id),
-                        analysis_scope="FULL_DATASET",
-                        sample_size=0,
-                        total_rows=total_rows,
-                        coverage_ratio=1.0,
-                    ))
+                    kpis.append(
+                        KpiResult(
+                            label=f"{operation.title()} {measure_column.original_name} by {dimension.original_name}",
+                            metric=measure_column.normalized_name,
+                            kpi_type=(
+                                KpiType.HIGHEST_PERIOD
+                                if insight_type == InsightType.HIGHEST_PERIOD
+                                else KpiType.LOWEST_PERIOD
+                                if insight_type == InsightType.LOWEST_PERIOD
+                                else KpiType.HIGHEST_CATEGORY
+                                if insight_type == InsightType.HIGHEST_CATEGORY
+                                else KpiType.LOWEST_CATEGORY
+                            ),
+                            aggregation=AggregationFunction.SUM.value,
+                            value=value,
+                            dimension=dimension.normalized_name,
+                            dimension_value=subject,
+                            period=subject
+                            if insight_type
+                            in {InsightType.HIGHEST_PERIOD, InsightType.LOWEST_PERIOD}
+                            else None,
+                            scope="all_rows",
+                            source_reference=str(ingestion_job_id),
+                            analysis_scope="FULL_DATASET",
+                            sample_size=0,
+                            total_rows=total_rows,
+                            coverage_ratio=1.0,
+                        )
+                    )
+                    insights.append(
+                        InsightResult(
+                            insight_type=insight_type,
+                            metric=measure_column.normalized_name,
+                            dimension=dimension.normalized_name,
+                            subject=subject,
+                            value=value,
+                            statement_data={
+                                "operation": operation,
+                                "dimension": dimension.normalized_name,
+                                "measure": measure_column.normalized_name,
+                                "subject": subject,
+                                "result": value,
+                            },
+                            period=subject
+                            if insight_type
+                            in {InsightType.HIGHEST_PERIOD, InsightType.LOWEST_PERIOD}
+                            else None,
+                            source_reference=str(ingestion_job_id),
+                            analysis_scope="FULL_DATASET",
+                            sample_size=0,
+                            total_rows=total_rows,
+                            coverage_ratio=1.0,
+                        )
+                    )
         return kpis, insights
 
     @staticmethod
@@ -330,7 +383,9 @@ class StoredDatasetIntelligenceService:
         except (TypeError, ValueError):
             return None
 
-    async def _build_artifact(self, ingestion_job_id, recommendation, total_rows: int) -> VisualizationArtifact | None:
+    async def _build_artifact(
+        self, ingestion_job_id, recommendation, total_rows: int
+    ) -> VisualizationArtifact | None:
         chart_type = recommendation.visualization_type
         if chart_type == VisualizationType.TABLE:
             rows = await self._discovery._repository.preview_rows(ingestion_job_id, 100)
@@ -342,16 +397,28 @@ class StoredDatasetIntelligenceService:
             query = AnalyticsQuery(
                 dataset_reference=DatasetReference(ingestion_job_id=ingestion_job_id),
                 dimensions=[Dimension(column_name=recommendation.dimension)],
-                measures=[Measure(aggregation=aggregation, column_name=recommendation.measure, alias="value")],
+                measures=[
+                    Measure(
+                        aggregation=aggregation, column_name=recommendation.measure, alias="value"
+                    )
+                ],
                 limit=self.ARTIFACT_LIMIT,
             )
             data = (await self._analytics.execute(query)).rows
         else:
             return None
 
-        dimension = {"column": recommendation.dimension, "label": recommendation.dimension} if recommendation.dimension else None
+        dimension = (
+            {"column": recommendation.dimension, "label": recommendation.dimension}
+            if recommendation.dimension
+            else None
+        )
         measure = (
-            {"column": recommendation.measure, "aggregation": recommendation.aggregation or "SUM", "unit": ""}
+            {
+                "column": recommendation.measure,
+                "aggregation": recommendation.aggregation or "SUM",
+                "unit": "",
+            }
             if recommendation.measure
             else None
         )
@@ -371,12 +438,18 @@ class StoredDatasetIntelligenceService:
             analysis_scope="PREVIEW" if chart_type == VisualizationType.TABLE else "FULL_DATASET",
             sample_size=100 if chart_type == VisualizationType.TABLE else None,
             total_rows=total_rows,
-            coverage_ratio=(100 / total_rows) if chart_type == VisualizationType.TABLE and total_rows else (1.0 if chart_type != VisualizationType.TABLE else 0.0),
+            coverage_ratio=(100 / total_rows)
+            if chart_type == VisualizationType.TABLE and total_rows
+            else (1.0 if chart_type != VisualizationType.TABLE else 0.0),
         )
 
     @staticmethod
     def _role(column_type: InferredColumnType) -> str:
-        return "measure" if column_type in {InferredColumnType.INTEGER, InferredColumnType.DECIMAL} else "dimension"
+        return (
+            "measure"
+            if column_type in {InferredColumnType.INTEGER, InferredColumnType.DECIMAL}
+            else "dimension"
+        )
 
     @staticmethod
     def _aggregation(value: str | None) -> AggregationFunction | None:

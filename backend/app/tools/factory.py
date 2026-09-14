@@ -32,7 +32,9 @@ def build_tool_registry(
 def get_tool_registry(
     db: AsyncSession = Depends(get_db),
     discovery=Depends(get_dataset_discovery_service),
-    intelligence: StoredDatasetIntelligenceService = Depends(get_stored_dataset_intelligence_service),
+    intelligence: StoredDatasetIntelligenceService = Depends(
+        get_stored_dataset_intelligence_service
+    ),
     analytics=Depends(get_analytics_service),
 ) -> ToolRegistry:
     """FastAPI-compatible internal dependency; no public execution route uses it yet."""

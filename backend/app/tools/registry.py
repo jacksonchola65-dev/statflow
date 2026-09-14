@@ -94,16 +94,24 @@ class ToolRegistry:
         started = perf_counter()
         tool = self._tools.get(tool_name)
         if tool is None:
-            return self._failure(tool_name, ToolStatus.UNSUPPORTED_OPERATION, "UNKNOWN_TOOL", started)
+            return self._failure(
+                tool_name, ToolStatus.UNSUPPORTED_OPERATION, "UNKNOWN_TOOL", started
+            )
         if context is None:
-            return self._failure(tool.name, ToolStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", started, tool.version)
+            return self._failure(
+                tool.name, ToolStatus.UNAUTHORIZED, "AUTHENTICATION_REQUIRED", started, tool.version
+            )
         if tool.required_roles and context.role.value not in tool.required_roles:
-            return self._failure(tool.name, ToolStatus.FORBIDDEN, "INSUFFICIENT_PERMISSIONS", started, tool.version)
+            return self._failure(
+                tool.name, ToolStatus.FORBIDDEN, "INSUFFICIENT_PERMISSIONS", started, tool.version
+            )
 
         try:
             parsed = tool.arguments_model.model_validate(arguments)
         except ValidationError:
-            return self._failure(tool.name, ToolStatus.INVALID_ARGUMENTS, "INVALID_ARGUMENTS", started, tool.version)
+            return self._failure(
+                tool.name, ToolStatus.INVALID_ARGUMENTS, "INVALID_ARGUMENTS", started, tool.version
+            )
 
         try:
             result = await tool.handler(context, parsed)
@@ -112,9 +120,15 @@ class ToolRegistry:
         except Exception:
             logger.exception(
                 "Internal tool execution failed",
-                extra={"tool_name": tool.name, "tool_version": tool.version, "request_id": context.request_id},
+                extra={
+                    "tool_name": tool.name,
+                    "tool_version": tool.version,
+                    "request_id": context.request_id,
+                },
             )
-            return self._failure(tool.name, ToolStatus.EXECUTION_FAILED, "EXECUTION_FAILED", started, tool.version)
+            return self._failure(
+                tool.name, ToolStatus.EXECUTION_FAILED, "EXECUTION_FAILED", started, tool.version
+            )
 
         return ToolResult(
             tool_name=tool.name,

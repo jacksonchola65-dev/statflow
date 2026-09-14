@@ -48,16 +48,28 @@ class StatFlowToolHandlers:
 
     MAX_ANALYSIS_ROWS = 100
 
-    def __init__(self, discovery, intelligence: StoredDatasetIntelligenceService, analytics: AnalyticsService, db):
+    def __init__(
+        self,
+        discovery,
+        intelligence: StoredDatasetIntelligenceService,
+        analytics: AnalyticsService,
+        db,
+    ):
         self.discovery = discovery
         self.intelligence = intelligence
         self.analytics = analytics
         self.db = db
 
-    async def get_dataset_metadata(self, _context: ToolExecutionContext, args: DatasetToolArguments) -> ToolHandlerResult:
+    async def get_dataset_metadata(
+        self, _context: ToolExecutionContext, args: DatasetToolArguments
+    ) -> ToolHandlerResult:
         try:
             details = await self.discovery.get_dataset_details(args.dataset_id)
-        except (UnknownIngestionJobError, IncompleteIngestionJobError, DatasetNotAnalyticsReadyError) as exc:
+        except (
+            UnknownIngestionJobError,
+            IncompleteIngestionJobError,
+            DatasetNotAnalyticsReadyError,
+        ) as exc:
             raise ToolExecutionError(ToolStatus.NOT_FOUND, "DATASET_NOT_FOUND") from exc
         return ToolHandlerResult(
             data=details.model_dump(mode="json"),
@@ -65,10 +77,16 @@ class StatFlowToolHandlers:
             provenance={"dataset_id": str(args.dataset_id), "source": "DatasetDiscoveryService"},
         )
 
-    async def analyze_dataset(self, _context: ToolExecutionContext, args: DatasetToolArguments) -> ToolHandlerResult:
+    async def analyze_dataset(
+        self, _context: ToolExecutionContext, args: DatasetToolArguments
+    ) -> ToolHandlerResult:
         try:
             result = await self.intelligence.analyze(args.dataset_id)
-        except (UnknownIngestionJobError, IncompleteIngestionJobError, DatasetNotAnalyticsReadyError) as exc:
+        except (
+            UnknownIngestionJobError,
+            IncompleteIngestionJobError,
+            DatasetNotAnalyticsReadyError,
+        ) as exc:
             raise ToolExecutionError(ToolStatus.NOT_FOUND, "DATASET_NOT_FOUND") from exc
         return ToolHandlerResult(
             data=result.model_dump(mode="json"),
@@ -77,7 +95,9 @@ class StatFlowToolHandlers:
             provenance={**result.provenance, "dataset_id": str(args.dataset_id)},
         )
 
-    async def run_dataset_analysis(self, _context: ToolExecutionContext, args: RunDatasetAnalysisArguments) -> ToolHandlerResult:
+    async def run_dataset_analysis(
+        self, _context: ToolExecutionContext, args: RunDatasetAnalysisArguments
+    ) -> ToolHandlerResult:
         if args.limit > self.MAX_ANALYSIS_ROWS:
             raise ToolExecutionError(ToolStatus.RESULT_LIMIT_EXCEEDED, "RESULT_LIMIT_EXCEEDED")
         if args.aggregation.value != "COUNT" and args.measure is None:
@@ -85,8 +105,13 @@ class StatFlowToolHandlers:
         query = AnalyticsQuery(
             dataset_reference=DatasetReference(ingestion_job_id=args.dataset_id),
             dimensions=[Dimension(column_name=args.dimension)] if args.dimension else [],
-            measures=[Measure(aggregation=args.aggregation, column_name=args.measure, alias="value")],
-            filters=[FilterClause(column_name=item.column, operator=item.operator, value=item.value) for item in args.filters],
+            measures=[
+                Measure(aggregation=args.aggregation, column_name=args.measure, alias="value")
+            ],
+            filters=[
+                FilterClause(column_name=item.column, operator=item.operator, value=item.value)
+                for item in args.filters
+            ],
             limit=args.limit,
             offset=args.offset,
         )
@@ -95,7 +120,9 @@ class StatFlowToolHandlers:
         except (UnknownIngestionJobError, IncompleteIngestionJobError) as exc:
             raise ToolExecutionError(ToolStatus.NOT_FOUND, "DATASET_NOT_FOUND") from exc
         except (InvalidIdentifierError, InvalidAggregationError, ValueError) as exc:
-            raise ToolExecutionError(ToolStatus.INVALID_ARGUMENTS, "INVALID_ANALYTICS_ARGUMENTS") from exc
+            raise ToolExecutionError(
+                ToolStatus.INVALID_ARGUMENTS, "INVALID_ANALYTICS_ARGUMENTS"
+            ) from exc
         return ToolHandlerResult(
             data=result.model_dump(mode="json"),
             authority=ToolAuthority.DETERMINISTIC,
@@ -108,12 +135,18 @@ class StatFlowToolHandlers:
             },
         )
 
-    async def explain_provenance(self, _context: ToolExecutionContext, args: ExplainProvenanceArguments) -> ToolHandlerResult:
+    async def explain_provenance(
+        self, _context: ToolExecutionContext, args: ExplainProvenanceArguments
+    ) -> ToolHandlerResult:
         if args.dimension is None and args.measure is None:
             raise ToolExecutionError(ToolStatus.INVALID_ARGUMENTS, "PROVENANCE_TARGET_REQUIRED")
         try:
             details = await self.discovery.get_dataset_details(args.dataset_id)
-        except (UnknownIngestionJobError, IncompleteIngestionJobError, DatasetNotAnalyticsReadyError) as exc:
+        except (
+            UnknownIngestionJobError,
+            IncompleteIngestionJobError,
+            DatasetNotAnalyticsReadyError,
+        ) as exc:
             raise ToolExecutionError(ToolStatus.NOT_FOUND, "DATASET_NOT_FOUND") from exc
         dimension_names = {item.identifier for item in details.available_dimensions}
         measure_map = {item.identifier: item for item in details.available_measures}
@@ -123,7 +156,10 @@ class StatFlowToolHandlers:
             measure = measure_map.get(args.measure)
             if measure is None:
                 raise ToolExecutionError(ToolStatus.INVALID_ARGUMENTS, "UNKNOWN_MEASURE")
-            if args.aggregation is not None and args.aggregation not in measure.supported_aggregations:
+            if (
+                args.aggregation is not None
+                and args.aggregation not in measure.supported_aggregations
+            ):
                 raise ToolExecutionError(ToolStatus.INVALID_ARGUMENTS, "UNSUPPORTED_AGGREGATION")
         return ToolHandlerResult(
             data={
@@ -134,11 +170,15 @@ class StatFlowToolHandlers:
                 "scope": args.scope,
                 "filters": [],
             },
-            authority=ToolAuthority.PREVIEW if args.scope == "PREVIEW" else ToolAuthority.DETERMINISTIC,
+            authority=ToolAuthority.PREVIEW
+            if args.scope == "PREVIEW"
+            else ToolAuthority.DETERMINISTIC,
             provenance={"source": "canonical_tool_arguments", "dataset_id": str(args.dataset_id)},
         )
 
-    async def run_decision(self, _context: ToolExecutionContext, args: RunDecisionArguments) -> ToolHandlerResult:
+    async def run_decision(
+        self, _context: ToolExecutionContext, args: RunDecisionArguments
+    ) -> ToolHandlerResult:
         mode = (
             BusinessLocationMode.DECISION_READY
             if args.mode == "PRODUCTION"
@@ -158,21 +198,35 @@ class StatFlowToolHandlers:
 
             if isinstance(exc, HTTPException):
                 if exc.status_code == 404:
-                    raise ToolExecutionError(ToolStatus.NOT_FOUND, "DECISION_MODEL_NOT_FOUND") from exc
-                raise ToolExecutionError(ToolStatus.INVALID_ARGUMENTS, "DECISION_REQUEST_REJECTED") from exc
+                    raise ToolExecutionError(
+                        ToolStatus.NOT_FOUND, "DECISION_MODEL_NOT_FOUND"
+                    ) from exc
+                raise ToolExecutionError(
+                    ToolStatus.INVALID_ARGUMENTS, "DECISION_REQUEST_REJECTED"
+                ) from exc
             raise
         readiness = str(result.get("decision_readiness", "")).lower()
-        status = ToolStatus.INSUFFICIENT_EVIDENCE if "insufficient" in readiness else ToolStatus.SUCCESS
-        authority = ToolAuthority.EXPLORATORY if mode is BusinessLocationMode.EXPLORATORY else ToolAuthority.DECISION_GOVERNED
+        status = (
+            ToolStatus.INSUFFICIENT_EVIDENCE if "insufficient" in readiness else ToolStatus.SUCCESS
+        )
+        authority = (
+            ToolAuthority.EXPLORATORY
+            if mode is BusinessLocationMode.EXPLORATORY
+            else ToolAuthority.DECISION_GOVERNED
+        )
         return ToolHandlerResult(
             data=result,
             authority=authority,
             status=status,
-            error_code="INSUFFICIENT_EVIDENCE" if status is ToolStatus.INSUFFICIENT_EVIDENCE else None,
+            error_code="INSUFFICIENT_EVIDENCE"
+            if status is ToolStatus.INSUFFICIENT_EVIDENCE
+            else None,
             provenance={"model_id": args.model_id, "mode": args.mode},
         )
 
-    async def identify_evidence_gaps(self, context: ToolExecutionContext, args: IdentifyEvidenceGapsArguments) -> ToolHandlerResult:
+    async def identify_evidence_gaps(
+        self, context: ToolExecutionContext, args: IdentifyEvidenceGapsArguments
+    ) -> ToolHandlerResult:
         result = await self.run_decision(context, args)
         return ToolHandlerResult(
             data={
@@ -191,20 +245,58 @@ class StatFlowToolHandlers:
 
 def register_statflow_tools(registry: ToolRegistry, handlers: StatFlowToolHandlers) -> ToolRegistry:
     definitions = [
-        ("get_dataset_metadata", "Return governed metadata for one stored analytics dataset.", DatasetToolArguments, handlers.get_dataset_metadata, None),
-        ("analyze_dataset", "Run deterministic intelligence over one stored dataset.", DatasetToolArguments, handlers.analyze_dataset, 1000),
-        ("run_dataset_analysis", "Run a bounded typed aggregation against a stored dataset.", RunDatasetAnalysisArguments, handlers.run_dataset_analysis, 100),
-        ("explain_provenance", "Return structured calculation provenance for a dataset analysis target.", ExplainProvenanceArguments, handlers.explain_provenance, None),
-        ("run_decision", "Run the governed Business Location Decision Intelligence application service.", RunDecisionArguments, handlers.run_decision, None),
-        ("identify_evidence_gaps", "Return deterministic decision evidence blockers and readiness facts.", IdentifyEvidenceGapsArguments, handlers.identify_evidence_gaps, None),
+        (
+            "get_dataset_metadata",
+            "Return governed metadata for one stored analytics dataset.",
+            DatasetToolArguments,
+            handlers.get_dataset_metadata,
+            None,
+        ),
+        (
+            "analyze_dataset",
+            "Run deterministic intelligence over one stored dataset.",
+            DatasetToolArguments,
+            handlers.analyze_dataset,
+            1000,
+        ),
+        (
+            "run_dataset_analysis",
+            "Run a bounded typed aggregation against a stored dataset.",
+            RunDatasetAnalysisArguments,
+            handlers.run_dataset_analysis,
+            100,
+        ),
+        (
+            "explain_provenance",
+            "Return structured calculation provenance for a dataset analysis target.",
+            ExplainProvenanceArguments,
+            handlers.explain_provenance,
+            None,
+        ),
+        (
+            "run_decision",
+            "Run the governed Business Location Decision Intelligence application service.",
+            RunDecisionArguments,
+            handlers.run_decision,
+            None,
+        ),
+        (
+            "identify_evidence_gaps",
+            "Return deterministic decision evidence blockers and readiness facts.",
+            IdentifyEvidenceGapsArguments,
+            handlers.identify_evidence_gaps,
+            None,
+        ),
     ]
     for name, description, model, handler, max_rows in definitions:
-        registry.register(ToolDefinition(
-            name=name,
-            version=1,
-            description=description,
-            arguments_model=cast(type[BaseModel], model),
-            handler=cast(ToolHandler, handler),
-            max_result_rows=max_rows,
-        ))
+        registry.register(
+            ToolDefinition(
+                name=name,
+                version=1,
+                description=description,
+                arguments_model=cast(type[BaseModel], model),
+                handler=cast(ToolHandler, handler),
+                max_result_rows=max_rows,
+            )
+        )
     return registry

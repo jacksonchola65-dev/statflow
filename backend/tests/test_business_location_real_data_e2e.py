@@ -374,7 +374,9 @@ async def test_live_decision_tools_preserve_production_and_exploratory_semantics
     from app.core.dependencies import get_current_user
 
     principal = await authed_client._transport.app.dependency_overrides[get_current_user]()
-    context = ToolExecutionContext(user_id=principal.id, role=UserRole.ADMIN, request_id="decision-registry-test")
+    context = ToolExecutionContext(
+        user_id=principal.id, role=UserRole.ADMIN, request_id="decision-registry-test"
+    )
     base = {
         "model_id": "BUSINESS_LOCATION_OPPORTUNITY",
         "province_code": "LP",

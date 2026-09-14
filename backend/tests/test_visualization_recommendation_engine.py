@@ -142,7 +142,9 @@ class TestTimeSeriesRecommendation:
         assert line_rec.reason_code == VisualizationRecommendationReason.TIME_SERIES_MEASURE
         assert VisualizationType.AREA in line_rec.compatible_types
 
-    def test_temporal_dimension_single_row_no_line(self, viz_engine, time_dimension, numeric_measure):
+    def test_temporal_dimension_single_row_no_line(
+        self, viz_engine, time_dimension, numeric_measure
+    ):
         """Time dimension with only one row should not recommend line."""
         columns = [time_dimension, numeric_measure]
         recs = viz_engine.recommend(columns, row_count=1, result_id="result_001")
@@ -328,9 +330,7 @@ class TestFullRecommendationPipeline:
         types = {r.visualization_type for r in recs}
         assert VisualizationType.LINE in types or VisualizationType.BAR in types
 
-    def test_recommendations_are_deterministic(
-        self, viz_engine, time_dimension, numeric_measure
-    ):
+    def test_recommendations_are_deterministic(self, viz_engine, time_dimension, numeric_measure):
         """Recommendations should be deterministic."""
         columns = [time_dimension, numeric_measure]
 
@@ -342,7 +342,9 @@ class TestFullRecommendationPipeline:
             assert r1.visualization_type == r2.visualization_type
             assert r1.reason_code == r2.reason_code
 
-    def test_all_recommendations_have_reason_code(self, viz_engine, time_dimension, numeric_measure):
+    def test_all_recommendations_have_reason_code(
+        self, viz_engine, time_dimension, numeric_measure
+    ):
         """All recommendations should have a reason code."""
         columns = [time_dimension, numeric_measure]
         recs = viz_engine.recommend(columns, row_count=6, result_id="result_001")
@@ -364,7 +366,9 @@ class TestFullRecommendationPipeline:
         """All recommendations should have confidence status."""
         recs = viz_engine.recommend([numeric_measure], row_count=1, result_id="result_001")
 
-        assert all(r.confidence in [ConfidenceStatus.SUPPORTED, ConfidenceStatus.PARTIAL] for r in recs)
+        assert all(
+            r.confidence in [ConfidenceStatus.SUPPORTED, ConfidenceStatus.PARTIAL] for r in recs
+        )
 
 
 # ============================================================================

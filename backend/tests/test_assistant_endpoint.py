@@ -10,7 +10,9 @@ from httpx import ASGITransport, AsyncClient
 @pytest.mark.asyncio
 async def test_assistant_requires_authentication():
     app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.post("/api/v1/assistant/query", json={"question": "hello"})
     assert response.status_code == 401
 

@@ -23,12 +23,54 @@ from app.tools import ToolExecutionContext, ToolStatus, build_tool_registry
 from httpx import AsyncClient
 
 SALES_ROWS = [
-    {"Date": "2025-01-15", "Branch": "North", "Product": "A", "Quantity": "2", "Unit Price": "10", "Revenue": "20"},
-    {"Date": "2025-01-20", "Branch": "South", "Product": "B", "Quantity": "5", "Unit Price": "20", "Revenue": "100"},
-    {"Date": "2025-02-10", "Branch": "North", "Product": "B", "Quantity": "3", "Unit Price": "20", "Revenue": "60"},
-    {"Date": "2025-02-22", "Branch": "South", "Product": "A", "Quantity": "4", "Unit Price": "10", "Revenue": "40"},
-    {"Date": "2025-03-05", "Branch": "North", "Product": "A", "Quantity": "6", "Unit Price": "10", "Revenue": "60"},
-    {"Date": "2025-03-18", "Branch": "South", "Product": "B", "Quantity": "2", "Unit Price": "20", "Revenue": "40"},
+    {
+        "Date": "2025-01-15",
+        "Branch": "North",
+        "Product": "A",
+        "Quantity": "2",
+        "Unit Price": "10",
+        "Revenue": "20",
+    },
+    {
+        "Date": "2025-01-20",
+        "Branch": "South",
+        "Product": "B",
+        "Quantity": "5",
+        "Unit Price": "20",
+        "Revenue": "100",
+    },
+    {
+        "Date": "2025-02-10",
+        "Branch": "North",
+        "Product": "B",
+        "Quantity": "3",
+        "Unit Price": "20",
+        "Revenue": "60",
+    },
+    {
+        "Date": "2025-02-22",
+        "Branch": "South",
+        "Product": "A",
+        "Quantity": "4",
+        "Unit Price": "10",
+        "Revenue": "40",
+    },
+    {
+        "Date": "2025-03-05",
+        "Branch": "North",
+        "Product": "A",
+        "Quantity": "6",
+        "Unit Price": "10",
+        "Revenue": "60",
+    },
+    {
+        "Date": "2025-03-18",
+        "Branch": "South",
+        "Product": "B",
+        "Quantity": "2",
+        "Unit Price": "20",
+        "Revenue": "40",
+    },
 ]
 
 
@@ -105,7 +147,9 @@ async def test_sales_fixture_uses_real_import_storage_and_intelligence_endpoint(
     assert "map" not in artifact_types
     assert "bar" in artifact_types
     assert "line" in artifact_types
-    assert all(item["analysis_scope"] in {"FULL_DATASET", "PREVIEW"} for item in body["visualizations"])
+    assert all(
+        item["analysis_scope"] in {"FULL_DATASET", "PREVIEW"} for item in body["visualizations"]
+    )
 
     insight_types = {item["insight_type"] for item in body["insights"]}
     assert "highest_category" in insight_types
@@ -119,7 +163,9 @@ async def test_sales_fixture_uses_real_import_storage_and_intelligence_endpoint(
 async def test_sales_fixture_executes_through_internal_tool_registry(authed_client, db_session):
     name = f"Phase 9.3 Sales {uuid.uuid4().hex[:8]}"
     registry = await _make_registry(db_session, name)
-    imported = await OfficialImportService(db_session).import_data(FixtureImporter(_sales_csv()), registry)
+    imported = await OfficialImportService(db_session).import_data(
+        FixtureImporter(_sales_csv()), registry
+    )
     discovery = DatasetDiscoveryService(DatasetDiscoveryRepository(db_session))
     analytics = AnalyticsService(AnalyticsQueryPlanner(db_session), AnalyticsRepository(db_session))
     tools = build_tool_registry(
@@ -139,17 +185,32 @@ async def test_sales_fixture_executes_through_internal_tool_registry(authed_clie
 
     grouped = await tools.execute(
         "run_dataset_analysis",
-        {"dataset_id": str(imported.ingestion_job_id), "measure": "revenue", "dimension": "branch", "aggregation": "SUM"},
+        {
+            "dataset_id": str(imported.ingestion_job_id),
+            "measure": "revenue",
+            "dimension": "branch",
+            "aggregation": "SUM",
+        },
         context,
     )
     period_average = await tools.execute(
         "run_dataset_analysis",
-        {"dataset_id": str(imported.ingestion_job_id), "measure": "revenue", "dimension": "date", "aggregation": "AVERAGE"},
+        {
+            "dataset_id": str(imported.ingestion_job_id),
+            "measure": "revenue",
+            "dimension": "date",
+            "aggregation": "AVERAGE",
+        },
         context,
     )
     product_quantity = await tools.execute(
         "run_dataset_analysis",
-        {"dataset_id": str(imported.ingestion_job_id), "measure": "quantity", "dimension": "product", "aggregation": "SUM"},
+        {
+            "dataset_id": str(imported.ingestion_job_id),
+            "measure": "quantity",
+            "dimension": "product",
+            "aggregation": "SUM",
+        },
         context,
     )
     row_count = await tools.execute(
@@ -162,14 +223,24 @@ async def test_sales_fixture_executes_through_internal_tool_registry(authed_clie
     )
 
     assert grouped.status is ToolStatus.SUCCESS
-    assert {row["branch"]: row["value"] for row in grouped.data["rows"]} == {"North": 140, "South": 180}
+    assert {row["branch"]: row["value"] for row in grouped.data["rows"]} == {
+        "North": 140,
+        "South": 180,
+    }
     assert period_average.status is ToolStatus.SUCCESS
     assert {row["date"]: float(row["value"]) for row in period_average.data["rows"]} == {
-        "2025-01-15": 20, "2025-01-20": 100, "2025-02-10": 60,
-        "2025-02-22": 40, "2025-03-05": 60, "2025-03-18": 40,
+        "2025-01-15": 20,
+        "2025-01-20": 100,
+        "2025-02-10": 60,
+        "2025-02-22": 40,
+        "2025-03-05": 60,
+        "2025-03-18": 40,
     }
     assert product_quantity.status is ToolStatus.SUCCESS
-    assert {row["product"]: row["value"] for row in product_quantity.data["rows"]} == {"A": 12, "B": 10}
+    assert {row["product"]: row["value"] for row in product_quantity.data["rows"]} == {
+        "A": 12,
+        "B": 10,
+    }
     assert row_count.status is ToolStatus.SUCCESS
     assert row_count.data["rows"] == [{"value": 6}]
     assert intelligence.status is ToolStatus.SUCCESS

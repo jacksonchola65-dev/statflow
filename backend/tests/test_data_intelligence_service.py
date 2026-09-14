@@ -195,9 +195,7 @@ class TestBasicAnalysis:
         assert result.data_quality_notes is not None
         assert result.visualization_recommendations is not None
 
-    def test_analysis_includes_provenance(
-        self, intelligence_service, sales_columns, sales_rows
-    ):
+    def test_analysis_includes_provenance(self, intelligence_service, sales_columns, sales_rows):
         """Analysis should include provenance information."""
         dataset_id = str(uuid.uuid4())
         result = intelligence_service.analyze_dataset(
@@ -239,9 +237,7 @@ class TestBasicAnalysis:
 class TestColumnIntelligence:
     """Test column intelligence generation."""
 
-    def test_column_intelligence_all_columns(
-        self, intelligence_service, sales_columns, sales_rows
-    ):
+    def test_column_intelligence_all_columns(self, intelligence_service, sales_columns, sales_rows):
         """Column intelligence should be generated for all columns."""
         dataset_id = str(uuid.uuid4())
         result = intelligence_service.analyze_dataset(
@@ -280,9 +276,7 @@ class TestColumnIntelligence:
         revenue_col = [c for c in result.columns if c.column_name == "revenue_col"][0]
         assert revenue_col.semantic_type == ColumnSemanticType.NUMERIC_MEASURE
 
-    def test_column_intelligence_confidence(
-        self, intelligence_service, sales_columns, sales_rows
-    ):
+    def test_column_intelligence_confidence(self, intelligence_service, sales_columns, sales_rows):
         """Column intelligence should include confidence."""
         dataset_id = str(uuid.uuid4())
         result = intelligence_service.analyze_dataset(
@@ -320,7 +314,18 @@ class TestKpiGeneration:
         # Should have KPIs for numeric measures - just check that we have KPIs for numeric columns
         metric_names = {kpi.metric for kpi in result.kpis}
         # At minimum, should have generated some KPIs
-        assert any(m in ["quantity_col", "Quantity", "unit_price_col", "Unit Price", "revenue_col", "Revenue"] for m in metric_names)
+        assert any(
+            m
+            in [
+                "quantity_col",
+                "Quantity",
+                "unit_price_col",
+                "Unit Price",
+                "revenue_col",
+                "Revenue",
+            ]
+            for m in metric_names
+        )
 
 
 # ============================================================================
@@ -411,7 +416,8 @@ class TestVisualizationRecommendations:
         )
 
         assert all(
-            r.visualization_type in [
+            r.visualization_type
+            in [
                 VisualizationType.KPI,
                 VisualizationType.BAR,
                 VisualizationType.LINE,
@@ -471,9 +477,7 @@ class TestErrorHandling:
 class TestDeterminism:
     """Test that analysis is deterministic and reproducible."""
 
-    def test_same_input_produces_same_output(
-        self, intelligence_service, sales_columns, sales_rows
-    ):
+    def test_same_input_produces_same_output(self, intelligence_service, sales_columns, sales_rows):
         """Same input should produce identical results."""
         dataset_id = str(uuid.uuid4())
 
@@ -498,9 +502,7 @@ class TestDeterminism:
         assert len(result1.kpis) == len(result2.kpis)
         assert len(result1.insights) == len(result2.insights)
 
-    def test_kpi_values_deterministic(
-        self, intelligence_service, sales_columns, sales_rows
-    ):
+    def test_kpi_values_deterministic(self, intelligence_service, sales_columns, sales_rows):
         """KPI values should be deterministic."""
         dataset_id = str(uuid.uuid4())
 

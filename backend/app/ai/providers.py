@@ -77,19 +77,25 @@ class OpenAiCompatibleGateway(ModelGateway):
     @staticmethod
     def _message(message) -> dict[str, Any]:
         if message.role.value == "tool":
-            return {"role": "tool", "tool_call_id": message.tool_call_id, "content": message.content}
+            return {
+                "role": "tool",
+                "tool_call_id": message.tool_call_id,
+                "content": message.content,
+            }
         if message.role.value == "assistant" and message.tool_name:
             return {
                 "role": "assistant",
                 "content": message.content or None,
-                "tool_calls": [{
-                    "id": message.tool_call_id,
-                    "type": "function",
-                    "function": {
-                        "name": message.tool_name,
-                        "arguments": json.dumps(message.tool_arguments or {}),
-                    },
-                }],
+                "tool_calls": [
+                    {
+                        "id": message.tool_call_id,
+                        "type": "function",
+                        "function": {
+                            "name": message.tool_name,
+                            "arguments": json.dumps(message.tool_arguments or {}),
+                        },
+                    }
+                ],
             }
         return {"role": message.role.value, "content": message.content}
 
@@ -106,5 +112,7 @@ class FakeModelGateway(ModelGateway):
     async def generate(self, request: GatewayRequest) -> GatewayResponse:
         self.requests.append(request)
         if not self.responses:
-            return GatewayResponse(text="No scripted model response.", provider=self.provider, model=request.model)
+            return GatewayResponse(
+                text="No scripted model response.", provider=self.provider, model=request.model
+            )
         return self.responses.pop(0)
