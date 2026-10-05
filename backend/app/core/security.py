@@ -139,6 +139,8 @@ def decode_access_token(token: str) -> AccessTokenPayload:
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],  # never trust token header
         )
+    except RecursionError as exc:
+        raise InvalidTokenError("Token validation failed.") from exc
     except jwt.PyJWTError as exc:
         raise InvalidTokenError("Token validation failed.") from exc
 

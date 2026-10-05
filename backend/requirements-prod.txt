@@ -10,7 +10,7 @@ python-dotenv==1.2.2
 python-multipart==0.0.31
 prometheus-client==0.22.1
 sentry-sdk[fastapi]==2.55.0
-PyJWT[crypto]==2.13.0
+PyJWT[crypto]==2.15.1
 pwdlib[argon2]==0.3.0
 passlib[bcrypt]==1.7.4
 email-validator==2.3.0

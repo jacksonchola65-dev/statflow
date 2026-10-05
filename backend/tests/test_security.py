@@ -7,6 +7,7 @@ All functions under test are synchronous; no pytest-asyncio needed.
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import app.core.security as security
 import jwt
 import pytest
 from app.core.config import settings
@@ -140,6 +141,18 @@ def test_tampered_signature_raises():
 
     with pytest.raises(InvalidTokenError):
         decode_access_token(tampered_token)
+
+
+def test_recursion_error_during_jwt_decode_raises_invalid_token_error(monkeypatch):
+    """A raw decoder RecursionError must be normalized as an invalid token."""
+
+    def raise_recursion_error(*args, **kwargs):
+        raise RecursionError
+
+    monkeypatch.setattr(security.jwt, "decode", raise_recursion_error)
+
+    with pytest.raises(InvalidTokenError, match="Token validation failed"):
+        decode_access_token("malicious-token")
 
 
 def test_missing_required_claim_raises():

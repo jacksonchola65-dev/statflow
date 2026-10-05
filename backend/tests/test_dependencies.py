@@ -86,6 +86,16 @@ def _expired_token(user_id: uuid.UUID, role: UserRole) -> str:
     return _jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+def _deeply_nested_token() -> str:
+    """Build a correctly signed JWT whose JSON payload exceeds parser recursion depth."""
+    nested_payload = '{"nested":' + "[" * 1100 + "0" + "]" * 1100 + "}"
+    return _jwt.api_jws.PyJWS().encode(
+        nested_payload.encode("utf-8"),
+        settings.JWT_SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -152,6 +162,27 @@ async def test_missing_cookie_returns_401(auth_client):
 async def test_malformed_token_returns_401(auth_client):
     """Cookie present but value is not a JWT → 401."""
     resp = await auth_client.get("/test/me", cookies={settings.AUTH_COOKIE_NAME: "not-a-jwt"})
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_deeply_nested_jwt_payload_returns_401(auth_client):
+    """A validly signed token with a deeply nested payload fails authentication."""
+    token = _deeply_nested_token()
+    resp = await auth_client.get("/test/me", cookies={settings.AUTH_COOKIE_NAME: token})
+    assert resp.status_code == 401
+    assert resp.json() == {"detail": "Authentication required."}
+
+
+@pytest.mark.asyncio
+async def test_raw_recursion_error_during_token_decode_returns_401(auth_client, monkeypatch):
+    """A raw RecursionError from token decoding is treated as authentication failure."""
+
+    def raise_recursion_error(token):
+        raise RecursionError
+
+    monkeypatch.setattr("app.core.dependencies.decode_access_token", raise_recursion_error)
+    resp = await auth_client.get("/test/me", cookies={settings.AUTH_COOKIE_NAME: "token"})
     assert resp.status_code == 401
 
 
