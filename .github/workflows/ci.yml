@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}/backend
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/statflow
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/statflow_test
       TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/statflow_test
     services:
       postgres:
